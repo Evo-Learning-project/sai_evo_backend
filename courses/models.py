@@ -11,6 +11,7 @@ class Course(models.Model):
         "users.User",
         on_delete=models.PROTECT,
         related_name="created_courses",
+        null=True,
     )
     teachers = models.ManyToManyField("users.User", blank=True)
     hidden = models.BooleanField(default=False)
@@ -46,6 +47,7 @@ class Exercise(models.Model):
         null=True,
         blank=True,
         related_name="sub_exercises",
+        on_delete=models.CASCADE,
     )
     tags = models.ManyToManyField("tags.Tag", blank=True)
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
@@ -131,7 +133,9 @@ class Event(models.Model):
     progression_rule = models.PositiveIntegerField(choices=PROGRESSION_RULES)
     state = models.PositiveIntegerField(choices=EVENT_STATES)
     template = models.ForeignKey(
-        "EventTemplate", related_name="events", on_delete=models.PROTECT
+        "EventTemplate",
+        related_name="events",
+        on_delete=models.PROTECT,
     )
 
     def __str__(self):
@@ -140,24 +144,168 @@ class Event(models.Model):
     # TODO unique [course, name]
 
 
+class EventTemplate(models.Model):
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="event_templates",
+    )
+    name = models.TextField(blank=True)
+    public = models.BooleanField()
+    creator = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+
+
+class EventTemplateRule(models.Model):
+    TAG_BASED = 0
+    ID_BASED = 1
+
+    RULE_TYPES = (
+        (TAG_BASED, "Tag-based rule"),
+        (ID_BASED, "Exercise ID-based rule"),
+    )
+
+    template = models.ForeignKey(
+        EventTemplate,
+        on_delete=models.CASCADE,
+        related_name="rules",
+    )
+    position = models.PositiveIntegerField()
+    rule_type = models.PositiveSmallIntegerField(choices=RULE_TYPES)
+    exercises = models.ManyToManyField(
+        "courses.Exercise",
+        blank=True,
+    )
+
+
+class EventTemplateRuleClause(models.Model):
+    rule = models.ForeignKey(EventTemplateRule, on_delete=models.CASCADE)
+    tags = models.ManyToManyField("tags.Tag")
+
+
+class EventInstance(models.Model):
+    """
+    Represents a concrete instance of an event. The event template is applied to get a
+    concrete list of exercises assigned to the instance applying the template rules
+    """
+
+    event = models.ForeignKey(
+        Event,
+        related_name="instances",
+        on_delete=models.PROTECT,
+    )
+    exercises = models.ManyToManyField(
+        Exercise,
+        through="EventInstanceSlot",
+        blank=True,
+    )
+
+
+class EventInstanceSlot(models.Model):
+    event_instance = models.ForeignKey(
+        EventInstance,
+        related_name="slots",
+        on_delete=models.CASCADE,
+    )
+    exercise = models.ForeignKey(
+        Exercise,
+        related_name="slots",
+        on_delete=models.CASCADE,
+    )
+    position = models.PositiveIntegerField()
+
+
+class ParticipationAssessment(models.Model):
+    """
+    Represents the assessment (score, comments) of the participation to an event, either
+    issued by a teacher or compiled automatically
+    """
+
+    NOT_GRADED = 0
+    PARTIALLY_GRADED = 1
+    FULLY_GRADED = 2
+
+    GRADING_STATES = (
+        (NOT_GRADED, "Not graded"),
+        (PARTIALLY_GRADED, "Partially graded"),
+        (FULLY_GRADED, "Fully graded"),
+    )
+
+    state = models.PositiveSmallIntegerField(choices=GRADING_STATES, default=NOT_GRADED)
+
+
+class ParticipationAssessmentSlot(models.Model):
+    NOT_GRADED = 0
+    GRADED = 1
+
+    GRADING_STATES = (
+        (NOT_GRADED, "Not graded"),
+        (GRADED, "Graded"),
+    )
+    assessment = models.ForeignKey(
+        ParticipationAssessment,
+        related_name="slots",
+        on_delete=models.CASCADE,
+    )
+    position = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True)
+    _score = models.DecimalField(max_digits=5, decimal_places=2)
+
+    @property
+    def score(self):
+        if self._score is None:
+            # TODO apply rule
+            pass
+        return self._score
+
+    @score.setter
+    def score(self, value):
+        self._score = value
+
+    @property
+    def state(self):
+        return self.GRADED if self.score is not None else self.NOT_GRADED
+
+
+class ParticipationSubmission(models.Model):
+    pass
+
+
+class ParticipationSubmissionSlot(models.Model):
+    submission = models.ForeignKey(
+        ParticipationSubmission,
+        on_delete=models.CASCADE,
+        related_name="slots",
+    )
+    position = models.PositiveIntegerField()
+    seen_at = models.DateTimeField(null=True, blank=True)
+    answered_at = models.DateTimeField(null=True, blank=True)
+    selected_choice = models.ForeignKey(
+        ExerciseChoice,
+        on_delete=models.PROTECT,
+    )
+    answer_text = models.TextField(blank=True)
+
+
 class EventParticipation(models.Model):
     IN_PROGRESS = 0
     TURNED_IN = 1
-    AWAITING_MANUAL_GRADING = 2
-    GRADED = 3
 
     PARTICIPATION_STATES = (
         (IN_PROGRESS, "In progress"),
         (TURNED_IN, "Turned in"),
-        (AWAITING_MANUAL_GRADING, "Awaiting manual grading"),
-        (GRADED, "Graded"),
     )
 
-    event = models.ForeignKey(
-        Event,
+    event_instance = models.ForeignKey(
+        EventInstance,
         related_name="participations",
         on_delete=models.PROTECT,
     )
+    assessment = models.OneToOneField(ParticipationAssessment, on_delete=models.CASCADE)
+    submission = models.OneToOneField(ParticipationSubmission, on_delete=models.CASCADE)
     user = models.ForeignKey(
         User,
         related_name="events",
@@ -166,8 +314,7 @@ class EventParticipation(models.Model):
     begin_timestamp = models.DateTimeField(auto_now_add=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
     state = models.PositiveSmallIntegerField(choices=PARTICIPATION_STATES)
-    assigned_exercises = models.ManyToManyField(Exercise, through="AssignedExercise")
-    current_exercise_cursor = models.PositiveIntegerField(null=True, blank=True)
+    current_slot_index = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
         return str(self.event) + " - " + str(self.user)
@@ -177,41 +324,19 @@ class EventParticipation(models.Model):
         return self.assigned_exercises.get(position=self.current_exercise_cursor)
 
 
-class AssignedExercise(models.Model):
-    exercise = models.ForeignKey(Exercise, on_delete=models.SET_NULL)
-    participation = models.ForeignKey(EventParticipation, on_delete=models.CASCADE)
-    position = models.PositiveIntegerField()
-    selected_choice = models.ForeignKey(ExerciseChoice, null=True, blank=True)
-    answer_text = models.TextField(blank=True)
-    comment = models.TextField(blank=True)
-    seen_at = models.DateTimeField(null=True, blank=True)
-    answered_at = models.DateTimeField(null=True, blank=True)
-    _score = models.DecimalField(decimal_places=2)
+# class ExerciseGradingRule(models.Model):
+#     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+#     event = models.ForeignKey(
+#         Event,
+#         on_delete=models.CASCADE,
+#         related_name="exercise_grading_rules",
+#     )
+#     points_for_correct = models.DecimalField(decimal_places=2)
+#     points_for_blank = models.DecimalField(decimal_places=2)
+#     points_for_incorrect = models.DecimalField(decimal_places=2)
+#     minimum_score_threshold = models.DecimalField(decimal_places=2)
+#     time_to_answer = models.PositiveIntegerField(null=True, blank=True)
+#     enforce_timeout = models.BooleanField(default=True)
+#     expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
 
-    @property
-    def score(self):
-        if self._score is None:
-            return apply_grading_rule(self)
-        return self._score
-
-    @score.setter
-    def score(self, value):
-        self._score = value
-
-
-class ExerciseGradingRule(models.Model):
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
-    event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="exercise_grading_rules",
-    )
-    points_for_correct = models.DecimalField(decimal_places=2)
-    points_for_blank = models.DecimalField(decimal_places=2)
-    points_for_incorrect = models.DecimalField(decimal_places=2)
-    minimum_score_threshold = models.DecimalField(decimal_places=2)
-    time_to_answer = models.PositiveIntegerField(null=True, blank=True)
-    enforce_timeout = models.BooleanField(default=True)
-    expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
-
-    # TODO unique constraint [exercise, event]
+# TODO unique constraint [exercise, event]
