@@ -29,6 +29,7 @@ ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = "users.User"
 
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Application definition
 
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     "courses",
     "users",
     "tags",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [

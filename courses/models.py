@@ -324,19 +324,19 @@ class EventParticipation(models.Model):
         return self.assigned_exercises.get(position=self.current_exercise_cursor)
 
 
-# class ExerciseGradingRule(models.Model):
-#     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
-#     event = models.ForeignKey(
-#         Event,
-#         on_delete=models.CASCADE,
-#         related_name="exercise_grading_rules",
-#     )
-#     points_for_correct = models.DecimalField(decimal_places=2)
-#     points_for_blank = models.DecimalField(decimal_places=2)
-#     points_for_incorrect = models.DecimalField(decimal_places=2)
-#     minimum_score_threshold = models.DecimalField(decimal_places=2)
-#     time_to_answer = models.PositiveIntegerField(null=True, blank=True)
-#     enforce_timeout = models.BooleanField(default=True)
-#     expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
+class ExerciseGradingRule(models.Model):
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="exercise_grading_rules",
+    )
+    points_for_correct = models.DecimalField(decimal_places=2)
+    points_for_blank = models.DecimalField(decimal_places=2)
+    points_for_incorrect = models.DecimalField(decimal_places=2)
+    minimum_score_threshold = models.DecimalField(decimal_places=2)
+    time_to_answer = models.PositiveIntegerField(null=True, blank=True)
+    enforce_timeout = models.BooleanField(default=True)
+    expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
 
-# TODO unique constraint [exercise, event]
+    # TODO unique constraint [exercise, event]
