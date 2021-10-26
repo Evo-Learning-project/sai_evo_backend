@@ -166,7 +166,7 @@ class EventTemplate(models.Model):
     )
 
 
-class EventTemplateRule(models.Model):
+class EventTemplateRule(SlotNumberedModel):
     TAG_BASED = 0
     ID_BASED = 1
 
@@ -180,7 +180,6 @@ class EventTemplateRule(models.Model):
         on_delete=models.CASCADE,
         related_name="rules",
     )
-    position = models.PositiveIntegerField()
     rule_type = models.PositiveSmallIntegerField(choices=RULE_TYPES)
     exercises = models.ManyToManyField(
         "courses.Exercise",
