@@ -252,7 +252,12 @@ class ParticipationAssessmentSlot(models.Model):
     )
     position = models.PositiveSmallIntegerField()
     comment = models.TextField(blank=True)
-    _score = models.DecimalField(max_digits=5, decimal_places=2)
+    _score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
 
     @property
     def score(self):
