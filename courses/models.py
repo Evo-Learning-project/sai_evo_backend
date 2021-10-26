@@ -4,6 +4,13 @@ from users.models import User
 from .logic.grading import apply_grading_rule
 
 
+class SlotNumberedModel(models.Model):
+    slot_number = models.PositiveIntegerField()
+
+    class Meta:
+        abstract = True
+
+
 class Course(models.Model):
     name = models.TextField(unique=True)
     description = models.TextField(blank=True)
@@ -204,7 +211,7 @@ class EventInstance(models.Model):
     )
 
 
-class EventInstanceSlot(models.Model):
+class EventInstanceSlot(SlotNumberedModel):
     event_instance = models.ForeignKey(
         EventInstance,
         related_name="slots",
@@ -215,7 +222,15 @@ class EventInstanceSlot(models.Model):
         related_name="slots",
         on_delete=models.CASCADE,
     )
-    position = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["event_instance_id", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event_instance_id", "slot_number"],
+                name="event_instance_unique_slot_number",
+            )
+        ]
 
 
 class ParticipationAssessment(models.Model):
@@ -237,7 +252,7 @@ class ParticipationAssessment(models.Model):
     state = models.PositiveSmallIntegerField(choices=GRADING_STATES, default=NOT_GRADED)
 
 
-class ParticipationAssessmentSlot(models.Model):
+class ParticipationAssessmentSlot(SlotNumberedModel):
     NOT_GRADED = 0
     GRADED = 1
 
@@ -250,7 +265,6 @@ class ParticipationAssessmentSlot(models.Model):
         related_name="slots",
         on_delete=models.CASCADE,
     )
-    position = models.PositiveSmallIntegerField()
     comment = models.TextField(blank=True)
     _score = models.DecimalField(
         max_digits=5,
@@ -258,6 +272,15 @@ class ParticipationAssessmentSlot(models.Model):
         null=True,
         blank=True,
     )
+
+    class Meta:
+        ordering = ["assessment_id", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["assessment_id", "slot_number"],
+                name="assessment_unique_slot_number",
+            )
+        ]
 
     @property
     def score(self):
@@ -279,13 +302,12 @@ class ParticipationSubmission(models.Model):
     pass
 
 
-class ParticipationSubmissionSlot(models.Model):
+class ParticipationSubmissionSlot(SlotNumberedModel):
     submission = models.ForeignKey(
         ParticipationSubmission,
         on_delete=models.CASCADE,
         related_name="slots",
     )
-    position = models.PositiveIntegerField()
     seen_at = models.DateTimeField(null=True, blank=True)
     answered_at = models.DateTimeField(null=True, blank=True)
     selected_choice = models.ForeignKey(
@@ -293,6 +315,15 @@ class ParticipationSubmissionSlot(models.Model):
         on_delete=models.PROTECT,
     )
     answer_text = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["submission_id", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["submission_id", "slot_number"],
+                name="participation_submission_unique_slot_number",
+            )
+        ]
 
 
 class EventParticipation(models.Model):
@@ -319,7 +350,7 @@ class EventParticipation(models.Model):
     begin_timestamp = models.DateTimeField(auto_now_add=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
     state = models.PositiveSmallIntegerField(choices=PARTICIPATION_STATES)
-    current_slot_index = models.PositiveIntegerField(null=True, blank=True)
+    current_slot_number = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self):
         return str(self.event) + " - " + str(self.user)
@@ -336,10 +367,26 @@ class ExerciseGradingRule(models.Model):
         on_delete=models.CASCADE,
         related_name="exercise_grading_rules",
     )
-    points_for_correct = models.DecimalField(decimal_places=2)
-    points_for_blank = models.DecimalField(decimal_places=2)
-    points_for_incorrect = models.DecimalField(decimal_places=2)
-    minimum_score_threshold = models.DecimalField(decimal_places=2)
+    points_for_correct = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=1,
+    )
+    points_for_blank = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+    )
+    points_for_incorrect = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+    )
+    minimum_score_threshold = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+    )
     time_to_answer = models.PositiveIntegerField(null=True, blank=True)
     enforce_timeout = models.BooleanField(default=True)
     expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
