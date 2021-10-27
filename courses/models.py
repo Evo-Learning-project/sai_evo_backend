@@ -312,6 +312,8 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
     selected_choice = models.ForeignKey(
         ExerciseChoice,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     answer_text = models.TextField(blank=True)
 
@@ -339,8 +341,18 @@ class EventParticipation(models.Model):
         related_name="participations",
         on_delete=models.PROTECT,
     )
-    assessment = models.OneToOneField(ParticipationAssessment, on_delete=models.CASCADE)
-    submission = models.OneToOneField(ParticipationSubmission, on_delete=models.CASCADE)
+    assessment = models.OneToOneField(
+        ParticipationAssessment,
+        on_delete=models.CASCADE,
+        related_name="participation",
+        null=True,
+    )
+    submission = models.OneToOneField(
+        ParticipationSubmission,
+        on_delete=models.CASCADE,
+        related_name="participation",
+        null=True,
+    )
     user = models.ForeignKey(
         User,
         related_name="events",
