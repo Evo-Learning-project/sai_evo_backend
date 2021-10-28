@@ -98,12 +98,14 @@ class Event(models.Model):
     IN_CLASS_PRACTICE = 1
     EXAM = 2
     ASSIGNMENT = 3
+    EXTERNAL = 4
 
     EVENT_TYPES = (
         (SELF_SERVICE_PRACTICE, "Self-service practice"),
         (IN_CLASS_PRACTICE, "In-class practice"),
         (EXAM, "Exam"),
         (ASSIGNMENT, "Assignment"),
+        (EXTERNAL, "External resource"),
     )
 
     ALL_EXERCISES_AT_ONCE = 0
@@ -129,6 +131,7 @@ class Event(models.Model):
     )
 
     name = models.TextField()
+    instructions = models.TextField(blank=True)
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
