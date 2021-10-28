@@ -104,6 +104,64 @@ class EventInstanceManager(models.Manager):
         return instance
 
 
+# TODO refactor the three managers below using inheritance from a base class
+class EventInstanceSlotManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .models import EventInstanceSlot
+
+        slot = super().create(*args, **kwargs)
+
+        slot_number = 0
+        # recursively create slots that reference sub-exercises
+        for sub_exercise in slot.exercise.sub_exercises.all():
+            EventInstanceSlot.objects.create(
+                parent=slot,
+                exercise=sub_exercise,
+                slot_number=slot_number,
+            )
+            slot_number += 1
+
+        return slot
+
+
+class ParticipationSubmissionSlotManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .models import ParticipationSubmissionSlot
+
+        slot = super().create(*args, **kwargs)
+
+        slot_number = 0
+        # recursively create slots that reference sub-exercises
+        for sub_exercise in slot.exercise.sub_exercises.all():
+            ParticipationSubmissionSlot.objects.create(
+                parent=slot,
+                exercise=sub_exercise,
+                slot_number=slot_number,
+            )
+            slot_number += 1
+
+        return slot
+
+
+class ParticipationAssessmentSlotManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .models import ParticipationAssessmentSlot
+
+        slot = super().create(*args, **kwargs)
+
+        slot_number = 0
+        # recursively create slots that reference sub-exercises
+        for sub_exercise in slot.exercise.sub_exercises.all():
+            ParticipationAssessmentSlot.objects.create(
+                parent=slot,
+                exercise=sub_exercise,
+                slot_number=slot_number,
+            )
+            slot_number += 1
+
+        return slot
+
+
 class ParticipationSubmissionManager(models.Manager):
     def create(self, *args, **kwargs):
         from .models import ParticipationSubmissionSlot

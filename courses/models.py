@@ -13,6 +13,13 @@ from .managers import (
 
 
 class SlotNumberedModel(models.Model):
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        related_name="sub_slots",
+        on_delete=models.CASCADE,
+    )
     slot_number = models.PositiveIntegerField()
 
     class Meta:
@@ -182,7 +189,7 @@ class EventTemplate(models.Model):
     )
 
 
-class EventTemplateRule(SlotNumberedModel):
+class EventTemplateRule(models.Model):
     TAG_BASED = 0
     ID_BASED = 1
 
@@ -201,6 +208,7 @@ class EventTemplateRule(SlotNumberedModel):
         "courses.Exercise",
         blank=True,
     )
+    target_slot_number = models.PositiveIntegerField()
 
 
 class EventTemplateRuleClause(models.Model):
@@ -318,8 +326,19 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
 
     @property
     def exercise(self):
-        return self.assessment.participation.event_instance.slots.get(
-            slot_number=self.slot_number
+        if self.parent is None:
+            return self.assessment.participation.event_instance.slots.get(
+                slot_number=self.slot_number
+            )
+
+        return (
+            self.assessment.participation.event_instance.slots.get(
+                slot_number=self.parent.slot_number
+            )  # access the corresponding parent slot on the event instance
+            .sub_slots.get(
+                slot_number=self.slot_number
+            )  # get the sub-slot with same number as self
+            .exercise
         )
 
 
@@ -343,11 +362,23 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
     )
     answer_text = models.TextField(blank=True)
     attachment = models.FileField(null=True)
+    # TODO add manytomany to testcases with through model for js exercises
 
     @property
     def exercise(self):
-        return self.submission.participation.event_instance.slots.get(
-            slot_number=self.slot_number
+        if self.parent is None:
+            return self.submission.participation.event_instance.slots.get(
+                slot_number=self.slot_number
+            )
+
+        return (
+            self.submission.participation.event_instance.slots.get(
+                slot_number=self.parent.slot_number
+            )  # access the corresponding parent slot on the event instance
+            .sub_slots.get(
+                slot_number=self.slot_number
+            )  # get the sub-slot with same number as self
+            .exercise
         )
 
     def save(self, *args, **kwargs):
