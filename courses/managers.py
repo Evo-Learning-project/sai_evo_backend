@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
@@ -27,7 +28,29 @@ class ExerciseManager(models.Manager):
 
         choices = kwargs.pop("choices", [])
         testcases = kwargs.pop("testcases", [])
+        sub_exercises = kwargs.pop("sub_exercises", [])
+
         exercise = super().create(*args, **kwargs)
+
+        if (
+            exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
+            or exercise.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE
+            or exercise.exercise_type == Exercise.OPEN_ANSWER
+            or exercise.exercise_type == Exercise.COMPLETION
+            or exercise.exercise_type == Exercise.AGGREGATED
+            or exercise.exercise_type == Exercise.ATTACHMENT
+        ) and len(testcases) > 0:
+            raise ValidationError("Non-JS exercises cannot have test cases")
+
+        if (
+            exercise.exercise_type == Exercise.OPEN_ANSWER
+            or exercise.exercise_type == Exercise.JS
+            or exercise.exercise_type == Exercise.AGGREGATED
+            or exercise.exercise_type == Exercise.ATTACHMENT
+        ) and len(choices) > 0:
+            raise ValidationError(
+                "Open answer, attachment, aggregated, and JS exercises cannot have choices"
+            )
 
         if exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
             # create ExerciseChoice objects related to this exercise
@@ -41,6 +64,7 @@ class ExerciseManager(models.Manager):
                     parent=exercise,
                     exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
                     choices=[choice],
+                    course=exercise.course,
                 )
         elif exercise.exercise_type == Exercise.COMPLETION:
             # for each list of choices in `choices`, create a related
@@ -48,6 +72,7 @@ class ExerciseManager(models.Manager):
             for choice_group in choices:
                 Exercise.objects.create(
                     parent=exercise,
+                    course=exercise.course,
                     exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
                     choices=choice_group,
                 )
@@ -57,8 +82,12 @@ class ExerciseManager(models.Manager):
                 ExerciseTestCase.objects.create(exercise=exercise, **testcase)
         elif exercise.exercise_type == Exercise.AGGREGATED:
             # create sub-exercises related to this exercise
-            for sub_exercise in kwargs.get("sub_exercises"):
-                Exercise.objects.create(parent=exercise, **sub_exercise)
+            for sub_exercise in sub_exercises:
+                Exercise.objects.create(
+                    parent=exercise,
+                    course=exercise.course,
+                    **sub_exercise,
+                )
 
         return exercise
 
@@ -150,7 +179,7 @@ class ParticipationSubmissionSlotManager(models.Manager):
         for sub_exercise in slot.exercise.sub_exercises.all():
             ParticipationSubmissionSlot.objects.create(
                 parent=slot,
-                exercise=sub_exercise,
+                # exercise=sub_exercise,
                 slot_number=slot_number,
             )
             slot_number += 1
@@ -169,7 +198,7 @@ class ParticipationAssessmentSlotManager(models.Manager):
         for sub_exercise in slot.exercise.sub_exercises.all():
             ParticipationAssessmentSlot.objects.create(
                 parent=slot,
-                exercise=sub_exercise,
+                # exercise=sub_exercise,
                 slot_number=slot_number,
             )
             slot_number += 1

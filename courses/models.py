@@ -266,6 +266,16 @@ class EventInstanceSlot(SlotNumberedModel):
             )
         ]
 
+    @property
+    def submission(self):
+        # TODO implement
+        pass
+
+    @property
+    def assessment(self):
+        # TODO implement
+        pass
+
 
 class ParticipationAssessment(models.Model):
     """
