@@ -4,9 +4,14 @@ from django.db.models import Q
 
 class ExerciseManager(models.Manager):
     def create(self, *args, **kwargs):
+        """
+        Creates a new exercise and the correct related entities (choices,
+        test cases) depending on the exercise type
+        """
         from .models import Exercise, ExerciseChoice, ExerciseTestCase
 
-        choices = kwargs.pop("choices")
+        choices = kwargs.pop("choices", [])
+        testcases = kwargs.pop("testcases", [])
         exercise = super().create(*args, **kwargs)
 
         if exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
@@ -33,7 +38,7 @@ class ExerciseManager(models.Manager):
                 )
         elif exercise.exercise_type == Exercise.JS:
             # create ExerciseTestcase objects related to this exercise
-            for testcase in kwargs.get("testcases"):
+            for testcase in testcases:
                 ExerciseTestCase.objects.create(exercise=exercise, **testcase)
         elif exercise.exercise_type == Exercise.AGGREGATED:
             # create sub-exercises related to this exercise

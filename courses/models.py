@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from users.models import User
 
@@ -315,6 +316,12 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
     def state(self):
         return self.GRADED if self.score is not None else self.NOT_GRADED
 
+    @property
+    def exercise(self):
+        return self.assessment.participation.event_instance.slots.get(
+            slot_number=self.slot_number
+        )
+
 
 class ParticipationSubmission(models.Model):
     objects = ParticipationSubmissionManager()
@@ -335,6 +342,26 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
         blank=True,
     )
     answer_text = models.TextField(blank=True)
+    attachment = models.FileField(null=True)
+
+    @property
+    def exercise(self):
+        return self.submission.participation.event_instance.slots.get(
+            slot_number=self.slot_number
+        )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def clean(self, *args, **kwargs):
+        if self.exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+            if len(self.answer_text) > 0 or self.attachment is not None:
+                raise ValidationError(
+                    "Multiple choice questions cannot have an open answer or attachment submission"
+                )
+        elif self.selected_choice not in self.exercise.choices.all():
+            raise ValidationError("Invalid choice selected")
 
     class Meta:
         ordering = ["submission_id", "slot_number"]
