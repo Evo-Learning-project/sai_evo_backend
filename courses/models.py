@@ -2,6 +2,13 @@ from django.db import models
 from users.models import User
 
 from .logic.grading import apply_grading_rule
+from .managers import (
+    EventInstanceManager,
+    EventParticipationManager,
+    ExerciseManager,
+    ParticipationAssessmentManager,
+    ParticipationSubmissionManager,
+)
 
 
 class SlotNumberedModel(models.Model):
@@ -37,8 +44,8 @@ class Exercise(models.Model):
     ATTACHMENT = 6
 
     EXERCISE_TYPES = (
-        (MULTIPLE_CHOICE_SINGLE_POSSIBLE, "Multiple choice single possible"),
-        (MULTIPLE_CHOICE_MULTIPLE_POSSIBLE, "Multiple choice multiple possible"),
+        (MULTIPLE_CHOICE_SINGLE_POSSIBLE, "Multiple choice, single possible"),
+        (MULTIPLE_CHOICE_MULTIPLE_POSSIBLE, "Multiple choice, multiple possible"),
         (OPEN_ANSWER, "Open answer"),
         (COMPLETION, "Completion"),
         (AGGREGATED, "Aggregated"),
@@ -58,9 +65,11 @@ class Exercise(models.Model):
     )
     tags = models.ManyToManyField("tags.Tag", blank=True)
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
-    text = models.TextField()
+    text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
     draft = models.BooleanField(default=False)
+
+    objects = ExerciseManager()
 
     def __str__(self):
         return self.text[:100]
@@ -212,6 +221,8 @@ class EventInstance(models.Model):
         blank=True,
     )
 
+    objects = EventInstanceManager()
+
 
 class EventInstanceSlot(SlotNumberedModel):
     event_instance = models.ForeignKey(
@@ -252,6 +263,8 @@ class ParticipationAssessment(models.Model):
     )
 
     state = models.PositiveSmallIntegerField(choices=GRADING_STATES, default=NOT_GRADED)
+
+    objects = ParticipationAssessmentManager()
 
 
 class ParticipationAssessmentSlot(SlotNumberedModel):
@@ -301,7 +314,7 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
 
 
 class ParticipationSubmission(models.Model):
-    pass
+    objects = ParticipationSubmissionManager()
 
 
 class ParticipationSubmissionSlot(SlotNumberedModel):
@@ -365,6 +378,8 @@ class EventParticipation(models.Model):
     end_timestamp = models.DateTimeField(null=True, blank=True)
     state = models.PositiveSmallIntegerField(choices=PARTICIPATION_STATES)
     current_slot_number = models.PositiveIntegerField(null=True, blank=True)
+
+    objects = EventParticipationManager()
 
     def __str__(self):
         return str(self.event) + " - " + str(self.user)

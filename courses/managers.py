@@ -1,23 +1,46 @@
 from django.db import models
 from django.db.models import Q
 
-# class ExerciseQuerySet(models.QuerySet):
-#     def from_template(self, template):
-#         from .models import Exercise
 
-#         exercises = Exercise.objects.all()
-#         condition = Q()
-#         for rule in template.rules.all():
-#             rule_qs = exercises
-#             for clause in rule.clauses.all():
+class ExerciseManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .models import Exercise, ExerciseChoice, ExerciseTestCase
 
+        choices = kwargs.pop("choices")
+        exercise = super().create(*args, **kwargs)
 
-# class ExerciseManager(models.Manager):
-#     def get_queryset(self):
-#         return ExerciseQuerySet(self.model, using=self._db)
+        if exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+            # create ExerciseChoice objects related to this exercise
+            for choice in choices:
+                ExerciseChoice.objects.create(exercise=exercise, **choice)
+        elif exercise.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
+            for choice in choices:
+                # create a sub-exercise with no text and a single choice for
+                # each of the choices supplied
+                Exercise.objects.create(
+                    parent=exercise,
+                    exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                    choices=[choice],
+                )
+        elif exercise.exercise_type == Exercise.COMPLETION:
+            # for each list of choices in `choices`, create a related
+            # sub-exercise with no text and those choices
+            for choice_group in choices:
+                Exercise.objects.create(
+                    parent=exercise,
+                    exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                    choices=choice_group,
+                )
+        elif exercise.exercise_type == Exercise.JS:
+            # create ExerciseTestcase objects related to this exercise
+            for testcase in kwargs.get("testcases"):
+                ExerciseTestCase.objects.create(exercise=exercise, **testcase)
+        elif exercise.exercise_type == Exercise.AGGREGATED:
+            # create sub-exercises related to this exercise
+            for sub_exercise in kwargs.get("sub_exercises"):
+                Exercise.objects.create(parent=exercise, **sub_exercise)
 
-#     def from_template(self, template):
-#         return self.get_queryset.from_template(template=template)
+        return exercise
 
 
 class EventParticipationManager(models.Manager):
