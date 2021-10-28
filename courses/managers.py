@@ -1,4 +1,23 @@
 from django.db import models
+from django.db.models import Q
+
+# class ExerciseQuerySet(models.QuerySet):
+#     def from_template(self, template):
+#         from .models import Exercise
+
+#         exercises = Exercise.objects.all()
+#         condition = Q()
+#         for rule in template.rules.all():
+#             rule_qs = exercises
+#             for clause in rule.clauses.all():
+
+
+# class ExerciseManager(models.Manager):
+#     def get_queryset(self):
+#         return ExerciseQuerySet(self.model, using=self._db)
+
+#     def from_template(self, template):
+#         return self.get_queryset.from_template(template=template)
 
 
 class EventParticipationManager(models.Manager):
