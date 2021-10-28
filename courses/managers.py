@@ -2,7 +2,22 @@ from django.db import models
 from django.db.models import Q
 
 
+class ExerciseQuerySet(models.QuerySet):
+    def base_exercises(self):
+        """
+        Returns the exercises that don't have a parent foreign key
+        (i.e. that aren't a sub-exercise)
+        """
+        return self.filter(parent__isnull=True)
+
+
 class ExerciseManager(models.Manager):
+    def get_queryset(self):
+        return ExerciseQuerySet(self.model, using=self._db)
+
+    def base_exercises(self):
+        return self.get_queryset().base_exercises()
+
     def create(self, *args, **kwargs):
         """
         Creates a new exercise and the correct related entities (choices,
@@ -104,7 +119,7 @@ class EventInstanceManager(models.Manager):
         return instance
 
 
-# TODO refactor the three managers below using inheritance from a base class
+# TODO refactor the three managers below using inheritance from a base class (reminder: you can use self.model in the manager)
 class EventInstanceSlotManager(models.Manager):
     def create(self, *args, **kwargs):
         from .models import EventInstanceSlot
