@@ -131,12 +131,14 @@ class Event(models.Model):
     PLANNED = 1
     OPEN = 2
     CLOSED = 3
+    LIMITED_ACCESS = 4
 
     EVENT_STATES = (
         (DRAFT, "Draft"),
         (PLANNED, "Planned"),
         (OPEN, "Open"),
         (CLOSED, "Closed"),
+        (LIMITED_ACCESS, "Access limited to certain students"),
     )
 
     name = models.TextField()
@@ -151,6 +153,7 @@ class Event(models.Model):
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
     progression_rule = models.PositiveIntegerField(choices=PROGRESSION_RULES)
     state = models.PositiveIntegerField(choices=EVENT_STATES)
+    limit_access_to = models.ManyToManyField("users.User", blank=True)
     template = models.ForeignKey(
         "EventTemplate",
         related_name="events",
