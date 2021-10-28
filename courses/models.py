@@ -210,6 +210,15 @@ class EventTemplateRule(models.Model):
     )
     target_slot_number = models.PositiveIntegerField()
 
+    class Meta:
+        ordering = ["template_id", "target_slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["template_id", "target_slot_number"],
+                name="template_unique_target_slot_number",
+            )
+        ]
+
 
 class EventTemplateRuleClause(models.Model):
     rule = models.ForeignKey(EventTemplateRule, on_delete=models.CASCADE)
