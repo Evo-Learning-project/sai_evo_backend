@@ -6,6 +6,8 @@ from .logic.grading import apply_grading_rule
 from .managers import (
     EventInstanceManager,
     EventParticipationManager,
+    EventTemplateManager,
+    EventTemplateRuleManager,
     ExerciseManager,
     ParticipationAssessmentManager,
     ParticipationSubmissionManager,
@@ -188,6 +190,8 @@ class EventTemplate(models.Model):
         null=True,
     )
 
+    objects = EventTemplateManager()
+
 
 class EventTemplateRule(models.Model):
     TAG_BASED = 0
@@ -209,6 +213,8 @@ class EventTemplateRule(models.Model):
         blank=True,
     )
     target_slot_number = models.PositiveIntegerField()
+
+    objects = EventTemplateRuleManager()
 
     class Meta:
         ordering = ["template_id", "target_slot_number"]

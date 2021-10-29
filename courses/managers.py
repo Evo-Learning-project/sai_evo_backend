@@ -148,7 +148,7 @@ class EventInstanceManager(models.Manager):
         return instance
 
 
-# TODO refactor the three managers below using inheritance from a base class (reminder: you can use self.model in the manager)
+# TODO refactor the three slot managers below using inheritance from a base class (reminder: you can use self.model in the manager)
 class EventInstanceSlotManager(models.Manager):
     def create(self, *args, **kwargs):
         from .models import EventInstanceSlot
@@ -232,3 +232,47 @@ class ParticipationAssessmentManager(models.Manager):
             )
 
         return assessment
+
+
+class EventTemplateManager(models.Model):
+    def create(self, *args, **kwargs):
+        from .models import EventTemplateRule
+
+        rules = kwargs.pop("rules")
+        template = super().create(*args, **kwargs)
+
+        for rule in rules:
+            EventTemplateRule.objects.create(template=template, **rule)
+
+        return template
+
+
+class EventTemplateRuleManager(models.Model):
+    def create(self, *args, **kwargs):
+        """
+        Creates an EventTemplateRule.
+
+        If the rule is ID-based, expects to receive an iterable of Exercise
+        If the rule is tag-based, expectes to receive a list of iterables of Tag
+        """
+        from .models import EventTemplateRule, EventTemplateRuleClause
+
+        tags = kwargs.pop("tags", [])
+        exercises = kwargs.pop("exercises", [])
+
+        rule = super().create(*args, **kwargs)
+
+        if rule.rule_type == EventTemplateRule.ID_BASED:
+            if len(tags) > 0:
+                raise ValidationError("ID-based rules cannot have tag clauses")
+            rule.exercises.set(exercises)
+        else:  # tag-based rule
+            if len(exercises) > 0:
+                raise ValidationError(
+                    "Tag-based rules cannot refer to specific exercises"
+                )
+            for tag_group in tags:
+                clause = EventTemplateRuleClause.objects.create(rule=rule)
+                clause.tags.set(tag_group)
+
+        return rule

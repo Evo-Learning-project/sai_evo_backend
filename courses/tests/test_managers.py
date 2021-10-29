@@ -310,3 +310,37 @@ class ExerciseManagerTestCase(TestCase):
         self.assertNotIn(e2, Exercise.objects.base_exercises())
         self.assertNotIn(e3, Exercise.objects.base_exercises())
         self.assertNotIn(e5, Exercise.objects.base_exercises())
+
+
+class SlotModelsManagerTestCase(TestCase):
+    def setUp(self):
+        pass
+
+    def test_recursive_slot_creation(self):
+        # show that when creating a slot that contains an exercise which sub-exercises,
+        # slots for the sub-exercises are recursively created as well
+        pass
+
+    # TODO this goes in test_models.py
+    # def test_exercise_property(self):
+    #     # show that the `exercise` property refers to the correct exercise
+    #     pass
+
+
+class EventTemplateManagerTestCase(TestCase):
+    def setUp(self):
+        pass
+
+    def test_event_template_creation(self):
+        # show that the manager creates an EventTemplate and its related EventTemplateRules
+        pass
+
+    def test_id_based_event_template_rule_creation(self):
+        # show that the manager creates an ID-based EventTemplateRule and
+        # automatically sets its m2m relation to exercises
+        pass
+
+    def test_tag_based_event_template_rule_creation(self):
+        # show that the manager creates a tag-based EventTemplateRule and automatically
+        # creates its clauses and sets their m2m relation to tags
+        pass
