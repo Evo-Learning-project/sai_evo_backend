@@ -2,6 +2,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from users.models import User
 
+from courses.managers import EventInstanceSlotManager
+
 from .logic.grading import apply_grading_rule
 from .managers import (
     EventInstanceManager,
@@ -158,16 +160,21 @@ class Event(models.Model):
         on_delete=models.PROTECT,
         related_name="events",
     )
-    begin_timestamp = models.DateTimeField()
-    end_timestamp = models.DateTimeField()
+    begin_timestamp = models.DateTimeField(null=True, blank=True)
+    end_timestamp = models.DateTimeField(null=True, blank=True)
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
-    progression_rule = models.PositiveIntegerField(choices=PROGRESSION_RULES)
-    state = models.PositiveIntegerField(choices=EVENT_STATES)
+    progression_rule = models.PositiveIntegerField(
+        choices=PROGRESSION_RULES,
+        default=ALL_EXERCISES_AT_ONCE,
+    )
+    state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
     limit_access_to = models.ManyToManyField("users.User", blank=True)
     template = models.ForeignKey(
         "EventTemplate",
         related_name="events",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
 
     def __str__(self):
@@ -183,11 +190,9 @@ class EventTemplate(models.Model):
         related_name="event_templates",
     )
     name = models.TextField(blank=True)
-    public = models.BooleanField()
+    public = models.BooleanField(default=False)
     creator = models.ForeignKey(
-        "users.User",
-        on_delete=models.SET_NULL,
-        null=True,
+        "users.User", on_delete=models.SET_NULL, null=True, blank=True
     )
 
     objects = EventTemplateManager()
@@ -227,7 +232,11 @@ class EventTemplateRule(models.Model):
 
 
 class EventTemplateRuleClause(models.Model):
-    rule = models.ForeignKey(EventTemplateRule, on_delete=models.CASCADE)
+    rule = models.ForeignKey(
+        EventTemplateRule,
+        related_name="clauses",
+        on_delete=models.CASCADE,
+    )
     tags = models.ManyToManyField("tags.Tag")
 
 
@@ -263,11 +272,13 @@ class EventInstanceSlot(SlotNumberedModel):
         on_delete=models.CASCADE,
     )
 
+    objects = EventInstanceSlotManager()
+
     class Meta:
         ordering = ["event_instance_id", "slot_number"]
         constraints = [
             models.UniqueConstraint(
-                fields=["event_instance_id", "slot_number"],
+                fields=["event_instance_id", "parent", "slot_number"],
                 name="event_instance_unique_slot_number",
             )
         ]

@@ -9,6 +9,7 @@ pyparsing = "*"
 pydot = "*"
 django-extensions = "*"
 pygraphviz = "*"
+coverage = "*"
 
 [dev-packages]
 

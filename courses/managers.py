@@ -12,6 +12,15 @@ class ExerciseQuerySet(models.QuerySet):
         return self.filter(parent__isnull=True)
 
 
+class SlotModelQuerySet(models.QuerySet):
+    def base_slots(self):
+        """
+        Returns the slots that don't have a parent foreign key
+        (i.e. that aren't a sub-slot)
+        """
+        return self.filter(parent__isnull=True)
+
+
 class ExerciseManager(models.Manager):
     def get_queryset(self):
         return ExerciseQuerySet(self.model, using=self._db)
@@ -130,11 +139,11 @@ class EventInstanceManager(models.Manager):
         from .logic.event_instances import get_exercises_from
         from .models import EventInstanceSlot
 
-        instance = super().create(*args, **kwargs)
-        event_template = kwargs["event"].template
-
-        if (exercises := kwargs.get("exercises")) is None:
+        if (exercises := kwargs.pop("exercises"), None) is None:
+            event_template = kwargs["event"].template
             exercises = get_exercises_from(event_template)
+
+        instance = super().create(*args, **kwargs)
 
         slot_number = 0
         for exercise in exercises:
@@ -150,6 +159,12 @@ class EventInstanceManager(models.Manager):
 
 # TODO refactor the three slot managers below using inheritance from a base class (reminder: you can use self.model in the manager)
 class EventInstanceSlotManager(models.Manager):
+    def get_queryset(self):
+        return SlotModelQuerySet(self.model, using=self._db)
+
+    def base_slots(self):
+        return self.get_queryset().base_slots()
+
     def create(self, *args, **kwargs):
         from .models import EventInstanceSlot
 
@@ -160,6 +175,7 @@ class EventInstanceSlotManager(models.Manager):
         for sub_exercise in slot.exercise.sub_exercises.all():
             EventInstanceSlot.objects.create(
                 parent=slot,
+                event_instance=slot.event_instance,
                 exercise=sub_exercise,
                 slot_number=slot_number,
             )
@@ -234,20 +250,26 @@ class ParticipationAssessmentManager(models.Manager):
         return assessment
 
 
-class EventTemplateManager(models.Model):
+class EventTemplateManager(models.Manager):
     def create(self, *args, **kwargs):
         from .models import EventTemplateRule
 
         rules = kwargs.pop("rules")
         template = super().create(*args, **kwargs)
 
+        target_slot_number = 0
         for rule in rules:
-            EventTemplateRule.objects.create(template=template, **rule)
+            EventTemplateRule.objects.create(
+                template=template,
+                target_slot_number=target_slot_number,
+                **rule,
+            )
+            target_slot_number += 1
 
         return template
 
 
-class EventTemplateRuleManager(models.Model):
+class EventTemplateRuleManager(models.Manager):
     def create(self, *args, **kwargs):
         """
         Creates an EventTemplateRule.

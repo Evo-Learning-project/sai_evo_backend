@@ -29,4 +29,4 @@ class Tag(models.Model):
         on_delete=models.CASCADE,
     )
     name = models.TextField()
-    tag_type = models.PositiveSmallIntegerField(choices=TAG_TYPES)
+    tag_type = models.PositiveSmallIntegerField(choices=TAG_TYPES, default=TOPIC_TAG)

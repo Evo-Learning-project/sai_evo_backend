@@ -1,6 +1,15 @@
-from courses.models import Course, Exercise
+from courses.models import (
+    Course,
+    Event,
+    EventInstance,
+    EventTemplate,
+    EventTemplateRule,
+    EventTemplateRuleClause,
+    Exercise,
+)
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from tags.models import Tag
 
 
 class ExerciseManagerTestCase(TestCase):
@@ -312,14 +321,95 @@ class ExerciseManagerTestCase(TestCase):
         self.assertNotIn(e5, Exercise.objects.base_exercises())
 
 
-class SlotModelsManagerTestCase(TestCase):
+class EventInstanceManagerTestCase(TestCase):
     def setUp(self):
-        pass
+        course = Course.objects.create(name="course")
+        self.event = Event.objects.create(
+            name="event", event_type=Event.EXAM, course=course
+        )
+        self.e1 = Exercise.objects.create(
+            text="a",
+            course=course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            choices=[{"text": "aa", "correct": True}],
+        )
+        self.e2 = Exercise.objects.create(
+            text="b",
+            course=course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+            choices=[
+                {"text": "aa", "correct": True},
+                {"text": "aa", "correct": False},
+            ],
+        )
+        self.e3 = Exercise.objects.create(
+            text="c",
+            course=course,
+            exercise_type=Exercise.OPEN_ANSWER,
+        )
+        self.e4 = Exercise.objects.create(
+            text="d",
+            course=course,
+            exercise_type=Exercise.AGGREGATED,
+            sub_exercises=[
+                {
+                    "text": "da",
+                    "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                    "choices": [
+                        {"text": "aa", "correct": True},
+                        {"text": "aa", "correct": False},
+                    ],
+                },
+                {
+                    "text": "db",
+                    "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+                    "choices": [
+                        {"text": "aa", "correct": True},
+                        {"text": "aa", "correct": False},
+                    ],
+                },
+            ],
+        )
+        self.e5 = Exercise.objects.create(
+            text="e",
+            course=course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            choices=[{"text": "aa", "correct": True}],
+        )
 
-    def test_recursive_slot_creation(self):
-        # show that when creating a slot that contains an exercise which sub-exercises,
-        # slots for the sub-exercises are recursively created as well
-        pass
+    def test_creation_no_recursion(self):
+        exercises1 = [self.e1, self.e3, self.e5]
+        instance = EventInstance.objects.create(event=self.event, exercises=exercises1)
+
+        # one slot for each exercise has been created; no recursion since the supplied
+        # exercises don't have any sub-exercises associated
+        self.assertEqual(instance.slots.count(), len(exercises1))
+
+        i = 0
+        for slot in instance.slots.all():
+            self.assertEqual(slot.exercise.pk, exercises1[i].pk)
+            i += 1
+
+    def test_creation_with_recursion(self):
+        # show that sub-slots are recursively created for exercises with sub-exercises
+        exercises2 = [self.e2, self.e4]
+        instance = EventInstance.objects.create(event=self.event, exercises=exercises2)
+
+        # slots have been created for each base exercise
+        self.assertEqual(instance.slots.base_slots().count(), len(exercises2))
+
+        i = 0
+        for slot in instance.slots.base_slots():
+            self.assertEqual(slot.exercise.pk, exercises2[i].pk)
+            j = 0
+            for sub_exercise in slot.exercise.sub_exercises.all():
+                # sub-slots have been recursively created and assigned to the sub-exercises
+                sub_slot = slot.sub_slots.get(slot_number=j)
+                # sub-slots don't appear in a base_slots() queryset
+                self.assertNotIn(sub_slot, instance.slots.base_slots())
+                self.assertEqual(sub_slot.exercise.pk, sub_exercise.pk)
+                j += 1
+            i += 1
 
     # TODO this goes in test_models.py
     # def test_exercise_property(self):
@@ -329,11 +419,84 @@ class SlotModelsManagerTestCase(TestCase):
 
 class EventTemplateManagerTestCase(TestCase):
     def setUp(self):
-        pass
+        self.course = Course.objects.create(name="course")
+        self.event = Event.objects.create(
+            name="event", event_type=Event.EXAM, course=self.course
+        )
+        self.tag1 = Tag.objects.create(name="tag1", course=self.course)
+        self.tag2 = Tag.objects.create(name="tag2", course=self.course)
+        self.tag3 = Tag.objects.create(name="tag3", course=self.course)
+        self.tag4 = Tag.objects.create(name="tag4", course=self.course)
+        self.tag5 = Tag.objects.create(name="tag5", course=self.course)
+        self.tag6 = Tag.objects.create(name="tag6", course=self.course)
+        self.tag7 = Tag.objects.create(name="tag7", course=self.course)
+        self.tag8 = Tag.objects.create(name="tag8", course=self.course)
+        self.e1 = Exercise.objects.create(
+            text="a",
+            course=self.course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            choices=[{"text": "aa", "correct": True}],
+        )
+        self.e2 = Exercise.objects.create(
+            text="b",
+            course=self.course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+            choices=[
+                {"text": "aa", "correct": True},
+                {"text": "aa", "correct": False},
+            ],
+        )
+        self.e3 = Exercise.objects.create(
+            text="c",
+            course=self.course,
+            exercise_type=Exercise.OPEN_ANSWER,
+        )
 
     def test_event_template_creation(self):
         # show that the manager creates an EventTemplate and its related EventTemplateRules
-        pass
+        rules = [
+            {
+                "rule_type": EventTemplateRule.ID_BASED,
+                "exercises": [self.e1, self.e2],
+            },
+            {
+                "rule_type": EventTemplateRule.TAG_BASED,
+                "tags": [
+                    [self.tag1, self.tag2],
+                ],
+            },
+            {
+                "rule_type": EventTemplateRule.TAG_BASED,
+                "tags": [
+                    [self.tag1],
+                    [self.tag2, self.tag3, self.tag4],
+                    [self.tag5, self.tag6],
+                    [self.tag7, self.tag8],
+                ],
+            },
+        ]
+
+        template = EventTemplate.objects.create(course=self.course, rules=rules)
+
+        i = 0
+        for rule in template.rules.all():
+            self.assertEqual(rule.rule_type, rules[i]["rule_type"])
+            if rule.rule_type == EventTemplateRule.ID_BASED:
+                self.assertListEqual(
+                    [e.pk for e in rule.exercises.all()],
+                    [e.pk for e in rules[i]["exercises"]],
+                )
+            else:
+                # show that a clause has been created for each group of tags supplied
+                self.assertEqual(rule.clauses.count(), len(rules[i]["tags"]))
+                j = 0
+                for clause in rule.clauses.all():
+                    self.assertListEqual(
+                        [t.pk for t in clause.tags.all()],
+                        [t.pk for t in rules[i]["tags"][j]],
+                    )
+                    j += 1
+            i += 1
 
     def test_id_based_event_template_rule_creation(self):
         # show that the manager creates an ID-based EventTemplateRule and
