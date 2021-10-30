@@ -497,13 +497,3 @@ class EventTemplateManagerTestCase(TestCase):
                     )
                     j += 1
             i += 1
-
-    def test_id_based_event_template_rule_creation(self):
-        # show that the manager creates an ID-based EventTemplateRule and
-        # automatically sets its m2m relation to exercises
-        pass
-
-    def test_tag_based_event_template_rule_creation(self):
-        # show that the manager creates a tag-based EventTemplateRule and automatically
-        # creates its clauses and sets their m2m relation to tags
-        pass
