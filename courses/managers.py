@@ -139,7 +139,7 @@ class EventInstanceManager(models.Manager):
         from .logic.event_instances import get_exercises_from
         from .models import EventInstanceSlot
 
-        if (exercises := kwargs.pop("exercises"), None) is None:
+        if (exercises := kwargs.pop("exercises", None)) is None:
             event_template = kwargs["event"].template
             exercises = get_exercises_from(event_template)
 

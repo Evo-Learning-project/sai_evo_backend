@@ -1,4 +1,12 @@
-from courses.models import Course, Event, EventTemplate, EventTemplateRule, Exercise
+from courses.logic.event_instances import get_exercises_from
+from courses.models import (
+    Course,
+    Event,
+    EventInstance,
+    EventTemplate,
+    EventTemplateRule,
+    Exercise,
+)
 from django.test import TestCase
 from tags.models import Tag
 
@@ -112,9 +120,8 @@ class EventTemplateManagerTestCase(TestCase):
         self.e6.tags.set([self.tag9, self.tag8])  # eligible for rule 4
 
     def test_get_exercises_from_template(self):
-        # shows the function get_exercises_from(template) correctly applies the rules
+        # show the function get_exercises_from(template) correctly applies the rules
         # of the supplied template to retrieve exercises
-        from courses.logic.event_instances import get_exercises_from
 
         for _ in range(0, 100):
             exercises = get_exercises_from(self.template)
@@ -124,3 +131,29 @@ class EventTemplateManagerTestCase(TestCase):
             )
             self.assertIn(exercises[2].pk, [self.e3.pk, self.e4.pk, self.e5.pk])
             self.assertIn(exercises[3].pk, [self.e6.pk])
+
+    def test_integration_with_event_instance_manager(self):
+        # show passing an EventTemplate to EventInstanceManager generates an
+        # EventInstance with the correct exercises
+
+        for _ in range(0, 100):
+            self.event.template = self.template
+            self.event.save()
+
+            instance = EventInstance.objects.create(event=self.event)
+            self.assertIn(
+                instance.slots.base_slots().get(slot_number=0).exercise.pk,
+                [self.e1.pk, self.e2.pk],
+            )
+            self.assertIn(
+                instance.slots.base_slots().get(slot_number=1).exercise.pk,
+                [self.e1.pk, self.e2.pk, self.e5.pk, self.e6.pk],
+            )
+            self.assertIn(
+                instance.slots.base_slots().get(slot_number=2).exercise.pk,
+                [self.e3.pk, self.e4.pk, self.e5.pk],
+            )
+            self.assertIn(
+                instance.slots.base_slots().get(slot_number=3).exercise.pk,
+                [self.e6.pk],
+            )
