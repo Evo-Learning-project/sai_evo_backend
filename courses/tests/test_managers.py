@@ -497,3 +497,19 @@ class EventTemplateManagerTestCase(TestCase):
                     )
                     j += 1
             i += 1
+
+
+class EventParticipationManagerTestCase(TestCase):
+    def setUp(self):
+        pass
+
+    def test_creation_with_externally_supplied_event_instance(self):
+        # show that when creating an EventParticipation supplying an EventInstance, the corresponding
+        # ParticipationSubmission and ParticipationAssessment are created
+        pass
+
+    def test_creation_without_externally_supplied_event_instance(self):
+        # show that when creating an EventParticipation without supplying an EventInstance, one is created
+        # and assigned to the participation, as well as the corresponding ParticipationSubmission
+        # and ParticipationAssessment
+        pass

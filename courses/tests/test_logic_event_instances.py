@@ -11,7 +11,7 @@ from django.test import TestCase
 from tags.models import Tag
 
 
-class EventTemplateManagerTestCase(TestCase):
+class GetExercisesFromTemplateTestCase(TestCase):
     def setUp(self):
         self.course = Course.objects.create(name="course")
         self.event = Event.objects.create(
@@ -101,13 +101,13 @@ class EventTemplateManagerTestCase(TestCase):
 
         self.template = EventTemplate.objects.create(course=self.course, rules=rules)
 
-        self.e1.tags.set([self.tag1, self.tag3])  # eligible for rule 1 and rule 2
-        self.e2.tags.set([self.tag1, self.tag2])  # eligible for rule 1, rule 2
+        self.e1.tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
+        self.e2.tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
         self.e3.tags.set(
             [self.tag7, self.tag4, self.tag5, self.tag6]
-        )  # eligible for rule 3
+        )  # satisfies rule 3
         self.e4.tags.set(
-            [self.tag7, self.tag4, self.tag5, self.tag8]  # eligible for rule 3
+            [self.tag7, self.tag4, self.tag5, self.tag8]  # satisfies rule 3
         )
         self.e5.tags.set(
             [
@@ -115,9 +115,9 @@ class EventTemplateManagerTestCase(TestCase):
                 self.tag4,
                 self.tag6,
                 self.tag1,
-            ]  # eligible for rule 2 and rule 3
+            ]  # satisfies rule 2 and rule 3
         )
-        self.e6.tags.set([self.tag9, self.tag8])  # eligible for rule 4
+        self.e6.tags.set([self.tag9, self.tag8])  # satisfies rule 4
 
     def test_get_exercises_from_template(self):
         # show the function get_exercises_from(template) correctly applies the rules
