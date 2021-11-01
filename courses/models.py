@@ -2,17 +2,18 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from users.models import User
 
-from courses.managers import EventInstanceSlotManager
-
 from .logic.grading import apply_grading_rule
 from .managers import (
     EventInstanceManager,
+    EventInstanceSlotManager,
     EventParticipationManager,
     EventTemplateManager,
     EventTemplateRuleManager,
     ExerciseManager,
     ParticipationAssessmentManager,
+    ParticipationAssessmentSlotManager,
     ParticipationSubmissionManager,
+    ParticipationSubmissionSlotManager,
 )
 
 
@@ -192,7 +193,10 @@ class EventTemplate(models.Model):
     name = models.TextField(blank=True)
     public = models.BooleanField(default=False)
     creator = models.ForeignKey(
-        "users.User", on_delete=models.SET_NULL, null=True, blank=True
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
 
     objects = EventTemplateManager()
@@ -336,11 +340,13 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
         blank=True,
     )
 
+    objects = ParticipationAssessmentSlotManager()
+
     class Meta:
         ordering = ["assessment_id", "slot_number"]
         constraints = [
             models.UniqueConstraint(
-                fields=["assessment_id", "slot_number"],
+                fields=["assessment_id", "parent_id", "slot_number"],
                 name="assessment_unique_slot_number",
             )
         ]
@@ -363,19 +369,34 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
     @property
     def exercise(self):
         if self.parent is None:
-            return self.assessment.participation.event_instance.slots.get(
-                slot_number=self.slot_number
+            return (
+                self.assessment.participation.event_instance.slots.base_slots()
+                .get(slot_number=self.slot_number)
+                .exercise
             )
 
-        return (
-            self.assessment.participation.event_instance.slots.get(
-                slot_number=self.parent.slot_number
-            )  # access the corresponding parent slot on the event instance
-            .sub_slots.get(
-                slot_number=self.slot_number
-            )  # get the sub-slot with same number as self
-            .exercise
-        )
+        path = reversed(self.ancestors)
+        related_slot = None
+
+        for step in path:
+            # descend the path of ancestors on the related model
+            related_slot = self.assessment.participation.event_instance.slots.get(
+                parent=related_slot, slot_number=step
+            )
+        return related_slot.exercise
+
+    @property
+    def ancestors(self):
+        # returns the slot numbers of all the ancestors of
+        # `self` up to the ancestor base slot
+        ret = [self.slot_number]
+        curr = self
+        while curr.parent is not None:
+            curr = curr.parent
+            ret.append(curr.slot_number)
+
+        print(ret)
+        return ret
 
 
 class ParticipationSubmission(models.Model):
@@ -397,25 +418,42 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
         blank=True,
     )
     answer_text = models.TextField(blank=True)
-    attachment = models.FileField(null=True)
+    attachment = models.FileField(null=True, blank=True)
     # TODO add manytomany to testcases with through model for js exercises
+
+    objects = ParticipationSubmissionSlotManager()
 
     @property
     def exercise(self):
         if self.parent is None:
-            return self.submission.participation.event_instance.slots.get(
-                slot_number=self.slot_number
+            return (
+                self.submission.participation.event_instance.slots.base_slots()
+                .get(slot_number=self.slot_number)
+                .exercise
             )
 
-        return (
-            self.submission.participation.event_instance.slots.get(
-                slot_number=self.parent.slot_number
-            )  # access the corresponding parent slot on the event instance
-            .sub_slots.get(
-                slot_number=self.slot_number
-            )  # get the sub-slot with same number as self
-            .exercise
-        )
+        path = reversed(self.ancestors)
+        related_slot = None
+
+        for step in path:
+            # descend the path of ancestors on the related model
+            related_slot = self.submission.participation.event_instance.slots.get(
+                parent=related_slot, slot_number=step
+            )
+        return related_slot.exercise
+
+    @property
+    def ancestors(self):
+        # returns the slot numbers of all the ancestors of
+        # `self` up to the ancestor base slot
+        ret = [self.slot_number]
+        curr = self
+        while curr.parent is not None:
+            curr = curr.parent
+            ret.append(curr.slot_number)
+
+        print(ret)
+        return ret
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -423,18 +461,21 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
 
     def clean(self, *args, **kwargs):
         if self.exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            if len(self.answer_text) > 0 or self.attachment is not None:
+            if len(self.answer_text) > 0 or bool(self.attachment):
                 raise ValidationError(
                     "Multiple choice questions cannot have an open answer or attachment submission"
                 )
-        elif self.selected_choice not in self.exercise.choices.all():
+        elif (
+            self.selected_choice is not None
+            and self.selected_choice not in self.exercise.choices.all()
+        ):
             raise ValidationError("Invalid choice selected")
 
     class Meta:
         ordering = ["submission_id", "slot_number"]
         constraints = [
             models.UniqueConstraint(
-                fields=["submission_id", "slot_number"],
+                fields=["submission_id", "parent_id", "slot_number"],
                 name="participation_submission_unique_slot_number",
             )
         ]
@@ -473,7 +514,10 @@ class EventParticipation(models.Model):
     )
     begin_timestamp = models.DateTimeField(auto_now_add=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
-    state = models.PositiveSmallIntegerField(choices=PARTICIPATION_STATES)
+    state = models.PositiveSmallIntegerField(
+        choices=PARTICIPATION_STATES,
+        default=IN_PROGRESS,
+    )
     current_slot_number = models.PositiveIntegerField(null=True, blank=True)
 
     objects = EventParticipationManager()

@@ -21,6 +21,52 @@ class SlotModelQuerySet(models.QuerySet):
         return self.filter(parent__isnull=True)
 
 
+class SlottedModelManager(models.Manager):
+    def create_sub_slots_for(self, from_slot, parent):
+        """
+        Recursively creates slots (with given parent) associated to the
+        sub-slots of `from_slot`
+        """
+
+        # name of the argument containing foreign key to parent and its value
+        related_object_kwarg = {
+            self.model._meta.verbose_name.split(" ")[1]: getattr(
+                parent, self.model._meta.verbose_name.split(" ")[1]
+            )
+        }
+
+        slot_model = type(parent)
+
+        for sub_slot in from_slot.sub_slots.all():
+            new_slot = slot_model.objects.create(
+                parent=parent,
+                slot_number=sub_slot.slot_number,
+                **related_object_kwarg,
+            )
+            self.create_sub_slots_for(sub_slot, new_slot)
+
+    def create(self, *args, **kwargs):
+        from django.apps import apps
+
+        obj = super().create(*args, **kwargs)
+
+        # name of the argument containing foreign key to parent and its value
+        related_object_kwarg = {self.model._meta.verbose_name.split(" ")[1]: obj}
+
+        slot_model = apps.get_model(f"courses.{self.model.__name__}Slot")
+
+        for slot in obj.participation.event_instance.slots.base_slots():
+            # create a related slot for each base slot in the related EventInstance
+            new_slot = slot_model.objects.create(
+                slot_number=slot.slot_number,
+                parent=None,
+                **related_object_kwarg,
+            )
+            self.create_sub_slots_for(slot, new_slot)
+
+        return obj
+
+
 class ExerciseManager(models.Manager):
     def get_queryset(self):
         return ExerciseQuerySet(self.model, using=self._db)
@@ -157,7 +203,6 @@ class EventInstanceManager(models.Manager):
         return instance
 
 
-# TODO refactor the three slot managers below using inheritance from a base class (reminder: you can use self.model in the manager)
 class EventInstanceSlotManager(models.Manager):
     def get_queryset(self):
         return SlotModelQuerySet(self.model, using=self._db)
@@ -185,69 +230,63 @@ class EventInstanceSlotManager(models.Manager):
 
 
 class ParticipationSubmissionSlotManager(models.Manager):
-    def create(self, *args, **kwargs):
-        from .models import ParticipationSubmissionSlot
+    def get_queryset(self):
+        return SlotModelQuerySet(self.model, using=self._db)
 
-        slot = super().create(*args, **kwargs)
+    def base_slots(self):
+        return self.get_queryset().base_slots()
 
-        slot_number = 0
-        # recursively create slots that reference sub-exercises
-        for sub_exercise in slot.exercise.sub_exercises.all():
-            ParticipationSubmissionSlot.objects.create(
-                parent=slot,
-                # exercise=sub_exercise,
-                slot_number=slot_number,
-            )
-            slot_number += 1
+    # def create(self, *args, **kwargs):
+    #     from .models import ParticipationSubmissionSlot
 
-        return slot
+    #     slot = super().create(*args, **kwargs)
+
+    #     slot_number = 0
+    #     # recursively create slots that reference sub-exercises
+    #     for sub_exercise in slot.exercise.sub_exercises.all():
+    #         ParticipationSubmissionSlot.objects.create(
+    #             parent=slot,
+    #             submission=slot.submission,
+    #             # exercise=sub_exercise,
+    #             slot_number=slot_number,
+    #         )
+    #         slot_number += 1
+
+    #     return slot
 
 
 class ParticipationAssessmentSlotManager(models.Manager):
-    def create(self, *args, **kwargs):
-        from .models import ParticipationAssessmentSlot
+    def get_queryset(self):
+        return SlotModelQuerySet(self.model, using=self._db)
 
-        slot = super().create(*args, **kwargs)
+    def base_slots(self):
+        return self.get_queryset().base_slots()
 
-        slot_number = 0
-        # recursively create slots that reference sub-exercises
-        for sub_exercise in slot.exercise.sub_exercises.all():
-            ParticipationAssessmentSlot.objects.create(
-                parent=slot,
-                # exercise=sub_exercise,
-                slot_number=slot_number,
-            )
-            slot_number += 1
+    # def create(self, *args, **kwargs):
+    #     from .models import ParticipationAssessmentSlot
 
-        return slot
+    #     slot = super().create(*args, **kwargs)
 
+    #     slot_number = 0
+    #     # recursively create slots that reference sub-exercises
+    #     for sub_exercise in slot.exercise.sub_exercises.all():
+    #         ParticipationAssessmentSlot.objects.create(
+    #             parent=slot,
+    #             assessment=slot.assessment,
+    #             # exercise=sub_exercise,
+    #             slot_number=slot_number,
+    #         )
+    #         slot_number += 1
 
-class ParticipationSubmissionManager(models.Manager):
-    def create(self, *args, **kwargs):
-        from .models import ParticipationSubmissionSlot
-
-        submission = super().create(*args, **kwargs)
-
-        for slot in submission.participation.event_instance.slots.all():
-            ParticipationSubmissionSlot.objects.create(
-                submission=submission, slot_number=slot.slot_number
-            )
-
-        return submission
+    #     return slot
 
 
-class ParticipationAssessmentManager(models.Manager):
-    def create(self, *args, **kwargs):
-        from .models import ParticipationAssessmentSlot
+class ParticipationSubmissionManager(SlottedModelManager):
+    pass
 
-        assessment = super().create(*args, **kwargs)
 
-        for slot in assessment.participation.event_instance.slots.all():
-            ParticipationAssessmentSlot.objects.create(
-                assessment=assessment, slot_number=slot.slot_number
-            )
-
-        return assessment
+class ParticipationAssessmentManager(SlottedModelManager):
+    pass
 
 
 class EventTemplateManager(models.Manager):

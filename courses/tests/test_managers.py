@@ -2,14 +2,18 @@ from courses.models import (
     Course,
     Event,
     EventInstance,
+    EventParticipation,
     EventTemplate,
     EventTemplateRule,
     EventTemplateRuleClause,
     Exercise,
+    ParticipationAssessment,
+    ParticipationSubmission,
 )
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from tags.models import Tag
+from users.models import User
 
 
 class ExerciseManagerTestCase(TestCase):
@@ -501,12 +505,163 @@ class EventTemplateManagerTestCase(TestCase):
 
 class EventParticipationManagerTestCase(TestCase):
     def setUp(self):
-        pass
+        self.user = User.objects.create(email="aaa@bbb.com")
+        self.course = Course.objects.create(name="course")
+        self.event = Event.objects.create(
+            name="event", event_type=Event.EXAM, course=self.course
+        )
+        self.tag1 = Tag.objects.create(name="tag1", course=self.course)
+        self.tag2 = Tag.objects.create(name="tag2", course=self.course)
+        self.tag3 = Tag.objects.create(name="tag3", course=self.course)
+        self.tag4 = Tag.objects.create(name="tag4", course=self.course)
+        self.tag5 = Tag.objects.create(name="tag5", course=self.course)
+        self.tag6 = Tag.objects.create(name="tag6", course=self.course)
+        self.tag7 = Tag.objects.create(name="tag7", course=self.course)
+        self.tag8 = Tag.objects.create(name="tag8", course=self.course)
+        self.tag9 = Tag.objects.create(name="tag9", course=self.course)
+        self.e1 = Exercise.objects.create(
+            text="a",
+            course=self.course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            choices=[{"text": "aa", "correct": True}],
+        )
+        self.e2 = Exercise.objects.create(
+            text="b",
+            course=self.course,
+            exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+            choices=[
+                {"text": "aa", "correct": True},
+                {"text": "aa", "correct": False},
+            ],
+        )
+        self.e3 = Exercise.objects.create(
+            text="c",
+            course=self.course,
+            exercise_type=Exercise.OPEN_ANSWER,
+        )
+        self.e4 = Exercise.objects.create(
+            text="c",
+            course=self.course,
+            exercise_type=Exercise.AGGREGATED,
+            sub_exercises=[
+                {
+                    "text": "aaa",
+                    "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                    "choices": [
+                        {"text": "a", "correct": True},
+                        {"text": "b", "correct": False},
+                    ],
+                },
+                {
+                    "text": "bbb",
+                    "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+                    "choices": [
+                        {"text": "a", "correct": True},
+                        {"text": "b", "correct": False},
+                    ],
+                },
+            ],
+        )
+        self.e5 = Exercise.objects.create(
+            text="c",
+            course=self.course,
+            exercise_type=Exercise.OPEN_ANSWER,
+        )
+        self.e6 = Exercise.objects.create(
+            text="c",
+            course=self.course,
+            exercise_type=Exercise.OPEN_ANSWER,
+        )
+        self.e7 = Exercise.objects.create(
+            text="c",
+            course=self.course,
+            exercise_type=Exercise.OPEN_ANSWER,
+        )
+
+        for i in range(0, 100):
+            Exercise.objects.create(
+                text="dummy exercises " + str(i),
+                exercise_type=Exercise.OPEN_ANSWER,
+                course=self.course,
+            )
+
+        rules = [
+            {
+                "rule_type": EventTemplateRule.ID_BASED,
+                "exercises": [self.e1, self.e2],
+            },
+            {
+                "rule_type": EventTemplateRule.TAG_BASED,
+                "tags": [
+                    [self.tag1, self.tag2],
+                ],
+            },
+            {
+                "rule_type": EventTemplateRule.TAG_BASED,
+                "tags": [
+                    [self.tag7],
+                    [self.tag2, self.tag3, self.tag4],
+                    [self.tag5, self.tag6],
+                ],
+            },
+            {
+                "rule_type": EventTemplateRule.TAG_BASED,
+                "tags": [[self.tag9], [self.tag8]],
+            },
+        ]
+
+        self.template = EventTemplate.objects.create(course=self.course, rules=rules)
+
+        self.e1.tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
+        self.e2.tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
+        self.e3.tags.set(
+            [self.tag7, self.tag4, self.tag5, self.tag6]
+        )  # satisfies rule 3
+        self.e4.tags.set(
+            [self.tag7, self.tag4, self.tag5, self.tag8]  # satisfies rule 3
+        )
+        self.e5.tags.set(
+            [
+                self.tag7,
+                self.tag4,
+                self.tag6,
+                self.tag1,
+            ]  # satisfies rule 2 and rule 3
+        )
+        self.e6.tags.set([self.tag9, self.tag8])  # satisfies rule 4
 
     def test_creation_with_externally_supplied_event_instance(self):
         # show that when creating an EventParticipation supplying an EventInstance, the corresponding
         # ParticipationSubmission and ParticipationAssessment are created
-        pass
+        instance = EventInstance.objects.create(
+            event=self.event, exercises=[self.e1, self.e2, self.e3, self.e4]
+        )
+
+        participation = EventParticipation.objects.create(
+            event_instance=instance, user=self.user
+        )
+
+        # show that both a ParticipationSubmission and ParticipationAssessment related
+        # to the participation have been created (no exception raised when accessed)
+        # participation.assessment
+        # participation.submission
+
+        # print(participation.assessment.slots.base_slots().count())
+
+        for slot in participation.event_instance.slots.base_slots():
+            # show that slots with same slot_number reference the same exercise
+            self.assertEqual(
+                slot.exercise,
+                participation.assessment.slots.base_slots()
+                .get(slot_number=slot.slot_number)
+                .exercise,
+            )
+            self.assertEqual(
+                slot.exercise,
+                participation.submission.slots.base_slots()
+                .get(slot_number=slot.slot_number)
+                .exercise,
+            )
 
     def test_creation_without_externally_supplied_event_instance(self):
         # show that when creating an EventParticipation without supplying an EventInstance, one is created
