@@ -43,6 +43,9 @@ class SlottedModelManager(models.Manager):
                 slot_number=sub_slot.slot_number,
                 **related_object_kwarg,
             )
+            print(
+                f"new_slot: {getattr(new_slot, self.model._meta.verbose_name.split(' ')[1]).participation}"
+            )
             self.create_sub_slots_for(sub_slot, new_slot)
 
     def create(self, *args, **kwargs):
@@ -170,7 +173,11 @@ class EventParticipationManager(models.Manager):
         participation = super().create(*args, **kwargs)
 
         ParticipationSubmission.objects.create(participation=participation)
-        ParticipationAssessment.objects.create(participation=participation)
+        p = ParticipationAssessment.objects.create(participation=participation)
+        print("PRINTING")
+        print(p)
+
+        participation.save()
 
         return participation
 
@@ -236,24 +243,6 @@ class ParticipationSubmissionSlotManager(models.Manager):
     def base_slots(self):
         return self.get_queryset().base_slots()
 
-    # def create(self, *args, **kwargs):
-    #     from .models import ParticipationSubmissionSlot
-
-    #     slot = super().create(*args, **kwargs)
-
-    #     slot_number = 0
-    #     # recursively create slots that reference sub-exercises
-    #     for sub_exercise in slot.exercise.sub_exercises.all():
-    #         ParticipationSubmissionSlot.objects.create(
-    #             parent=slot,
-    #             submission=slot.submission,
-    #             # exercise=sub_exercise,
-    #             slot_number=slot_number,
-    #         )
-    #         slot_number += 1
-
-    #     return slot
-
 
 class ParticipationAssessmentSlotManager(models.Manager):
     def get_queryset(self):
@@ -261,24 +250,6 @@ class ParticipationAssessmentSlotManager(models.Manager):
 
     def base_slots(self):
         return self.get_queryset().base_slots()
-
-    # def create(self, *args, **kwargs):
-    #     from .models import ParticipationAssessmentSlot
-
-    #     slot = super().create(*args, **kwargs)
-
-    #     slot_number = 0
-    #     # recursively create slots that reference sub-exercises
-    #     for sub_exercise in slot.exercise.sub_exercises.all():
-    #         ParticipationAssessmentSlot.objects.create(
-    #             parent=slot,
-    #             assessment=slot.assessment,
-    #             # exercise=sub_exercise,
-    #             slot_number=slot_number,
-    #         )
-    #         slot_number += 1
-
-    #     return slot
 
 
 class ParticipationSubmissionManager(SlottedModelManager):

@@ -318,6 +318,10 @@ class ParticipationAssessment(models.Model):
 
     objects = ParticipationAssessmentManager()
 
+    def save(self, *args, **kwargs):
+        print("SAVING ASSESSMENT ----------")
+        return super().save(*args, **kwargs)
+
 
 class ParticipationAssessmentSlot(SlotNumberedModel):
     NOT_GRADED = 0
@@ -380,6 +384,8 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
 
         for step in path:
             # descend the path of ancestors on the related model
+            print("ASSESSMENT")
+            print(self.assessment)
             related_slot = self.assessment.participation.event_instance.slots.get(
                 parent=related_slot, slot_number=step
             )
@@ -395,7 +401,7 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
             curr = curr.parent
             ret.append(curr.slot_number)
 
-        print(ret)
+        # print(ret)
         return ret
 
 
@@ -522,12 +528,16 @@ class EventParticipation(models.Model):
 
     objects = EventParticipationManager()
 
-    def __str__(self):
-        return str(self.event) + " - " + str(self.user)
+    # def __str__(self):
+    #     return str(self.event) + " - " + str(self.user)
 
     @property
     def current_exercise(self):
         return self.assigned_exercises.get(position=self.current_exercise_cursor)
+
+    def save(self, *args, **kwargs):
+        print("SAVING PARTICIPATION ----------")
+        return super().save(*args, **kwargs)
 
 
 class ExerciseGradingRule(models.Model):

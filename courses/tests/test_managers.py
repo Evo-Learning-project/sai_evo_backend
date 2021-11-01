@@ -630,11 +630,43 @@ class EventParticipationManagerTestCase(TestCase):
         )
         self.e6.tags.set([self.tag9, self.tag8])  # satisfies rule 4
 
+    def rec_validate_sub_slots(
+        self, participation, parent, assessment_slot, submission_slot
+    ):
+        print("-----------------------------")
+        print(f"parent {parent}\nass {assessment_slot}\n")
+        print(f"ass parent {assessment_slot.parent}\n")
+        print(f"ass ass {assessment_slot.assessment}\n")
+        print(f"ass part {assessment_slot.assessment.participation}\n")
+        print("-----------------------------")
+        for sub_slot in parent.sub_slots.all():
+            sub_assessment_slot = assessment_slot.sub_slots.get(
+                slot_number=sub_slot.slot_number
+            )
+
+            self.assertEqual(
+                sub_slot.exercise,
+                sub_assessment_slot.exercise,
+            )
+
+            sub_submission_slot = submission_slot.sub_slots.get(
+                slot_number=sub_slot.slot_number
+            )
+            # self.assertEqual(
+            #     sub_slot.exercise,
+            #     sub_submission_slot.exercise,
+            # )
+
+            self.rec_validate_sub_slots(
+                participation, sub_slot, sub_assessment_slot, sub_submission_slot
+            )
+
     def test_creation_with_externally_supplied_event_instance(self):
         # show that when creating an EventParticipation supplying an EventInstance, the corresponding
         # ParticipationSubmission and ParticipationAssessment are created
         instance = EventInstance.objects.create(
-            event=self.event, exercises=[self.e1, self.e2, self.e3, self.e4]
+            event=self.event,
+            exercises=[self.e1, self.e2, self.e3, self.e4, self.e5, self.e6, self.e7],
         )
 
         participation = EventParticipation.objects.create(
@@ -643,24 +675,32 @@ class EventParticipationManagerTestCase(TestCase):
 
         # show that both a ParticipationSubmission and ParticipationAssessment related
         # to the participation have been created (no exception raised when accessed)
-        # participation.assessment
-        # participation.submission
+        participation.assessment
+        participation.submission
 
-        # print(participation.assessment.slots.base_slots().count())
+        print(participation.assessment.slots.base_slots().count())
 
         for slot in participation.event_instance.slots.base_slots():
             # show that slots with same slot_number reference the same exercise
-            self.assertEqual(
-                slot.exercise,
-                participation.assessment.slots.base_slots()
-                .get(slot_number=slot.slot_number)
-                .exercise,
+            assessment_slot = participation.assessment.slots.base_slots().get(
+                slot_number=slot.slot_number
             )
             self.assertEqual(
                 slot.exercise,
-                participation.submission.slots.base_slots()
-                .get(slot_number=slot.slot_number)
-                .exercise,
+                assessment_slot.exercise,
+            )
+
+            submission_slot = participation.submission.slots.base_slots().get(
+                slot_number=slot.slot_number
+            )
+            # self.assertEqual(
+            #     slot.exercise,
+            #     submission_slot.exercise,
+            # )
+
+            # recursively run the assertions on the sub-slots
+            self.rec_validate_sub_slots(
+                participation, slot, assessment_slot, submission_slot
             )
 
     def test_creation_without_externally_supplied_event_instance(self):
