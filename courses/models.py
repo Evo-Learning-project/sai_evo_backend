@@ -31,6 +31,57 @@ class SlotNumberedModel(models.Model):
         abstract = True
 
 
+class SideSlotNumberedModel(SlotNumberedModel):
+    # TODO find a better name for the class
+    class Meta:
+        abstract = True
+
+    @property
+    def exercise(self):
+        if self.parent is None:
+            # base slot - access the same-numbered base slot on the related
+            # EventInstance object and return its referenced exercise
+            return (
+                getattr(self, self.get_container_attribute())
+                .participation.event_instance.slots.base_slots()
+                .get(slot_number=self.slot_number)
+                .exercise
+            )
+
+        # walk up to this slot's base slot and record all the ancestors' slot numbers
+        path = reversed(self.get_ancestors())
+
+        related_slot = None
+        for step in path:
+            # descend the path of ancestors on the related EventInstance,
+            # object, starting from the corresponding base slot down to
+            # the same level of depth as this slot
+            related_slot = getattr(
+                self, self.get_container_attribute()
+            ).participation.event_instance.slots.get(
+                parent=related_slot, slot_number=step
+            )
+        return related_slot.exercise
+
+    def get_ancestors(self):
+        # returns the slot numbers of all the ancestors of
+        # `self` up to the ancestor base slot
+        ret = [self.slot_number]
+        curr = self
+        while curr.parent is not None:
+            curr = curr.parent
+            ret.append(curr.slot_number)
+
+        return ret
+
+    def get_container_attribute(self):
+        # returns the name of the foreign key field to the model that contains the
+        # slots (i.e the many-to-one relation with related name "slots")
+        for field in type(self)._meta.get_fields():
+            if field.remote_field is not None and field.remote_field.name == "slots":
+                return field.name
+
+
 class Course(models.Model):
     name = models.TextField(unique=True)
     description = models.TextField(blank=True)
@@ -287,16 +338,6 @@ class EventInstanceSlot(SlotNumberedModel):
             )
         ]
 
-    @property
-    def submission(self):
-        # TODO implement
-        pass
-
-    @property
-    def assessment(self):
-        # TODO implement
-        pass
-
 
 class ParticipationAssessment(models.Model):
     """
@@ -318,12 +359,8 @@ class ParticipationAssessment(models.Model):
 
     objects = ParticipationAssessmentManager()
 
-    def save(self, *args, **kwargs):
-        print("SAVING ASSESSMENT ----------")
-        return super().save(*args, **kwargs)
 
-
-class ParticipationAssessmentSlot(SlotNumberedModel):
+class ParticipationAssessmentSlot(SideSlotNumberedModel):
     NOT_GRADED = 0
     GRADED = 1
 
@@ -370,46 +407,43 @@ class ParticipationAssessmentSlot(SlotNumberedModel):
     def state(self):
         return self.GRADED if self.score is not None else self.NOT_GRADED
 
-    @property
-    def exercise(self):
-        if self.parent is None:
-            return (
-                self.assessment.participation.event_instance.slots.base_slots()
-                .get(slot_number=self.slot_number)
-                .exercise
-            )
+    # @property
+    # def exercise(self):
+    #     if self.parent is None:
+    #         return (
+    #             self.assessment.participation.event_instance.slots.base_slots()
+    #             .get(slot_number=self.slot_number)
+    #             .exercise
+    #         )
 
-        path = reversed(self.ancestors)
-        related_slot = None
+    #     path = reversed(self.ancestors)
+    #     related_slot = None
 
-        for step in path:
-            # descend the path of ancestors on the related model
-            print("ASSESSMENT")
-            print(self.assessment)
-            related_slot = self.assessment.participation.event_instance.slots.get(
-                parent=related_slot, slot_number=step
-            )
-        return related_slot.exercise
+    #     for step in path:
+    #         # descend the path of ancestors on the related model
+    #         related_slot = self.assessment.participation.event_instance.slots.get(
+    #             parent=related_slot, slot_number=step
+    #         )
+    #     return related_slot.exercise
 
-    @property
-    def ancestors(self):
-        # returns the slot numbers of all the ancestors of
-        # `self` up to the ancestor base slot
-        ret = [self.slot_number]
-        curr = self
-        while curr.parent is not None:
-            curr = curr.parent
-            ret.append(curr.slot_number)
+    # @property
+    # def ancestors(self):
+    #     # returns the slot numbers of all the ancestors of
+    #     # `self` up to the ancestor base slot
+    #     ret = [self.slot_number]
+    #     curr = self
+    #     while curr.parent is not None:
+    #         curr = curr.parent
+    #         ret.append(curr.slot_number)
 
-        # print(ret)
-        return ret
+    #     return ret
 
 
 class ParticipationSubmission(models.Model):
     objects = ParticipationSubmissionManager()
 
 
-class ParticipationSubmissionSlot(SlotNumberedModel):
+class ParticipationSubmissionSlot(SideSlotNumberedModel):
     submission = models.ForeignKey(
         ParticipationSubmission,
         on_delete=models.CASCADE,
@@ -429,37 +463,45 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
 
     objects = ParticipationSubmissionSlotManager()
 
-    @property
-    def exercise(self):
-        if self.parent is None:
-            return (
-                self.submission.participation.event_instance.slots.base_slots()
-                .get(slot_number=self.slot_number)
-                .exercise
+    # @property
+    # def exercise(self):
+    #     if self.parent is None:
+    #         return (
+    #             self.submission.participation.event_instance.slots.base_slots()
+    #             .get(slot_number=self.slot_number)
+    #             .exercise
+    #         )
+
+    #     path = reversed(self.ancestors)
+    #     related_slot = None
+
+    #     for step in path:
+    #         # descend the path of ancestors on the related model
+    #         related_slot = self.submission.participation.event_instance.slots.get(
+    #             parent=related_slot, slot_number=step
+    #         )
+    #     return related_slot.exercise
+
+    # @property
+    # def ancestors(self):
+    #     # returns the slot numbers of all the ancestors of
+    #     # `self` up to the ancestor base slot
+    #     ret = [self.slot_number]
+    #     curr = self
+    #     while curr.parent is not None:
+    #         curr = curr.parent
+    #         ret.append(curr.slot_number)
+
+    #     return ret
+
+    class Meta:
+        ordering = ["submission_id", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["submission_id", "parent_id", "slot_number"],
+                name="participation_submission_unique_slot_number",
             )
-
-        path = reversed(self.ancestors)
-        related_slot = None
-
-        for step in path:
-            # descend the path of ancestors on the related model
-            related_slot = self.submission.participation.event_instance.slots.get(
-                parent=related_slot, slot_number=step
-            )
-        return related_slot.exercise
-
-    @property
-    def ancestors(self):
-        # returns the slot numbers of all the ancestors of
-        # `self` up to the ancestor base slot
-        ret = [self.slot_number]
-        curr = self
-        while curr.parent is not None:
-            curr = curr.parent
-            ret.append(curr.slot_number)
-
-        print(ret)
-        return ret
+        ]
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -476,15 +518,6 @@ class ParticipationSubmissionSlot(SlotNumberedModel):
             and self.selected_choice not in self.exercise.choices.all()
         ):
             raise ValidationError("Invalid choice selected")
-
-    class Meta:
-        ordering = ["submission_id", "slot_number"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["submission_id", "parent_id", "slot_number"],
-                name="participation_submission_unique_slot_number",
-            )
-        ]
 
 
 class EventParticipation(models.Model):
@@ -534,10 +567,6 @@ class EventParticipation(models.Model):
     @property
     def current_exercise(self):
         return self.assigned_exercises.get(position=self.current_exercise_cursor)
-
-    def save(self, *args, **kwargs):
-        print("SAVING PARTICIPATION ----------")
-        return super().save(*args, **kwargs)
 
 
 class ExerciseGradingRule(models.Model):

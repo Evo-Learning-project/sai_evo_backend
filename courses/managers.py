@@ -43,9 +43,6 @@ class SlottedModelManager(models.Manager):
                 slot_number=sub_slot.slot_number,
                 **related_object_kwarg,
             )
-            print(
-                f"new_slot: {getattr(new_slot, self.model._meta.verbose_name.split(' ')[1]).participation}"
-            )
             self.create_sub_slots_for(sub_slot, new_slot)
 
     def create(self, *args, **kwargs):
@@ -173,9 +170,7 @@ class EventParticipationManager(models.Manager):
         participation = super().create(*args, **kwargs)
 
         ParticipationSubmission.objects.create(participation=participation)
-        p = ParticipationAssessment.objects.create(participation=participation)
-        print("PRINTING")
-        print(p)
+        ParticipationAssessment.objects.create(participation=participation)
 
         participation.save()
 
