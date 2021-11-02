@@ -94,6 +94,9 @@ class Course(models.Model):
     teachers = models.ManyToManyField("users.User", blank=True)
     hidden = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ["pk"]
+
     def __str__(self):
         return self.name
 
@@ -118,7 +121,9 @@ class Exercise(models.Model):
     )
 
     course = models.ForeignKey(
-        Course, on_delete=models.PROTECT, related_name="exercises"
+        Course,
+        on_delete=models.PROTECT,
+        related_name="exercises",
     )
     parent = models.ForeignKey(
         "Exercise",
@@ -135,6 +140,9 @@ class Exercise(models.Model):
 
     objects = ExerciseManager()
 
+    class Meta:
+        ordering = ["course_id", "pk"]
+
     def __str__(self):
         return self.text[:100]
 
@@ -145,10 +153,21 @@ class Exercise(models.Model):
 
 class ExerciseChoice(models.Model):
     exercise = models.ForeignKey(
-        Exercise, related_name="choices", on_delete=models.CASCADE
+        Exercise,
+        related_name="choices",
+        on_delete=models.CASCADE,
     )
     text = models.TextField()
     correct = models.BooleanField()
+
+    class Meta:
+        ordering = ["exercise_id", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["exercise_id", "text"],
+                name="same_exercise_unique_choice_text",
+            )
+        ]
 
     def __str__(self):
         return str(self.exercise) + " - " + self.text[:100]
@@ -161,6 +180,19 @@ class ExerciseTestCase(models.Model):
     code = models.TextField()
     label = models.TextField(blank=True)
     hidden = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["exercise_id", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["exercise_id", "code"],
+                name="same_exercise_unique_testcase_code",
+            ),
+            models.UniqueConstraint(
+                fields=["exercise_id", "label"],
+                name="same_exercise_unique_testcase_label",
+            ),
+        ]
 
     def __str__(self):
         return str(self.exercise) + " - " + self.code
@@ -232,7 +264,14 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
-    # TODO unique [course, name]
+    class Meta:
+        ordering = ["course_id", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course_id", "name"],
+                name="event_unique_name_course",
+            )
+        ]
 
 
 class EventTemplate(models.Model):
@@ -251,6 +290,9 @@ class EventTemplate(models.Model):
     )
 
     objects = EventTemplateManager()
+
+    class Meta:
+        ordering = ["course_id", "pk"]
 
 
 class EventTemplateRule(models.Model):
@@ -314,6 +356,9 @@ class EventInstance(models.Model):
 
     objects = EventInstanceManager()
 
+    class Meta:
+        ordering = ["event_id", "pk"]
+
 
 class EventInstanceSlot(SlotNumberedModel):
     event_instance = models.ForeignKey(
@@ -333,7 +378,7 @@ class EventInstanceSlot(SlotNumberedModel):
         ordering = ["event_instance_id", "slot_number"]
         constraints = [
             models.UniqueConstraint(
-                fields=["event_instance_id", "parent", "slot_number"],
+                fields=["event_instance_id", "parent_id", "slot_number"],
                 name="event_instance_unique_slot_number",
             )
         ]
@@ -358,6 +403,9 @@ class ParticipationAssessment(models.Model):
     state = models.PositiveSmallIntegerField(choices=GRADING_STATES, default=NOT_GRADED)
 
     objects = ParticipationAssessmentManager()
+
+    class Meta:
+        ordering = ["pk"]
 
 
 class ParticipationAssessmentSlot(SideSlotNumberedModel):
@@ -407,40 +455,12 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
     def state(self):
         return self.GRADED if self.score is not None else self.NOT_GRADED
 
-    # @property
-    # def exercise(self):
-    #     if self.parent is None:
-    #         return (
-    #             self.assessment.participation.event_instance.slots.base_slots()
-    #             .get(slot_number=self.slot_number)
-    #             .exercise
-    #         )
-
-    #     path = reversed(self.ancestors)
-    #     related_slot = None
-
-    #     for step in path:
-    #         # descend the path of ancestors on the related model
-    #         related_slot = self.assessment.participation.event_instance.slots.get(
-    #             parent=related_slot, slot_number=step
-    #         )
-    #     return related_slot.exercise
-
-    # @property
-    # def ancestors(self):
-    #     # returns the slot numbers of all the ancestors of
-    #     # `self` up to the ancestor base slot
-    #     ret = [self.slot_number]
-    #     curr = self
-    #     while curr.parent is not None:
-    #         curr = curr.parent
-    #         ret.append(curr.slot_number)
-
-    #     return ret
-
 
 class ParticipationSubmission(models.Model):
     objects = ParticipationSubmissionManager()
+
+    class Meta:
+        ordering = ["pk"]
 
 
 class ParticipationSubmissionSlot(SideSlotNumberedModel):
@@ -462,37 +482,6 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
     # TODO add manytomany to testcases with through model for js exercises
 
     objects = ParticipationSubmissionSlotManager()
-
-    # @property
-    # def exercise(self):
-    #     if self.parent is None:
-    #         return (
-    #             self.submission.participation.event_instance.slots.base_slots()
-    #             .get(slot_number=self.slot_number)
-    #             .exercise
-    #         )
-
-    #     path = reversed(self.ancestors)
-    #     related_slot = None
-
-    #     for step in path:
-    #         # descend the path of ancestors on the related model
-    #         related_slot = self.submission.participation.event_instance.slots.get(
-    #             parent=related_slot, slot_number=step
-    #         )
-    #     return related_slot.exercise
-
-    # @property
-    # def ancestors(self):
-    #     # returns the slot numbers of all the ancestors of
-    #     # `self` up to the ancestor base slot
-    #     ret = [self.slot_number]
-    #     curr = self
-    #     while curr.parent is not None:
-    #         curr = curr.parent
-    #         ret.append(curr.slot_number)
-
-    #     return ret
 
     class Meta:
         ordering = ["submission_id", "slot_number"]
@@ -561,12 +550,48 @@ class EventParticipation(models.Model):
 
     objects = EventParticipationManager()
 
-    # def __str__(self):
-    #     return str(self.event) + " - " + str(self.user)
+    class Meta:
+        ordering = ["begin_timestamp", "pk"]
+
+    def __str__(self):
+        return str(self.event_instance) + " - " + str(self.user)
+
+    def validate_unique(self, *args, **kwargs):
+        super().validate_unique(*args, **kwargs)
+        qs = EventParticipation.objects.filter(user=self.user)
+        if qs.filter(event_instance__event=self.event_instance.event).exists():
+            raise ValidationError("A user can only participate in an event once")
+
+    def save(self, *args, **kwargs):
+        self.validate_unique()
+        super().save(*args, **kwargs)
 
     @property
     def current_exercise(self):
-        return self.assigned_exercises.get(position=self.current_exercise_cursor)
+        return (
+            self.event_instance.slots.base_slots()
+            .get(slot_number=self.current_slot_number)
+            .exercise
+        )
+
+    def move_current_slot_number_forward(self):
+        self.current_slot_number += 1
+        self.save()
+        return self.current_exercise
+
+    def move_current_slot_number_back(self):
+        if (
+            self.event_instance.event.progression_rule
+            != Event.ONE_AT_A_TIME_CAN_GO_BACK
+        ):
+            raise ValidationError(
+                "Cannot go back with event type "
+                + getattr(Event, self.event_instance.event.progression_rule)[1]
+            )
+
+        self.current_slot_number -= 1
+        self.save()
+        return self.current_exercise
 
 
 class ExerciseGradingRule(models.Model):
@@ -600,4 +625,11 @@ class ExerciseGradingRule(models.Model):
     enforce_timeout = models.BooleanField(default=True)
     expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
 
-    # TODO unique constraint [exercise, event]
+    class Meta:
+        ordering = ["event_id", "exercise_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event_id", "exercise_id"],
+                name="grading_rule_unique_event_exercise",
+            )
+        ]
