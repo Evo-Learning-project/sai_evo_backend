@@ -2,7 +2,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from users.models import User
 
-from .logic.grading import apply_grading_rule
 from .managers import (
     EventInstanceManager,
     EventInstanceSlotManager,
@@ -390,17 +389,19 @@ class ParticipationAssessment(models.Model):
     issued by a teacher or compiled automatically
     """
 
-    NOT_GRADED = 0
-    PARTIALLY_GRADED = 1
-    FULLY_GRADED = 2
+    NOT_ASSESSED = 0
+    PARTIALLY_ASSESSED = 1
+    FULLY_ASSESSED = 2
 
-    GRADING_STATES = (
-        (NOT_GRADED, "Not graded"),
-        (PARTIALLY_GRADED, "Partially graded"),
-        (FULLY_GRADED, "Fully graded"),
+    ASSESSMENT_STATES = (
+        (NOT_ASSESSED, "Not assessed"),
+        (PARTIALLY_ASSESSED, "Partially assessed"),
+        (FULLY_ASSESSED, "Fully assessed"),
     )
 
-    state = models.PositiveSmallIntegerField(choices=GRADING_STATES, default=NOT_GRADED)
+    state = models.PositiveSmallIntegerField(
+        choices=ASSESSMENT_STATES, default=NOT_ASSESSED
+    )
 
     objects = ParticipationAssessmentManager()
 
@@ -409,12 +410,12 @@ class ParticipationAssessment(models.Model):
 
 
 class ParticipationAssessmentSlot(SideSlotNumberedModel):
-    NOT_GRADED = 0
-    GRADED = 1
+    NOT_ASSESSED = 0
+    ASSESSED = 1
 
-    GRADING_STATES = (
-        (NOT_GRADED, "Not graded"),
-        (GRADED, "Graded"),
+    ASSESSMENT_STATES = (
+        (NOT_ASSESSED, "Not assessed"),
+        (ASSESSED, "Assessed"),
     )
     assessment = models.ForeignKey(
         ParticipationAssessment,
@@ -452,8 +453,8 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
         self._score = value
 
     @property
-    def state(self):
-        return self.GRADED if self.score is not None else self.NOT_GRADED
+    def assessment_state(self):
+        return self.ASSESSED if self.score is not None else self.NOT_ASSESSED
 
 
 class ParticipationSubmission(models.Model):
@@ -594,13 +595,14 @@ class EventParticipation(models.Model):
         return self.current_exercise
 
 
-class ExerciseGradingRule(models.Model):
+class ExerciseAssessmentRule(models.Model):
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE,
-        related_name="exercise_grading_rules",
+        related_name="assessment_rules",
     )
+    require_manual_assessment = models.BooleanField(default=False)
     points_for_correct = models.DecimalField(
         decimal_places=2,
         max_digits=5,
@@ -621,15 +623,15 @@ class ExerciseGradingRule(models.Model):
         max_digits=5,
         default=0,
     )
-    time_to_answer = models.PositiveIntegerField(null=True, blank=True)
-    enforce_timeout = models.BooleanField(default=True)
-    expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
+    # time_to_answer = models.PositiveIntegerField(null=True, blank=True)
+    # enforce_timeout = models.BooleanField(default=True)
+    # expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["event_id", "exercise_id"]
         constraints = [
             models.UniqueConstraint(
                 fields=["event_id", "exercise_id"],
-                name="grading_rule_unique_event_exercise",
+                name="assessment_rule_unique_event_exercise",
             )
         ]
