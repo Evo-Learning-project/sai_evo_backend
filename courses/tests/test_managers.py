@@ -578,7 +578,7 @@ class EventParticipationManagerTestCase(TestCase):
             exercise_type=Exercise.OPEN_ANSWER,
         )
 
-        for i in range(0, 100):
+        for i in range(0, 20):
             Exercise.objects.create(
                 text="dummy exercises " + str(i),
                 exercise_type=Exercise.OPEN_ANSWER,
@@ -635,10 +635,15 @@ class EventParticipationManagerTestCase(TestCase):
             sub_assessment_slot = assessment_slot.sub_slots.get(
                 slot_number=sub_slot.slot_number
             )
-
             self.assertEqual(
                 sub_slot.exercise,
                 sub_assessment_slot.exercise,
+            )
+            self.assertEqual(
+                sub_slot.get_assessment(
+                    assessment_slot.assessment.participation
+                ).exercise.pk,
+                sub_slot.exercise.pk,
             )
 
             sub_submission_slot = submission_slot.sub_slots.get(
@@ -647,6 +652,12 @@ class EventParticipationManagerTestCase(TestCase):
             self.assertEqual(
                 sub_slot.exercise,
                 sub_submission_slot.exercise,
+            )
+            self.assertEqual(
+                sub_slot.get_submission(
+                    submission_slot.submission.participation
+                ).exercise.pk,
+                sub_slot.exercise.pk,
             )
 
             self.rec_validate_sub_slots(
@@ -679,6 +690,9 @@ class EventParticipationManagerTestCase(TestCase):
                 slot.exercise,
                 assessment_slot.exercise,
             )
+            self.assertEqual(
+                slot.get_assessment(participation).exercise.pk, slot.exercise.pk
+            )
 
             submission_slot = participation.submission.slots.base_slots().get(
                 slot_number=slot.slot_number
@@ -686,6 +700,18 @@ class EventParticipationManagerTestCase(TestCase):
             self.assertEqual(
                 slot.exercise,
                 submission_slot.exercise,
+            )
+
+            self.assertEqual(
+                slot.get_submission(participation).exercise.pk, slot.exercise.pk
+            )
+
+            # submission and assessment slots correctly reference each other
+            self.assertEqual(
+                slot.get_assessment(participation).submission, submission_slot
+            )
+            self.assertEqual(
+                slot.get_submission(participation).assessment, assessment_slot
             )
 
             # recursively run the assertions on the sub-slots

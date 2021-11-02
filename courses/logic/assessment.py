@@ -4,7 +4,7 @@ def get_assessor_class(event):
     if event.event_type == Event.SELF_SERVICE_PRACTICE:
         return FullyAutomaticAssessor
 
-    return SubmissionAssessor
+    return BestEffortAutomaticAssessor
 
 
 def get_default_assessment_rule():
@@ -14,13 +14,15 @@ def get_default_assessment_rule():
 
 
 class SubmissionAssessor:
-    def __init__(self, submission_slot):
+    def __init__(self, assessment_slot):
         from courses.models import ExerciseAssessmentRule
 
-        self.submission_slot = submission_slot
+        self.submission_slot = assessment_slot.submission
+        self.assessment_slot = assessment_slot
+
         try:
-            self.rule = submission_slot.event.assessment_rules.get(
-                exercise=submission_slot.exercise
+            self.rule = assessment_slot.event.assessment_rules.get(
+                exercise=assessment_slot.exercise
             )
         except ExerciseAssessmentRule.DoesNotExist:
             self.rule = get_default_assessment_rule()
@@ -41,7 +43,7 @@ class SubmissionAssessor:
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. MULTIPLE_CHOICE_MULTIPLE_POSSIBLE, COMPLETION,
         # AGGREGATED) the score is the sum of the sub-exercises
-        sub_slots_score = sum([s.score for s in self.submission_slot.sub_slots.all()])
+        sub_slots_score = sum([s.score for s in self.assessment_slot.sub_slots.all()])
 
         return (
             0

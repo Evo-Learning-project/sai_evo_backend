@@ -67,7 +67,7 @@ class GetExercisesFromTemplateTestCase(TestCase):
             exercise_type=Exercise.OPEN_ANSWER,
         )
 
-        for i in range(0, 100):
+        for i in range(0, 20):
             Exercise.objects.create(
                 text="dummy exercises " + str(i),
                 exercise_type=Exercise.OPEN_ANSWER,
@@ -123,7 +123,7 @@ class GetExercisesFromTemplateTestCase(TestCase):
         # show the function get_exercises_from(template) correctly applies the rules
         # of the supplied template to retrieve exercises
 
-        for _ in range(0, 100):
+        for _ in range(0, 20):
             exercises = get_exercises_from(self.template)
             self.assertIn(exercises[0].pk, [self.e1.pk, self.e2.pk])
             self.assertIn(
@@ -136,7 +136,7 @@ class GetExercisesFromTemplateTestCase(TestCase):
         # show passing an EventTemplate to EventInstanceManager generates an
         # EventInstance with the correct exercises
 
-        for _ in range(0, 100):
+        for _ in range(0, 20):
             self.event.template = self.template
             self.event.save()
 

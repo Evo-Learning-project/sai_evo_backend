@@ -28,6 +28,17 @@ class SlotNumberedModel(models.Model):
     )
     slot_number = models.PositiveIntegerField()
 
+    def get_ancestors(self):
+        # returns the slot numbers of all the ancestors of
+        # `self` up to the ancestor base slot
+        ret = [self.slot_number]
+        curr = self
+        while curr.parent is not None:
+            curr = curr.parent
+            ret.append(curr.slot_number)
+
+        return ret
+
     class Meta:
         abstract = True
 
@@ -38,15 +49,21 @@ class SideSlotNumberedModel(SlotNumberedModel):
         abstract = True
 
     @property
-    def exercise(self):
+    def event(self):
+        # shortcut to access the slot's event
+        return getattr(self, self.get_container_attribute()).event
+
+    def get_sibling_slot(self, entity):
         if self.parent is None:
             # base slot - access the same-numbered base slot on the related
             # EventInstance object and return its referenced exercise
             return (
-                getattr(self, self.get_container_attribute())
-                .participation.event_instance.slots.base_slots()
+                getattr(
+                    getattr(self, self.get_container_attribute()).participation,
+                    entity,
+                )
+                .slots.base_slots()
                 .get(slot_number=self.slot_number)
-                .exercise
             )
 
         # walk up to this slot's base slot and record all the ancestors' slot numbers
@@ -58,22 +75,38 @@ class SideSlotNumberedModel(SlotNumberedModel):
             # object, starting from the corresponding base slot down to
             # the same level of depth as this slot
             related_slot = getattr(
-                self, self.get_container_attribute()
-            ).participation.event_instance.slots.get(
-                parent=related_slot, slot_number=step
-            )
-        return related_slot.exercise
+                getattr(self, self.get_container_attribute()).participation,
+                entity,
+            ).slots.get(parent=related_slot, slot_number=step)
+        return related_slot
 
-    def get_ancestors(self):
-        # returns the slot numbers of all the ancestors of
-        # `self` up to the ancestor base slot
-        ret = [self.slot_number]
-        curr = self
-        while curr.parent is not None:
-            curr = curr.parent
-            ret.append(curr.slot_number)
+    @property
+    def exercise(self):
+        return self.get_sibling_slot("event_instance").exercise
+        # if self.parent is None:
+        #     # base slot - access the same-numbered base slot on the related
+        #     # EventInstance object and return its referenced exercise
+        #     return (
+        #         getattr(self, self.get_container_attribute())
+        #         .participation.event_instance.slots.base_slots()
+        #         .get(slot_number=self.slot_number)
+        #         .exercise
+        #     )
 
-        return ret
+        # # walk up to this slot's base slot and record all the ancestors' slot numbers
+        # path = reversed(self.get_ancestors())
+
+        # related_slot = None
+        # for step in path:
+        #     # descend the path of ancestors on the related EventInstance,
+        #     # object, starting from the corresponding base slot down to
+        #     # the same level of depth as this slot
+        #     related_slot = getattr(
+        #         self, self.get_container_attribute()
+        #     ).participation.event_instance.slots.get(
+        #         parent=related_slot, slot_number=step
+        #     )
+        # return related_slot.exercise
 
     def get_container_attribute(self):
         # returns the name of the foreign key field to the model that contains the
@@ -164,10 +197,10 @@ class ExerciseChoice(models.Model):
     class Meta:
         ordering = ["exercise_id", "pk"]
         constraints = [
-            models.UniqueConstraint(
-                fields=["exercise_id", "text"],
-                name="same_exercise_unique_choice_text",
-            )
+            # models.UniqueConstraint(
+            #     fields=["exercise_id", "text"],
+            #     name="same_exercise_unique_choice_text",
+            # )
         ]
 
     def __str__(self):
@@ -176,7 +209,9 @@ class ExerciseChoice(models.Model):
 
 class ExerciseTestCase(models.Model):
     exercise = models.ForeignKey(
-        Exercise, related_name="testcases", on_delete=models.CASCADE
+        Exercise,
+        related_name="testcases",
+        on_delete=models.CASCADE,
     )
     code = models.TextField()
     label = models.TextField(blank=True)
@@ -189,10 +224,10 @@ class ExerciseTestCase(models.Model):
                 fields=["exercise_id", "code"],
                 name="same_exercise_unique_testcase_code",
             ),
-            models.UniqueConstraint(
-                fields=["exercise_id", "label"],
-                name="same_exercise_unique_testcase_label",
-            ),
+            # models.UniqueConstraint(
+            #     fields=["exercise_id", "label"],
+            #     name="same_exercise_unique_testcase_label",
+            # ),
         ]
 
     def __str__(self):
@@ -203,14 +238,14 @@ class Event(models.Model):
     SELF_SERVICE_PRACTICE = 0
     IN_CLASS_PRACTICE = 1
     EXAM = 2
-    ASSIGNMENT = 3
+    HOME_ASSIGNMENT = 3
     EXTERNAL = 4
 
     EVENT_TYPES = (
         (SELF_SERVICE_PRACTICE, "Self-service practice"),
         (IN_CLASS_PRACTICE, "In-class practice"),
         (EXAM, "Exam"),
-        (ASSIGNMENT, "Assignment"),
+        (HOME_ASSIGNMENT, "Home assignment"),
         (EXTERNAL, "External resource"),
     )
 
@@ -384,6 +419,50 @@ class EventInstanceSlot(SlotNumberedModel):
             )
         ]
 
+    def get_submission(self, participation):
+        # TODO refactor
+        if self.parent is None:
+            return (
+                self.event_instance.participations.get(pk=participation.pk)
+                .submission.slots.base_slots()
+                .get(slot_number=self.slot_number)
+            )
+
+        # walk up to this slot's base slot and record all the ancestors' slot numbers
+        path = reversed(self.get_ancestors())
+
+        related_slot = None
+        for step in path:
+            # descend the path of ancestors on the related EventInstance,
+            # object, starting from the corresponding base slot down to
+            # the same level of depth as this slot
+            related_slot = self.event_instance.participations.get(
+                pk=participation.pk
+            ).submission.slots.get(parent=related_slot, slot_number=step)
+        return related_slot
+
+    def get_assessment(self, participation):
+        # TODO refactor
+        if self.parent is None:
+            return (
+                self.event_instance.participations.get(pk=participation.pk)
+                .assessment.slots.base_slots()
+                .get(slot_number=self.slot_number)
+            )
+
+        # walk up to this slot's base slot and record all the ancestors' slot numbers
+        path = reversed(self.get_ancestors())
+
+        related_slot = None
+        for step in path:
+            # descend the path of ancestors on the related EventInstance,
+            # object, starting from the corresponding base slot down to
+            # the same level of depth as this slot
+            related_slot = self.event_instance.participations.get(
+                pk=participation.pk
+            ).assessment.slots.get(parent=related_slot, slot_number=step)
+        return related_slot
+
 
 class ParticipationAssessment(models.Model):
     """
@@ -402,6 +481,11 @@ class ParticipationAssessment(models.Model):
     )
 
     objects = ParticipationAssessmentManager()
+
+    @property
+    def event(self):
+        # shortcut to access the participation's event
+        return self.participation.event
 
     @property
     def assessment_state(self):
@@ -449,6 +533,10 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
                 name="assessment_unique_slot_number",
             )
         ]
+
+    @property
+    def submission(self):
+        return self.get_sibling_slot("submission")
 
     @property
     def score(self):
@@ -502,6 +590,15 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
                 name="participation_submission_unique_slot_number",
             )
         ]
+
+    @property
+    def event(self):
+        # shortcut to access the participation's event
+        return self.participation.event
+
+    @property
+    def assessment(self):
+        return self.get_sibling_slot("assessment")
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -564,14 +661,19 @@ class EventParticipation(models.Model):
     class Meta:
         ordering = ["begin_timestamp", "pk"]
 
+    @property
+    def event(self):
+        # shortcut to access the participation's event
+        return self.event_instance.event
+
     def __str__(self):
         return str(self.event_instance) + " - " + str(self.user)
 
     def validate_unique(self, *args, **kwargs):
         super().validate_unique(*args, **kwargs)
-        qs = EventParticipation.objects.filter(user=self.user)
-        if qs.filter(event_instance__event=self.event_instance.event).exists():
-            raise ValidationError("A user can only participate in an event once")
+        # qs = EventParticipation.objects.filter(user=self.user)
+        # if qs.filter(event_instance__event=self.event_instance.event).exists():
+        #     raise ValidationError("A user can only participate in an event once")
 
     def save(self, *args, **kwargs):
         self.validate_unique()
