@@ -1,16 +1,29 @@
-from courses.models import Exercise, ExerciseAssessmentRule, ParticipationSubmissionSlot
+def get_assessor_class(event):
+    from courses.models import Event
+
+    if event.event_type == Event.SELF_SERVICE_PRACTICE:
+        return FullyAutomaticAssessor
+
+    return SubmissionAssessor
+
+
+def get_default_assessment_rule():
+    from courses.models import ExerciseAssessmentRule
+
+    return ExerciseAssessmentRule()
 
 
 class SubmissionAssessor:
     def __init__(self, submission_slot):
+        from courses.models import ExerciseAssessmentRule
+
         self.submission_slot = submission_slot
         try:
             self.rule = submission_slot.event.assessment_rules.get(
                 exercise=submission_slot.exercise
             )
         except ExerciseAssessmentRule.DoesNotExist:
-            # TODO get default rule
-            pass
+            self.rule = get_default_assessment_rule()
 
     def assess_multiple_choice(self):
         if self.submission_slot.selected_choice is None:
@@ -28,9 +41,7 @@ class SubmissionAssessor:
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. MULTIPLE_CHOICE_MULTIPLE_POSSIBLE, COMPLETION,
         # AGGREGATED) the score is the sum of the sub-exercises
-        sub_slots_score = sum(
-            [self.assess(s) for s in self.submission_slot.sub_slots.all()]
-        )
+        sub_slots_score = sum([s.score for s in self.submission_slot.sub_slots.all()])
 
         return (
             0
@@ -52,6 +63,7 @@ class SubmissionAssessor:
         Returns the score that results in applying the given rule with the given answer(s), or
         None if the exercise referenced by the given slot needs to be assessed manually.
         """
+        from courses.models import Exercise
 
         if self.rule.require_manual_assessment:
             return None
@@ -89,6 +101,16 @@ class FullyAutomaticAssessor(SubmissionAssessor):
         return 0
 
 
+class FullyManualAssessor(SubmissionAssessor):
+    """
+    Used to override all the assessment rules and always require manual
+    assessment for all kinds of exercises
+    """
+
+    def assess(self):
+        return None
+
+
 class BestEffortAutomaticAssessor(SubmissionAssessor):
     """
     Used to assess submissions for events where manual assessment
@@ -106,6 +128,8 @@ class ManualAggregatedExerciseAssessor(SubmissionAssessor):
     """
 
     def assess_composite_exercise(self):
+        from courses.models import Exercise
+
         if self.submission_slot.exercise.exercise_type == Exercise.AGGREGATED:
             return None
 

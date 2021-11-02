@@ -2,6 +2,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from users.models import User
 
+from courses.logic.assessment import get_assessor_class
+
 from .managers import (
     EventInstanceManager,
     EventInstanceSlotManager,
@@ -399,11 +401,18 @@ class ParticipationAssessment(models.Model):
         (FULLY_ASSESSED, "Fully assessed"),
     )
 
-    state = models.PositiveSmallIntegerField(
-        choices=ASSESSMENT_STATES, default=NOT_ASSESSED
-    )
-
     objects = ParticipationAssessmentManager()
+
+    @property
+    def assessment_state(self):
+        slot_states = [s.assessment_state for s in self.slots.all()]
+        state = self.NOT_ASSESSED
+        for slot_state in slot_states:
+            if slot_state == ParticipationAssessmentSlot.ASSESSED:
+                state = self.FULLY_ASSESSED
+            elif state == self.FULLY_ASSESSED:
+                return self.PARTIALLY_ASSESSED
+        return state
 
     class Meta:
         ordering = ["pk"]
@@ -444,8 +453,9 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
     @property
     def score(self):
         if self._score is None:
-            # TODO apply rule
-            pass
+            return get_assessor_class(self.assessment.participation.event)(
+                self
+            ).assess()
         return self._score
 
     @score.setter
@@ -596,11 +606,16 @@ class EventParticipation(models.Model):
 
 
 class ExerciseAssessmentRule(models.Model):
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    exercise = models.ForeignKey(
+        Exercise,
+        on_delete=models.CASCADE,
+        null=True,
+    )
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE,
         related_name="assessment_rules",
+        null=True,
     )
     require_manual_assessment = models.BooleanField(default=False)
     points_for_correct = models.DecimalField(
