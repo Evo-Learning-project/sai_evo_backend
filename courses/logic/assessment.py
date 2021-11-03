@@ -24,9 +24,6 @@ class SubmissionAssessor:
             self.rule = assessment_slot.exercise.get_assessment_rule(
                 assessment_slot.event
             )
-            # self.rule = assessment_slot.event.assessment_rules.get(
-            #     exercise=assessment_slot.exercise
-            # )
         except ExerciseAssessmentRule.DoesNotExist:
             self.rule = get_default_assessment_rule()
 

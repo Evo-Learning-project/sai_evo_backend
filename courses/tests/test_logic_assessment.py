@@ -14,7 +14,7 @@ class SubmissionAssessorTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(email="aaa@bbb.com")
         self.course = Course.objects.create(name="course")
-        self.event = Event.objects.create(
+        self.event_exam = Event.objects.create(
             name="event", event_type=Event.EXAM, course=self.course
         )
         self.e_multiple_single = Exercise.objects.create(
@@ -87,7 +87,7 @@ class SubmissionAssessorTestCase(TestCase):
         )
 
         event_instance = EventInstance.objects.create(
-            event=self.event,
+            event=self.event_exam,
             exercises=[
                 self.e_multiple_single,
                 self.e_multiple_multiple,
@@ -103,7 +103,7 @@ class SubmissionAssessorTestCase(TestCase):
 
     def test_assessment_multiple_choice_single_possible_exercise(self):
         assessment_rule = ExerciseAssessmentRule.objects.create(
-            event=self.event,
+            event=self.event_exam,
             exercise=self.e_multiple_single,
             points_for_correct=1,
             points_for_blank=0.5,
@@ -178,7 +178,7 @@ class SubmissionAssessorTestCase(TestCase):
 
     def test_assessment_multiple_choice_multiple_possible_exercise(self):
         assessment_rule = ExerciseAssessmentRule.objects.create(
-            event=self.event,
+            event=self.event_exam,
             exercise=self.e_multiple_multiple,
             points_for_correct=1,
             points_for_blank=0,
@@ -246,12 +246,12 @@ class SubmissionAssessorTestCase(TestCase):
 
         # open-answer exercises are assessed automatically in events of type
         # SELF_SERVICE_PRACTICE with score 0
-        self.event.event_type = Event.SELF_SERVICE_PRACTICE
-        self.event.save()
+        self.event_exam.event_type = Event.SELF_SERVICE_PRACTICE
+        self.event_exam.save()
         self.assertEqual(e3_slot.get_assessment(self.participation).score, 0)
 
-        self.event.event_type = Event.EXAM
-        self.event.save()
+        self.event_exam.event_type = Event.EXAM
+        self.event_exam.save()
 
         # open-answer exercises can be assessed manually, resulting in
         # their score property being overridden

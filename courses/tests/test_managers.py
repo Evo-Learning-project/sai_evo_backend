@@ -415,11 +415,6 @@ class EventInstanceManagerTestCase(TestCase):
                 j += 1
             i += 1
 
-    # TODO this goes in test_models.py
-    # def test_exercise_property(self):
-    #     # show that the `exercise` property refers to the correct exercise
-    #     pass
-
 
 class EventTemplateManagerTestCase(TestCase):
     def setUp(self):
