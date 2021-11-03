@@ -28,6 +28,11 @@ class SlotNumberedModel(models.Model):
     )
     slot_number = models.PositiveIntegerField()
 
+    @property
+    def event(self):
+        # shortcut to access the slot's event
+        return getattr(self, self.get_container_attribute()).event
+
     def get_ancestors(self):
         # returns the slot numbers of all the ancestors of
         # `self` up to the ancestor base slot
@@ -41,7 +46,7 @@ class SlotNumberedModel(models.Model):
 
     def get_container_attribute(self):
         # returns the name of the foreign key field to the model that contains the
-        # slots (i.e the many-to-one relation with related name "slots")
+        # slots (i.e the many-to-one relation with related_name parameter "slots")
         for field in type(self)._meta.get_fields():
             if field.remote_field is not None and field.remote_field.name == "slots":
                 return field.name
@@ -53,14 +58,6 @@ class SlotNumberedModel(models.Model):
             if participation_pk is None
             else container.participations.get(pk=participation_pk)
         )
-        if self.parent is None:
-            # base slot - access the same-numbered base slot on the related
-            # EventInstance object and return its referenced exercise
-            return (
-                getattr(participation, sibling_entity)
-                .slots.base_slots()
-                .get(slot_number=self.slot_number)
-            )
 
         # walk up to this slot's base slot and record all the ancestors' slot numbers
         path = reversed(self.get_ancestors())
@@ -83,11 +80,6 @@ class SideSlotNumberedModel(SlotNumberedModel):
     # TODO find a better name for the class
     class Meta:
         abstract = True
-
-    @property
-    def event(self):
-        # shortcut to access the slot's event
-        return getattr(self, self.get_container_attribute()).event
 
     @property
     def exercise(self):
@@ -159,8 +151,23 @@ class Exercise(models.Model):
         return self.text[:100]
 
     def clean(self):
-        # TODO enforce constraints on the various types of question
+        # TODO enforce constraints on the various types of exercise
         pass
+
+    def get_assessment_rule(self, event):
+        """
+        Returns the ExerciseAssessmentrule related to `self` and the passed `event`. If `self`
+        doesn't have a rule associated to it, returns the nearest ancestor's, if one exists
+        """
+        current = self
+        while current is not None:
+            try:
+                return current.assessment_rules.get(event=event)
+            except ExerciseAssessmentRule.DoesNotExist:
+                pass
+            current = current.parent
+
+        raise ExerciseAssessmentRule.DoesNotExist
 
 
 class ExerciseChoice(models.Model):
@@ -651,6 +658,7 @@ class ExerciseAssessmentRule(models.Model):
     exercise = models.ForeignKey(
         Exercise,
         on_delete=models.CASCADE,
+        related_name="assessment_rules",
         null=True,
     )
     event = models.ForeignKey(

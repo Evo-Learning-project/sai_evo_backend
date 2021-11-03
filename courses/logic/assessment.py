@@ -21,9 +21,12 @@ class SubmissionAssessor:
         self.assessment_slot = assessment_slot
 
         try:
-            self.rule = assessment_slot.event.assessment_rules.get(
-                exercise=assessment_slot.exercise
+            self.rule = assessment_slot.exercise.get_assessment_rule(
+                assessment_slot.event
             )
+            # self.rule = assessment_slot.event.assessment_rules.get(
+            #     exercise=assessment_slot.exercise
+            # )
         except ExerciseAssessmentRule.DoesNotExist:
             self.rule = get_default_assessment_rule()
 
@@ -103,14 +106,14 @@ class FullyAutomaticAssessor(SubmissionAssessor):
         return 0
 
 
-class FullyManualAssessor(SubmissionAssessor):
-    """
-    Used to override all the assessment rules and always require manual
-    assessment for all kinds of exercises
-    """
+# class FullyManualAssessor(SubmissionAssessor):
+#     """
+#     Used to override all the assessment rules and always require manual
+#     assessment for all kinds of exercises
+#     """
 
-    def assess(self):
-        return None
+#     def assess(self):
+#         return None
 
 
 class BestEffortAutomaticAssessor(SubmissionAssessor):
@@ -123,16 +126,16 @@ class BestEffortAutomaticAssessor(SubmissionAssessor):
     pass
 
 
-class ManualAggregatedExerciseAssessor(SubmissionAssessor):
-    """
-    Used to enable custom assessment for aggregated exercises by disabling
-    automatic assessment for such exercise types
-    """
+# class ManualAggregatedExerciseAssessor(SubmissionAssessor):
+#     """
+#     Used to enable custom assessment for aggregated exercises by disabling
+#     automatic assessment for such exercise types
+#     """
 
-    def assess_composite_exercise(self):
-        from courses.models import Exercise
+#     def assess_composite_exercise(self):
+#         from courses.models import Exercise
 
-        if self.submission_slot.exercise.exercise_type == Exercise.AGGREGATED:
-            return None
+#         if self.submission_slot.exercise.exercise_type == Exercise.AGGREGATED:
+#             return None
 
-        return super().assess_composite_exercise()
+#         return super().assess_composite_exercise()
