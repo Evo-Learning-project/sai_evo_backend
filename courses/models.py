@@ -28,6 +28,9 @@ class SlotNumberedModel(models.Model):
     )
     slot_number = models.PositiveIntegerField()
 
+    class Meta:
+        abstract = True
+
     @property
     def event(self):
         # shortcut to access the slot's event
@@ -71,9 +74,6 @@ class SlotNumberedModel(models.Model):
                 parent=related_slot, slot_number=step
             )
         return related_slot
-
-    class Meta:
-        abstract = True
 
 
 class SideSlotNumberedModel(SlotNumberedModel):
@@ -389,7 +389,7 @@ class EventInstanceSlot(SlotNumberedModel):
     )
     exercise = models.ForeignKey(
         Exercise,
-        related_name="slots",
+        # related_name="slots",
         on_delete=models.CASCADE,
     )
 
@@ -426,6 +426,8 @@ class ParticipationAssessment(models.Model):
         (PARTIALLY_ASSESSED, "Partially assessed"),
         (FULLY_ASSESSED, "Fully assessed"),
     )
+
+    visible_to_student = models.BooleanField(default=False)
 
     objects = ParticipationAssessmentManager()
 
@@ -623,6 +625,7 @@ class EventParticipation(models.Model):
         #     raise ValidationError("A user can only participate in an event once")
 
     def save(self, *args, **kwargs):
+        # TODO check the user is allowed to participate
         self.validate_unique()
         super().save(*args, **kwargs)
 

@@ -5,6 +5,7 @@ from courses.models import (
     EventParticipation,
     Exercise,
     ExerciseAssessmentRule,
+    ParticipationAssessmentSlot,
 )
 from django.test import TestCase
 from users.models import User
@@ -243,12 +244,20 @@ class SubmissionAssessorTestCase(TestCase):
 
         # open-answer exercises aren't assessed automatically in events of type EXAM
         self.assertIsNone(e3_slot.get_assessment(self.participation).score)
+        self.assertEqual(
+            e3_slot.get_assessment(self.participation).assessment_state,
+            ParticipationAssessmentSlot.NOT_ASSESSED,
+        )
 
         # open-answer exercises are assessed automatically in events of type
         # SELF_SERVICE_PRACTICE with score 0
         self.event_exam.event_type = Event.SELF_SERVICE_PRACTICE
         self.event_exam.save()
         self.assertEqual(e3_slot.get_assessment(self.participation).score, 0)
+        self.assertEqual(
+            e3_slot.get_assessment(self.participation).assessment_state,
+            ParticipationAssessmentSlot.ASSESSED,
+        )
 
         self.event_exam.event_type = Event.EXAM
         self.event_exam.save()
@@ -256,6 +265,15 @@ class SubmissionAssessorTestCase(TestCase):
         # open-answer exercises can be assessed manually, resulting in
         # their score property being overridden
         e3_assessment = e3_slot.get_assessment(self.participation)
+        self.assertEqual(
+            e3_slot.get_assessment(self.participation).assessment_state,
+            ParticipationAssessmentSlot.NOT_ASSESSED,
+        )
+
         e3_assessment.score = 22
         e3_assessment.save()
         self.assertEqual(e3_slot.get_assessment(self.participation).score, 22)
+        self.assertEqual(
+            e3_slot.get_assessment(self.participation).assessment_state,
+            ParticipationAssessmentSlot.ASSESSED,
+        )

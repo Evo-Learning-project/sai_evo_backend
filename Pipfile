@@ -10,6 +10,8 @@ pydot = "*"
 django-extensions = "*"
 pygraphviz = "*"
 coverage = "*"
+djangorestframework = "*"
+markdown = "*"
 
 [dev-packages]
 

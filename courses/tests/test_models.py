@@ -1,15 +1,9 @@
-from courses.models import (
-    Course,
-    Event,
-    EventInstance,
-    EventInstanceSlot,
-    EventParticipation,
-    Exercise,
-    ParticipationAssessment,
-    ParticipationAssessmentSlot,
-    ParticipationSubmission,
-    ParticipationSubmissionSlot,
-)
+from courses.models import (Course, Event, EventInstance, EventInstanceSlot,
+                            EventParticipation, Exercise,
+                            ParticipationAssessment,
+                            ParticipationAssessmentSlot,
+                            ParticipationSubmission,
+                            ParticipationSubmissionSlot)
 from django.test import TestCase
 from users.models import User
 
@@ -348,10 +342,31 @@ class ModelPropertiesTestCase(TestCase):
             self.assessment_slot_2.exercise,
         )
 
+    def test_participation_current_exercise_property(self):
+        pass
+
+    def test_assessment_state_property(self):
+        pass
+
 
 class ModelConstraintsTestCase(TestCase):
-    pass
+    def test_event_participation_uniqueness(self):
+        pass
+
+    def test_event_participation_permissions(self):
+        pass
+
+    def test_submission_constraints(self):
+        # selecting a choice that's not in the exercise, etc.
+        pass
+
+    def test_closed_event_restrictions(self):
+        # cannot participate or modify submissions in closed events
 
 
 class ModelMethodsTestCase(TestCase):
-    pass
+    def test_participation_move_forward_and_back_methods(self):
+        pass
+
+    def test_exercise_get_assessment_rule(self):
+        pass
