@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import F, Q
 from users.models import User
 
 from courses.logic.assessment import get_assessor_class
@@ -136,6 +137,7 @@ class Exercise(models.Model):
         related_name="sub_exercises",
         on_delete=models.CASCADE,
     )
+    child_position = models.PositiveIntegerField(null=True, blank=True)
     tags = models.ManyToManyField("tags.Tag", blank=True)
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
     text = models.TextField(blank=True)
@@ -145,13 +147,26 @@ class Exercise(models.Model):
     objects = ExerciseManager()
 
     class Meta:
-        ordering = ["course_id", "pk"]
+        ordering = [
+            "course_id",
+            F("parent_id").asc(nulls_first=True),  # base exercises first
+            F("child_position").asc(nulls_first=True),
+            "pk",
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["parent_id", "child_position"],
+                condition=Q(parent__isnull=False),
+                name="same_parent_unique_child_position",
+            )
+        ]
 
     def __str__(self):
         return self.text[:100]
 
     def clean(self):
         # TODO enforce constraints on the various types of exercise
+        # TODO enforce that if parent is not none, then child_position cannot be none
         pass
 
     def get_assessment_rule(self, event):

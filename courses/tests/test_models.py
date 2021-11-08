@@ -1,9 +1,15 @@
-from courses.models import (Course, Event, EventInstance, EventInstanceSlot,
-                            EventParticipation, Exercise,
-                            ParticipationAssessment,
-                            ParticipationAssessmentSlot,
-                            ParticipationSubmission,
-                            ParticipationSubmissionSlot)
+from courses.models import (
+    Course,
+    Event,
+    EventInstance,
+    EventInstanceSlot,
+    EventParticipation,
+    Exercise,
+    ParticipationAssessment,
+    ParticipationAssessmentSlot,
+    ParticipationSubmission,
+    ParticipationSubmissionSlot,
+)
 from django.test import TestCase
 from users.models import User
 
@@ -362,6 +368,7 @@ class ModelConstraintsTestCase(TestCase):
 
     def test_closed_event_restrictions(self):
         # cannot participate or modify submissions in closed events
+        pass
 
 
 class ModelMethodsTestCase(TestCase):
