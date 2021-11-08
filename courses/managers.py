@@ -11,6 +11,33 @@ class ExerciseQuerySet(models.QuerySet):
         """
         return self.filter(parent__isnull=True)
 
+    def satisfying(self, rule):
+        """
+        Returns the exercises that satisfy an EventTemplateRule
+        """
+        from courses.models import EventTemplateRule
+
+        if rule.rule_type == EventTemplateRule.ID_BASED:
+            ret_qs = self.filter(pk__in=[e.pk for e in rule.exercises.all()])
+        else:  # tag-based rule
+            ret_qs = self
+            for clause in rule.clauses.all():
+                ret_qs = ret_qs.filter(tags__in=[t for t in clause.tags.all()])
+            ret_qs = (
+                ret_qs.distinct()
+            )  # if more than one tag match, an item may be returned more than once
+        return ret_qs
+
+    def get_random(self, exclude=None):
+        """
+        Returns a random exercise from the queryset
+        """
+        qs = self.order_by("?")
+        if exclude is not None:
+            qs = qs.exclude(pk__in=[e.pk for e in exclude])
+
+        return qs.first()
+
 
 class SlotModelQuerySet(models.QuerySet):
     def base_slots(self):
