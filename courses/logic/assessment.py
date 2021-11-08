@@ -10,7 +10,11 @@ def get_assessor_class(event):
 def get_default_assessment_rule():
     from courses.models import ExerciseAssessmentRule
 
-    return ExerciseAssessmentRule()
+    return ExerciseAssessmentRule(
+        points_for_correct=1,
+        points_for_blank=0,
+        points_for_incorrect=0,
+    )
 
 
 class SubmissionAssessor:
