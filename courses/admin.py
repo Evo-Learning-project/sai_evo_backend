@@ -1,3 +1,4 @@
+import nested_admin
 from django.contrib import admin
 
 from courses.models import *
@@ -29,15 +30,60 @@ class ExerciseAdmin(admin.ModelAdmin):
     ]
 
 
-class EventTemplateRuleClauseInline(admin.StackedInline):
+class EventTemplateRuleClauseInline(nested_admin.NestedTabularInline):
     model = EventTemplateRuleClause
 
 
-class EventTemplateRuleInline(admin.TabularInline):
+class EventTemplateRuleInline(nested_admin.NestedStackedInline):
     model = EventTemplateRule
     inlines = [EventTemplateRuleClauseInline]
 
 
-@admin.register(EventTemplate)
-class EventTemplateAdmin(admin.ModelAdmin):
+class EventTemplateAdmin(nested_admin.NestedModelAdmin):
     inlines = [EventTemplateRuleInline]
+
+
+admin.site.register(EventTemplate, EventTemplateAdmin)
+
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    pass
+
+
+class EventInstanceInline(admin.TabularInline):
+    model = EventInstance
+
+
+class ParticipationAssessmentSlotInline(admin.TabularInline):
+    model = ParticipationAssessmentSlot
+    readonly_fields = ("assessment_state", "exercise")
+
+
+@admin.register(ParticipationAssessment)
+class ParticipationAssessmentAdmin(admin.ModelAdmin):
+    inlines = [ParticipationAssessmentSlotInline]
+    readonly_fields = ("assessment_state",)
+
+
+class ParticipationSubmissionSlotInline(admin.TabularInline):
+    model = ParticipationSubmissionSlot
+
+
+@admin.register(ParticipationSubmission)
+class ParticipationSubmissionAdmin(admin.ModelAdmin):
+    inlines = [ParticipationSubmissionSlotInline]
+
+
+class EventInstanceSlotInline(admin.TabularInline):
+    model = EventInstanceSlot
+
+
+@admin.register(EventInstance)
+class EventInstanceAdmin(admin.ModelAdmin):
+    inlines = [EventInstanceSlotInline]
+
+
+@admin.register(EventParticipation)
+class EventParticipationAdmin(admin.ModelAdmin):
+    pass

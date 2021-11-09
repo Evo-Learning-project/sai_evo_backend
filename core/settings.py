@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "users",
     "tags",
     "django_extensions",
+    "nested_admin",
 ]
 
 MIDDLEWARE = [

@@ -12,6 +12,7 @@ pygraphviz = "*"
 coverage = "*"
 djangorestframework = "*"
 markdown = "*"
+django-nested-admin = "*"
 
 [dev-packages]
 
