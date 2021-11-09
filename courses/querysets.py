@@ -1,4 +1,8 @@
+import random
+
 from django.db import models
+from django.db.models import aggregates
+from django.db.models.aggregates import Max, Min
 
 
 class ExerciseQuerySet(models.QuerySet):
@@ -30,11 +34,16 @@ class ExerciseQuerySet(models.QuerySet):
         """
         Returns a random exercise from the queryset
         """
-        qs = self.order_by("?")
+        qs = self
         if exclude is not None:
             qs = qs.exclude(pk__in=[e.pk for e in exclude])
 
-        return qs.first()
+        aggregate_id = qs.aggregate(max_id=Max("id"), min_id=Min("id"))
+        max_id, min_id = aggregate_id["max_id"], aggregate_id["min_id"]
+
+        picked_id = random.randint(min_id, max_id)
+
+        return qs.filter(pk__gte=picked_id).first()
 
 
 class SlotModelQuerySet(models.QuerySet):
