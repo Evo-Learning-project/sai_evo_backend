@@ -38,12 +38,11 @@ class ExerciseQuerySet(models.QuerySet):
         if exclude is not None:
             qs = qs.exclude(pk__in=[e.pk for e in exclude])
 
-        aggregate_id = qs.aggregate(max_id=Max("id"), min_id=Min("id"))
-        max_id, min_id = aggregate_id["max_id"], aggregate_id["min_id"]
+        ids = qs.values_list("pk", flat=True)
 
-        picked_id = random.randint(min_id, max_id)
+        picked_id = random.choice(ids)
 
-        return qs.filter(pk__gte=picked_id).first()
+        return qs.get(pk=picked_id)
 
 
 class SlotModelQuerySet(models.QuerySet):
