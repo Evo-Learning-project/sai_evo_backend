@@ -91,23 +91,13 @@ class ExerciseManager(models.Manager):
                 "Open answer, attachment, aggregated, and JS exercises cannot have choices"
             )
 
-        if exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            # create ExerciseChoice objects related to this exercise
+        if (
+            exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
+            or exercise.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE
+        ):
             for choice in choices:
-                ExerciseChoice.objects.create(exercise=exercise, **choice)
-        elif exercise.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
-            child_position = 0
-            for choice in choices:
-                # create a sub-exercise with no text and a single choice for
-                # each of the choices supplied
-                Exercise.objects.create(
-                    parent=exercise,
-                    exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                    choices=[choice],
-                    course=exercise.course,
-                    child_position=child_position,
-                )
-                child_position += 1
+                exercise.add_choice(**choice)
+
         elif exercise.exercise_type == Exercise.COMPLETION:
             child_position = 0
             # for each list of choices in `choices`, create a related

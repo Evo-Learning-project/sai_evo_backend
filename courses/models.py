@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F, Max, Q
 from users.models import User
 
 from courses.logic.assessment import get_assessor_class
@@ -169,20 +169,36 @@ class Exercise(models.Model):
         # TODO enforce that if parent is not none, then child_position cannot be none
         pass
 
-    def get_assessment_rule(self, event):
+    def add_choice(self, **choice):
         """
-        Returns the ExerciseAssessmentrule related to `self` and the passed `event`. If `self`
-        doesn't have a rule associated to it, returns the nearest ancestor's, if one exists
+        Uses the correct procedure for adding a choice depending
+        on the type of the exercise
         """
-        current = self
-        while current is not None:
-            try:
-                return current.assessment_rules.get(event=event)
-            except ExerciseAssessmentRule.DoesNotExist:
-                pass
-            current = current.parent
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+            return self.choices.add(
+                ExerciseChoice.objects.create(exercise=self, **choice)
+            )
 
-        raise ExerciseAssessmentRule.DoesNotExist
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
+            Exercise.objects.create(
+                parent=self,
+                exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                choices=[choice],
+                course=self.course,
+                child_position=self.get_next_child_position(),
+            )
+
+        if self.exercise_type == Exercise.COMPLETION:
+            raise NotImplemented
+
+    def get_choice(self, **filter):
+        pass
+
+    def get_next_child_position(self):
+        max_child_position = self.sub_exercises.all().aggregate(
+            max_child_position=Max("child_position")
+        )["max_child_position"]
+        return max_child_position + 1 if max_child_position is not None else 0
 
 
 class ExerciseChoice(models.Model):
