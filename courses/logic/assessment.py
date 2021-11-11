@@ -7,38 +7,17 @@ def get_assessor_class(event):
     return BestEffortAutomaticAssessor
 
 
-def get_default_assessment_rule():
-    from courses.models import ExerciseAssessmentRule
-
-    return ExerciseAssessmentRule(
-        points_for_correct=1,
-        points_for_blank=0,
-        points_for_incorrect=0,
-    )
-
-
 class SubmissionAssessor:
     def __init__(self, assessment_slot):
-        from courses.models import ExerciseAssessmentRule
-
         self.submission_slot = assessment_slot.submission
         self.assessment_slot = assessment_slot
 
-        try:
-            self.rule = assessment_slot.exercise.get_assessment_rule(
-                assessment_slot.event
-            )
-        except ExerciseAssessmentRule.DoesNotExist:
-            self.rule = get_default_assessment_rule()
-
     def assess_multiple_choice(self):
         if self.submission_slot.selected_choice is None:
-            return self.rule.points_for_blank
-        return (
-            self.rule.points_for_correct
-            if self.submission_slot.selected_choice.correct
-            else self.rule.points_for_incorrect
-        )
+            # TODO figure out if there's anything smarter you can do
+            return 0
+
+        return self.submission_slot.selected_choice.score
 
     def assess_js(self):
         # TODO implement
@@ -46,17 +25,10 @@ class SubmissionAssessor:
 
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. MULTIPLE_CHOICE_MULTIPLE_POSSIBLE, COMPLETION,
-        # AGGREGATED) the score is the sum of the sub-exercises
+        # AGGREGATED) the score is the sum of the scores of the sub-exercises
         sub_slots_score = sum([s.score for s in self.assessment_slot.sub_slots.all()])
 
-        return (
-            0
-            if (
-                self.rule.minimum_score_threshold is not None
-                and sub_slots_score < self.rule.minimum_score_threshold
-            )
-            else sub_slots_score
-        )
+        return sub_slots_score
 
     def get_no_automatic_assessment_score(self):
         return None
@@ -107,16 +79,6 @@ class FullyAutomaticAssessor(SubmissionAssessor):
         return 0
 
 
-# class FullyManualAssessor(SubmissionAssessor):
-#     """
-#     Used to override all the assessment rules and always require manual
-#     assessment for all kinds of exercises
-#     """
-
-#     def assess(self):
-#         return None
-
-
 class BestEffortAutomaticAssessor(SubmissionAssessor):
     """
     Used to assess submissions for events where manual assessment
@@ -125,18 +87,3 @@ class BestEffortAutomaticAssessor(SubmissionAssessor):
     """
 
     pass
-
-
-# class ManualAggregatedExerciseAssessor(SubmissionAssessor):
-#     """
-#     Used to enable custom assessment for aggregated exercises by disabling
-#     automatic assessment for such exercise types
-#     """
-
-#     def assess_composite_exercise(self):
-#         from courses.models import Exercise
-
-#         if self.submission_slot.exercise.exercise_type == Exercise.AGGREGATED:
-#             return None
-
-#         return super().assess_composite_exercise()

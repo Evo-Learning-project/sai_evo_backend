@@ -114,6 +114,7 @@ class Exercise(models.Model):
     AGGREGATED = 4
     JS = 5
     ATTACHMENT = 6
+    # ATTACHMENT_WITH_OPEN_ANSWER
 
     EXERCISE_TYPES = (
         (MULTIPLE_CHOICE_SINGLE_POSSIBLE, "Multiple choice, single possible"),
@@ -124,6 +125,12 @@ class Exercise(models.Model):
         (JS, "JavaScript"),
         (ATTACHMENT, "Attachment"),
     )
+
+    DRAFT = 0
+    PRIVATE = 1
+    PUBLIC = 2
+
+    EXERCISE_STATES = ((DRAFT, "Draft"), (PRIVATE, "Private"), (PUBLIC, "Public"))
 
     course = models.ForeignKey(
         Course,
@@ -142,7 +149,7 @@ class Exercise(models.Model):
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
     text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
-    draft = models.BooleanField(default=False)
+    state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
 
     objects = ExerciseManager()
 

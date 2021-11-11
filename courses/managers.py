@@ -58,6 +58,15 @@ class ExerciseManager(models.Manager):
     def base_exercises(self):
         return self.get_queryset().base_exercises()
 
+    def draft(self):
+        return self.get_queryset().draft()
+
+    def private(self):
+        return self.get_queryset().private()
+
+    def public(self):
+        return self.get_queryset().public()
+
     def create(self, *args, **kwargs):
         """
         Creates a new exercise and the correct related entities (choices,

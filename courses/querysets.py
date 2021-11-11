@@ -13,6 +13,21 @@ class ExerciseQuerySet(models.QuerySet):
         """
         return self.filter(parent__isnull=True)
 
+    def draft(self):
+        from courses.models import Exercise
+
+        return self.filter(state=Exercise.DRAFT)
+
+    def private(self):
+        from courses.models import Exercise
+
+        return self.filter(state=Exercise.PRIVATE)
+
+    def public(self):
+        from courses.models import Exercise
+
+        return self.filter(state=Exercise.PUBLIC)
+
     def satisfying(self, rule):
         """
         Returns the exercises that satisfy an EventTemplateRule
