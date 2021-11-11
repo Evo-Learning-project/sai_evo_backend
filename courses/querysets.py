@@ -30,19 +30,25 @@ class ExerciseQuerySet(models.QuerySet):
             )  # if more than one tag match, an item may be returned more than once
         return ret_qs
 
-    def get_random(self, exclude=None):
+    def get_random(self, amount=1):
         """
-        Returns a random exercise from the queryset
+        Returns `amount` random exercise(s) from the queryset
         """
         qs = self
-        if exclude is not None:
-            qs = qs.exclude(pk__in=[e.pk for e in exclude])
 
-        ids = qs.values_list("pk", flat=True)
+        ids = list(qs.values_list("pk", flat=True))
+        picked_ids = random.sample(ids, amount)
 
-        picked_id = random.choice(ids)
+        ret = qs.filter(pk__in=picked_ids)
+        return ret.first() if amount == 1 else ret
 
-        return qs.get(pk=picked_id)
+    def get_random_with_priority(self, priority_field, amount=1, exclude=None):
+        """
+        Returns `amount` random exercise(s) from the queryset, the
+        chance of each exercise being picked depending on the value of
+        `priority_field` - lower values (positive) have higher priority probability
+        """
+        pass
 
 
 class SlotModelQuerySet(models.QuerySet):
