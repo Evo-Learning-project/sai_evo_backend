@@ -208,7 +208,12 @@ class ExerciseChoice(models.Model):
         on_delete=models.CASCADE,
     )
     text = models.TextField()
-    correct = models.BooleanField()
+    score = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+    )
+    # correct = models.BooleanField()
 
     class Meta:
         ordering = ["exercise_id", "pk"]
@@ -688,49 +693,49 @@ class EventParticipation(models.Model):
         return self.current_exercise
 
 
-class ExerciseAssessmentRule(models.Model):
-    exercise = models.ForeignKey(
-        Exercise,
-        on_delete=models.CASCADE,
-        related_name="assessment_rules",
-        null=True,
-    )
-    event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="assessment_rules",
-        null=True,
-    )
-    require_manual_assessment = models.BooleanField(default=False)
-    points_for_correct = models.DecimalField(
-        decimal_places=2,
-        max_digits=5,
-        default=1,
-    )
-    points_for_blank = models.DecimalField(
-        decimal_places=2,
-        max_digits=5,
-        default=0,
-    )
-    points_for_incorrect = models.DecimalField(
-        decimal_places=2,
-        max_digits=5,
-        default=0,
-    )
-    minimum_score_threshold = models.DecimalField(
-        decimal_places=2,
-        max_digits=5,
-        default=0,
-    )
-    # time_to_answer = models.PositiveIntegerField(null=True, blank=True)
-    # enforce_timeout = models.BooleanField(default=True)
-    # expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
+# class ExerciseAssessmentRule(models.Model):
+#     exercise = models.ForeignKey(
+#         Exercise,
+#         on_delete=models.CASCADE,
+#         related_name="assessment_rules",
+#         null=True,
+#     )
+#     event = models.ForeignKey(
+#         Event,
+#         on_delete=models.CASCADE,
+#         related_name="assessment_rules",
+#         null=True,
+#     )
+#     require_manual_assessment = models.BooleanField(default=False)
+#     points_for_correct = models.DecimalField(
+#         decimal_places=2,
+#         max_digits=5,
+#         default=1,
+#     )
+#     points_for_blank = models.DecimalField(
+#         decimal_places=2,
+#         max_digits=5,
+#         default=0,
+#     )
+#     points_for_incorrect = models.DecimalField(
+#         decimal_places=2,
+#         max_digits=5,
+#         default=0,
+#     )
+#     minimum_score_threshold = models.DecimalField(
+#         decimal_places=2,
+#         max_digits=5,
+#         default=0,
+#     )
+#     # time_to_answer = models.PositiveIntegerField(null=True, blank=True)
+#     # enforce_timeout = models.BooleanField(default=True)
+#     # expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
 
-    class Meta:
-        ordering = ["event_id", "exercise_id"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event_id", "exercise_id"],
-                name="assessment_rule_unique_event_exercise",
-            )
-        ]
+#     class Meta:
+#         ordering = ["event_id", "exercise_id"]
+#         constraints = [
+#             models.UniqueConstraint(
+#                 fields=["event_id", "exercise_id"],
+#                 name="assessment_rule_unique_event_exercise",
+#             )
+#         ]
