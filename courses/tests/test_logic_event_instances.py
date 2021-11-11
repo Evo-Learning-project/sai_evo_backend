@@ -30,15 +30,23 @@ class GetExercisesFromTemplateTestCase(TestCase):
             text="a",
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[{"text": "aa", "correct": True}],
+            choices=[
+                {
+                    "text": "aa",
+                }
+            ],
         )
         self.e2 = Exercise.objects.create(
             text="b",
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
             choices=[
-                {"text": "aa", "correct": True},
-                {"text": "aa", "correct": False},
+                {
+                    "text": "aa",
+                },
+                {
+                    "text": "aa",
+                },
             ],
         )
         self.e3 = Exercise.objects.create(

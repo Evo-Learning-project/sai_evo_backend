@@ -26,9 +26,15 @@ class ExerciseManagerTestCase(TestCase):
         # supplying choices together with the exercise data creates the choices
         # related to that exercise
         choices = [
-            {"text": "c1", "correct": True},
-            {"text": "c2", "correct": False},
-            {"text": "c3", "correct": False},
+            {
+                "text": "c1",
+            },
+            {
+                "text": "c2",
+            },
+            {
+                "text": "c3",
+            },
         ]
 
         e1 = Exercise.objects.create(
@@ -45,7 +51,12 @@ class ExerciseManagerTestCase(TestCase):
             len(choices),
         )
         self.assertListEqual(
-            [{"text": c.text, "correct": c.correct} for c in e1.choices.all()],
+            [
+                {
+                    "text": c.text,
+                }
+                for c in e1.choices.all()
+            ],
             choices,
         )
 
@@ -60,9 +71,15 @@ class ExerciseManagerTestCase(TestCase):
 
     def test_multiple_choice_multiple_possible_exercise_creation(self):
         choices = [
-            {"text": "c1", "correct": True},
-            {"text": "c2", "correct": False},
-            {"text": "c3", "correct": False},
+            {
+                "text": "c1",
+            },
+            {
+                "text": "c2",
+            },
+            {
+                "text": "c3",
+            },
         ]
 
         e1 = Exercise.objects.create(
@@ -92,9 +109,7 @@ class ExerciseManagerTestCase(TestCase):
 
             choice = sub_exercise.choices.first()
             # the created choices are the same ones supplied for the parent exercise
-            self.assertEqual(
-                {"text": choice.text, "correct": choice.correct}, choices[i]
-            )
+            self.assertEqual({"text": choice.text}, choices[i])
             i += 1
 
         # creating a multiple choice question with test cases fails
@@ -129,7 +144,11 @@ class ExerciseManagerTestCase(TestCase):
         with self.assertRaises(ValidationError):
             Exercise.objects.create(
                 text="bbb",
-                choices=[{"text": "c1", "correct": True}],
+                choices=[
+                    {
+                        "text": "c1",
+                    }
+                ],
                 exercise_type=Exercise.OPEN_ANSWER,
                 course=self.course,
             )
@@ -137,17 +156,31 @@ class ExerciseManagerTestCase(TestCase):
     def test_completion_exercise_creation(self):
         choices = [  # choices are supplied as a list of lists
             [
-                {"text": "1c1", "correct": True},
-                {"text": "1c2", "correct": False},
+                {
+                    "text": "1c1",
+                },
+                {
+                    "text": "1c2",
+                },
             ],
             [
-                {"text": "2c1", "correct": False},
-                {"text": "2c2", "correct": True},
+                {
+                    "text": "2c1",
+                },
+                {
+                    "text": "2c2",
+                },
             ],
             [
-                {"text": "3c1", "correct": False},
-                {"text": "3c2", "correct": True},
-                {"text": "3c3", "correct": False},
+                {
+                    "text": "3c1",
+                },
+                {
+                    "text": "3c2",
+                },
+                {
+                    "text": "3c3",
+                },
             ],
         ]
 
@@ -171,7 +204,6 @@ class ExerciseManagerTestCase(TestCase):
                 [
                     {
                         "text": c.text,
-                        "correct": c.correct,
                     }
                     for c in sub_exercise.choices.all()
                 ],
@@ -184,16 +216,24 @@ class ExerciseManagerTestCase(TestCase):
             "text": "sub1",
             "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
             "choices": [
-                {"text": "1c1", "correct": True},
-                {"text": "1c2", "correct": False},
+                {
+                    "text": "1c1",
+                },
+                {
+                    "text": "1c2",
+                },
             ],
         }
         sub_e2 = {
             "text": "sub2",
             "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
             "choices": [
-                {"text": "2c1", "correct": True},
-                {"text": "2c2", "correct": False},
+                {
+                    "text": "2c1",
+                },
+                {
+                    "text": "2c2",
+                },
             ],
         }
 
@@ -259,8 +299,12 @@ class ExerciseManagerTestCase(TestCase):
             Exercise.objects.create(
                 text="bbb",
                 choices=[
-                    {"text": "aaa", "correct": True},
-                    {"text": "ccc", "correct": False},
+                    {
+                        "text": "aaa",
+                    },
+                    {
+                        "text": "ccc",
+                    },
                 ],
                 exercise_type=Exercise.JS,
                 course=self.course,
@@ -289,7 +333,11 @@ class ExerciseManagerTestCase(TestCase):
         with self.assertRaises(ValidationError):
             Exercise.objects.create(
                 text="bbb",
-                choices=[{"text": "c1", "correct": True}],
+                choices=[
+                    {
+                        "text": "c1",
+                    }
+                ],
                 exercise_type=Exercise.ATTACHMENT,
                 course=self.course,
             )
@@ -336,15 +384,23 @@ class EventInstanceManagerTestCase(TestCase):
             text="a",
             course=course,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[{"text": "aa", "correct": True}],
+            choices=[
+                {
+                    "text": "aa",
+                }
+            ],
         )
         self.e2 = Exercise.objects.create(
             text="b",
             course=course,
             exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
             choices=[
-                {"text": "aa", "correct": True},
-                {"text": "aa", "correct": False},
+                {
+                    "text": "aa",
+                },
+                {
+                    "text": "aa",
+                },
             ],
         )
         self.e3 = Exercise.objects.create(
@@ -361,16 +417,24 @@ class EventInstanceManagerTestCase(TestCase):
                     "text": "da",
                     "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
                     "choices": [
-                        {"text": "aa", "correct": True},
-                        {"text": "aa", "correct": False},
+                        {
+                            "text": "aa",
+                        },
+                        {
+                            "text": "aa",
+                        },
                     ],
                 },
                 {
                     "text": "db",
                     "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
                     "choices": [
-                        {"text": "aa", "correct": True},
-                        {"text": "aa", "correct": False},
+                        {
+                            "text": "aa",
+                        },
+                        {
+                            "text": "aa",
+                        },
                     ],
                 },
             ],
@@ -379,7 +443,11 @@ class EventInstanceManagerTestCase(TestCase):
             text="e",
             course=course,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[{"text": "aa", "correct": True}],
+            choices=[
+                {
+                    "text": "aa",
+                }
+            ],
         )
 
     def test_creation_no_recursion(self):
@@ -435,15 +503,23 @@ class EventTemplateManagerTestCase(TestCase):
             text="a",
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[{"text": "aa", "correct": True}],
+            choices=[
+                {
+                    "text": "aa",
+                }
+            ],
         )
         self.e2 = Exercise.objects.create(
             text="b",
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
             choices=[
-                {"text": "aa", "correct": True},
-                {"text": "aa", "correct": False},
+                {
+                    "text": "aa",
+                },
+                {
+                    "text": "aa",
+                },
             ],
         )
         self.e3 = Exercise.objects.create(
@@ -519,15 +595,23 @@ class EventParticipationManagerTestCase(TestCase):
             text="a",
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[{"text": "aa", "correct": True}],
+            choices=[
+                {
+                    "text": "aa",
+                }
+            ],
         )
         self.e2 = Exercise.objects.create(
             text="b",
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
             choices=[
-                {"text": "aa", "correct": True},
-                {"text": "aa", "correct": False},
+                {
+                    "text": "aa",
+                },
+                {
+                    "text": "aa",
+                },
             ],
         )
         self.e3 = Exercise.objects.create(
@@ -544,16 +628,24 @@ class EventParticipationManagerTestCase(TestCase):
                     "text": "aaa",
                     "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
                     "choices": [
-                        {"text": "a", "correct": True},
-                        {"text": "b", "correct": False},
+                        {
+                            "text": "a",
+                        },
+                        {
+                            "text": "b",
+                        },
                     ],
                 },
                 {
                     "text": "bbb",
                     "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
                     "choices": [
-                        {"text": "a", "correct": True},
-                        {"text": "b", "correct": False},
+                        {
+                            "text": "a",
+                        },
+                        {
+                            "text": "b",
+                        },
                     ],
                 },
             ],

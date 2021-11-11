@@ -25,9 +25,15 @@ def common_setup(self):
         course=self.course,
         exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
         choices=[
-            {"text": "aa", "correct": True},
-            {"text": "bb", "correct": False},
-            {"text": "cc", "correct": False},
+            {
+                "text": "aa",
+            },
+            {
+                "text": "bb",
+            },
+            {
+                "text": "cc",
+            },
         ],
     )
     self.e_multiple_multiple = Exercise.objects.create(
@@ -35,9 +41,15 @@ def common_setup(self):
         course=self.course,
         exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
         choices=[
-            {"text": "aa", "correct": True},
-            {"text": "bb", "correct": True},
-            {"text": "cc", "correct": False},
+            {
+                "text": "aa",
+            },
+            {
+                "text": "bb",
+            },
+            {
+                "text": "cc",
+            },
         ],
     )
     self.e_open = Exercise.objects.create(
@@ -54,16 +66,24 @@ def common_setup(self):
                 "text": "aaa",
                 "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
                 "choices": [
-                    {"text": "a", "correct": True},
-                    {"text": "b", "correct": False},
+                    {
+                        "text": "a",
+                    },
+                    {
+                        "text": "b",
+                    },
                 ],
             },
             {
                 "text": "bbb",
                 "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
                 "choices": [
-                    {"text": "a", "correct": True},
-                    {"text": "b", "correct": False},
+                    {
+                        "text": "a",
+                    },
+                    {
+                        "text": "b",
+                    },
                 ],
             },
         ],
@@ -74,17 +94,31 @@ def common_setup(self):
         exercise_type=Exercise.COMPLETION,
         choices=[
             [
-                {"text": "1c1", "correct": True},
-                {"text": "1c2", "correct": False},
+                {
+                    "text": "1c1",
+                },
+                {
+                    "text": "1c2",
+                },
             ],
             [
-                {"text": "2c1", "correct": False},
-                {"text": "2c2", "correct": True},
+                {
+                    "text": "2c1",
+                },
+                {
+                    "text": "2c2",
+                },
             ],
             [
-                {"text": "3c1", "correct": False},
-                {"text": "3c2", "correct": True},
-                {"text": "3c3", "correct": False},
+                {
+                    "text": "3c1",
+                },
+                {
+                    "text": "3c2",
+                },
+                {
+                    "text": "3c3",
+                },
             ],
         ],
     )

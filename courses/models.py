@@ -150,6 +150,8 @@ class Exercise(models.Model):
     text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
+    time_to_complete = models.PositiveIntegerField(null=True, blank=True)
+    skip_if_timeout = models.BooleanField(default=False)
 
     objects = ExerciseManager()
 
@@ -182,9 +184,7 @@ class Exercise(models.Model):
         on the type of the exercise
         """
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            return self.choices.add(
-                ExerciseChoice.objects.create(exercise=self, **choice)
-            )
+            return ExerciseChoice.objects.create(exercise=self, **choice)
 
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
             Exercise.objects.create(
