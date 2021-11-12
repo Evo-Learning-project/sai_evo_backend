@@ -27,7 +27,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = Exercise
         fields = ["text", "exercise_type", "tags"]
-        hidden_fields = ["solution", "draft"]
+        hidden_fields = ["solution", "state"]
         # type_specific_fields = {
         #     Exercise.AGGREGATED: "sub_exercises",
         #     Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE: "choices",
@@ -53,4 +53,46 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "progression_rule",
             "state",
         ]
-        hidden_fields = ["limit_access_to", "template"]
+        hidden_fields = ["template"]
+
+
+class EventTemplateRuleSerializer(serializers.ModelSerializer):
+    pass
+
+
+class EventTemplateSerializer(serializers.ModelSerializer):
+    pass
+
+
+class EventInstanceSlotSerializer(serializers.ModelSerializer):
+    pass
+
+
+class EventInstanceSerializer(serializers.ModelSerializer):
+    pass
+
+
+class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
+    pass
+
+
+class ParticipationAssessmentSerializer(serializers.ModelSerializer):
+    pass
+
+
+class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
+    pass
+
+
+class ParticipationSubmissionSerializer(serializers.ModelSerializer):
+    pass
+
+
+class EventParticipationSlotSerializer(serializers.ModelSerializer):
+    # use EventInstanceSlot as model and have fields from ParticipationAssessmentSlotSerializer
+    # and ParticipationSubmissionSlotSerializer; this is meant as a read only serializer
+    pass
+
+
+class EventParticipationSerializer(serializers.ModelSerializer):
+    pass

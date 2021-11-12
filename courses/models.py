@@ -234,6 +234,8 @@ class ExerciseChoice(models.Model):
     def __str__(self):
         return str(self.exercise) + " - " + self.text[:100]
 
+    # TODO override delete behavior for multiple choice multiple possible exercises
+
 
 class ExerciseTestCase(models.Model):
     exercise = models.ForeignKey(
@@ -291,16 +293,17 @@ class Event(models.Model):
     PLANNED = 1
     OPEN = 2
     CLOSED = 3
-    LIMITED_ACCESS = 4
+    # LIMITED_ACCESS = 4
 
     EVENT_STATES = (
         (DRAFT, "Draft"),
         (PLANNED, "Planned"),
         (OPEN, "Open"),
         (CLOSED, "Closed"),
-        (LIMITED_ACCESS, "Access limited to certain students"),
+        # (LIMITED_ACCESS, "Access limited to certain students"),
     )
-
+    # TODO have a boolean field to toggle whether to show the event (in case of exams) before the begin_timestamp (only the introduction is shown)
+    # TODO possibly implement self-closing exams when time runs out (be mindful of issues such as slightly late answers etc.)
     name = models.TextField()
     instructions = models.TextField(blank=True)
     course = models.ForeignKey(
@@ -316,7 +319,7 @@ class Event(models.Model):
         default=ALL_EXERCISES_AT_ONCE,
     )
     state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
-    limit_access_to = models.ManyToManyField("users.User", blank=True)
+    # limit_access_to = models.ManyToManyField("users.User", blank=True)
     template = models.ForeignKey(
         "EventTemplate",
         related_name="events",
@@ -362,10 +365,12 @@ class EventTemplate(models.Model):
 class EventTemplateRule(models.Model):
     TAG_BASED = 0
     ID_BASED = 1
+    FULLY_RANDOM = 2
 
     RULE_TYPES = (
         (TAG_BASED, "Tag-based rule"),
         (ID_BASED, "Exercise ID-based rule"),
+        (FULLY_RANDOM, "Fully random choice"),
     )
 
     template = models.ForeignKey(
@@ -463,6 +468,7 @@ class ParticipationAssessment(models.Model):
     NOT_ASSESSED = 0
     PARTIALLY_ASSESSED = 1
     FULLY_ASSESSED = 2
+    # TODO more states (e.g. FOR_REVIEW) maybe settable manually
 
     ASSESSMENT_STATES = (
         (NOT_ASSESSED, "Not assessed"),
@@ -549,6 +555,7 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
 
 class ParticipationSubmission(models.Model):
     objects = ParticipationSubmissionManager()
+    # TODO for assignments, have a way to close submissions and possibly re-open them
 
     class Meta:
         ordering = ["pk"]

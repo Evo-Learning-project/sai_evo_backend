@@ -34,15 +34,17 @@ class ExerciseQuerySet(models.QuerySet):
         """
         from courses.models import EventTemplateRule
 
+        ret_qs = self
+
         if rule.rule_type == EventTemplateRule.ID_BASED:
-            ret_qs = self.filter(pk__in=[e.pk for e in rule.exercises.all()])
-        else:  # tag-based rule
-            ret_qs = self
+            ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])
+        elif rule.rule_type == EventTemplateRule.TAG_BASED:
             for clause in rule.clauses.all():
                 ret_qs = ret_qs.filter(tags__in=[t for t in clause.tags.all()])
             ret_qs = (
                 ret_qs.distinct()
             )  # if more than one tag match, an item may be returned more than once
+
         return ret_qs
 
     def get_random(self, amount=1):

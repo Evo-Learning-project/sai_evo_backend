@@ -23,3 +23,11 @@ class User(AbstractUser):
                 for t in (self.first_name + " " + self.last_name).split(" ")
             ]
         )
+
+
+class CoursePermission(models.Model):
+    # TODO implement
+    # can add exercises, can edit/delete exercises, can create events, can edit/delete events
+    # can assess submissions, can publish assessments, can create/edit/delete announcements
+    # also have a special __all__ permission
+    pass

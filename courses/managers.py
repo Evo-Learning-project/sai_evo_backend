@@ -72,7 +72,7 @@ class ExerciseManager(models.Manager):
         Creates a new exercise and the correct related entities (choices,
         test cases) depending on the exercise type
         """
-        from .models import Exercise, ExerciseChoice, ExerciseTestCase
+        from .models import Exercise, ExerciseTestCase
 
         choices = kwargs.pop("choices", [])
         testcases = kwargs.pop("testcases", [])
@@ -290,7 +290,7 @@ class EventTemplateRuleManager(models.Manager):
                         "You can only directly assign base exercises to an EventRule"
                     )
             rule.exercises.set(exercises)
-        else:  # tag-based rule
+        elif rule.rule_type == EventTemplateRule.TAG_BASED:
             if len(exercises) > 0:
                 raise ValidationError(
                     "Tag-based rules cannot refer to specific exercises"
@@ -298,5 +298,10 @@ class EventTemplateRuleManager(models.Manager):
             for tag_group in tags:
                 clause = EventTemplateRuleClause.objects.create(rule=rule)
                 clause.tags.set(tag_group)
+        else:  # fully random rule
+            if len(tags) > 0 or len(exercises) > 0:
+                raise ValidationError(
+                    "Fully random rules cannot have tag clauses or specify exercises"
+                )
 
         return rule
