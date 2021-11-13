@@ -1,3 +1,4 @@
+from core.models import UUIDModel
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
@@ -19,7 +20,7 @@ from .managers import (
 )
 
 
-class SlotNumberedModel(models.Model):
+class SlotNumberedModel(UUIDModel):
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -87,7 +88,7 @@ class SideSlotNumberedModel(SlotNumberedModel):
         return self.get_sibling_slot("event_instance").exercise
 
 
-class Course(models.Model):
+class Course(UUIDModel):
     name = models.TextField(unique=True)
     description = models.TextField(blank=True)
     creator = models.ForeignKey(
@@ -208,7 +209,7 @@ class Exercise(models.Model):
         return max_child_position + 1 if max_child_position is not None else 0
 
 
-class ExerciseChoice(models.Model):
+class ExerciseChoice(UUIDModel):
     exercise = models.ForeignKey(
         Exercise,
         related_name="choices",
@@ -237,7 +238,7 @@ class ExerciseChoice(models.Model):
     # TODO override delete behavior for multiple choice multiple possible exercises
 
 
-class ExerciseTestCase(models.Model):
+class ExerciseTestCase(UUIDModel):
     exercise = models.ForeignKey(
         Exercise,
         related_name="testcases",
@@ -264,7 +265,7 @@ class ExerciseTestCase(models.Model):
         return str(self.exercise) + " - " + self.code
 
 
-class Event(models.Model):
+class Event(UUIDModel):
     SELF_SERVICE_PRACTICE = 0
     IN_CLASS_PRACTICE = 1
     EXAM = 2
