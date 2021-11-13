@@ -1,13 +1,21 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from courses.models import Course, Event, EventParticipation, EventTemplate, Exercise
+from courses.models import (
+    Course,
+    Event,
+    EventParticipation,
+    EventTemplate,
+    Exercise,
+    ParticipationSubmissionSlot,
+)
 
 from .serializers import (
     CourseSerializer,
     EventParticipationSerializer,
+    EventParticipationSlotSerializer,
     EventSerializer,
     EventTemplateSerializer,
     ExerciseSerializer,
@@ -62,3 +70,19 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
     )
 
     # TODO filter by course, state, assessment state?
+
+
+class EventParticipationSlotViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = EventParticipationSlotSerializer
+    queryset = ParticipationSubmissionSlot.objects.all().prefetch_related("sub_slots")
+    lookup_field = "slot_number"
+
+    def get_queryset(self):
+        qs = super().get_queryset().base_slots()  # TODO change this
+        # print(self.kwargs["participation_pk"])
+        return qs.filter(submission__participation=self.kwargs["participation_pk"])

@@ -47,9 +47,30 @@ event_router.register(
     basename="event-participations",
 )
 
+participation_router = routers.NestedSimpleRouter(
+    event_router, r"participations", lookup="participation"
+)
+
+# `/courses/<pk>/events/<pk>/participations/<pk>/slots` entry point
+participation_router.register(
+    r"slots", views.EventParticipationSlotViewSet, basename="participation-slots"
+)
+
+slot_router = routers.NestedSimpleRouter(
+    participation_router,
+    r"slots",
+    views.EventParticipationSlotViewSet,
+    lookup="slot",
+)
+slot_router.register(
+    r"slots", views.EventParticipationSlotViewSet, basename="slot-slots"
+)
+
 
 urlpatterns = [
     path("", include(router.urls)),
     path("", include(course_router.urls)),
     path("", include(event_router.urls)),
+    path("", include(participation_router.urls)),
+    path("", include(slot_router.urls)),
 ]

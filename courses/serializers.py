@@ -9,16 +9,10 @@ from courses.models import (
     ExerciseChoice,
     ParticipationSubmissionSlot,
 )
-
-
-class RecursiveField(serializers.Serializer):
-    """
-    Used for serializers that contain self-referencing fields
-    """
-
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
+from courses.serializer_fields import (
+    NestedSerializerForeignKeyWritableField,
+    RecursiveField,
+)
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -32,6 +26,9 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
         if context is not None and context.get("show_hidden_fields", False):
             self.Meta.fields.extend(self.Meta.hidden_fields)
         super().__init__(*args, **kwargs)
+
+        # for easier use by other serializers that rely on this property after __init__
+        self.show_hidden_fields = self.context.get("show_hidden_fields", False)
 
 
 class CourseSerializer(HiddenFieldsModelSerializer):
@@ -101,6 +98,57 @@ class EventInstanceSerializer(serializers.ModelSerializer):
     pass
 
 
+class EventParticipationSlotSerializer(HiddenFieldsModelSerializer):
+    sub_slots = RecursiveField(many=True)
+    selected_choice = NestedSerializerForeignKeyWritableField(
+        serializer=ExerciseChoiceSerializer,
+        queryset=ExerciseChoice.objects.all(),
+    )
+
+    class Meta:
+        model = ParticipationSubmissionSlot
+        fields = [
+            "slot_number",
+            "exercise",
+            "sub_slots",
+            "selected_choice",
+            "answer_text",
+            "attachment",
+        ]
+        read_only_fields = [  # TODO make sure these aren't changed
+            "slot_number",
+            "exercise",
+            "seen_at",
+            "answered_at",
+        ]
+        hidden_fields = [
+            "seen_at",
+            "answered_at",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.show_hidden_fields:
+            self.fields["score"] = serializers.DecimalField(
+                max_digits=5,
+                decimal_places=2,
+                source="assessment.score",
+            )
+        self.fields["exercise"] = ExerciseSerializer(read_only=True)
+
+
+class EventParticipationSerializer(serializers.ModelSerializer):
+    slots = EventParticipationSlotSerializer(many=True, source="submission.slots")
+
+    class Meta:
+        model = EventParticipation
+        fields = [
+            "id",
+            "state",
+            "slots",
+        ]
+
+
 class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     pass
 
@@ -115,43 +163,3 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
 
 class ParticipationSubmissionSerializer(serializers.ModelSerializer):
     pass
-
-
-class EventParticipationSlotSerializer(serializers.ModelSerializer):
-    sub_slots = RecursiveField(many=True)
-    selected_choice = ExerciseChoiceSerializer()
-    score = serializers.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        source="assessment.score",
-    )
-
-    class Meta:
-        model = ParticipationSubmissionSlot
-        fields = [
-            "slot_number",
-            "exercise",
-            "sub_slots",
-            "score",
-            "selected_choice",
-            "answer_text",
-            "attachment",
-            "seen_at",
-            "answered_at",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["exercise"] = ExerciseSerializer(context={"show_choices": False})
-
-
-class EventParticipationSerializer(serializers.ModelSerializer):
-    slots = EventParticipationSlotSerializer(many=True, source="submission.slots")
-
-    class Meta:
-        model = EventParticipation
-        fields = [
-            "id",
-            "state",
-            "slots",
-        ]
