@@ -72,7 +72,7 @@ class ExerciseManager(models.Manager):
         Creates a new exercise and the correct related entities (choices,
         test cases) depending on the exercise type
         """
-        from .models import Exercise, ExerciseTestCase
+        from .models import Exercise, ExerciseChoice, ExerciseTestCase
 
         choices = kwargs.pop("choices", [])
         testcases = kwargs.pop("testcases", [])
@@ -105,7 +105,7 @@ class ExerciseManager(models.Manager):
             or exercise.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE
         ):
             for choice in choices:
-                exercise.add_choice(**choice)
+                ExerciseChoice.objects.create(exercise=exercise, **choice)
 
         elif exercise.exercise_type == Exercise.COMPLETION:
             child_position = 0

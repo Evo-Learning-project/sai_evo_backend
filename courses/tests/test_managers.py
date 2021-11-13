@@ -91,23 +91,11 @@ class ExerciseManagerTestCase(TestCase):
 
         self.assertEqual(e1.text, self.e1_text)
         self.assertEqual(e1.exercise_type, Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE)
-        self.assertEqual(  # one sub-exercise is created for each choice
-            e1.sub_exercises.count(),
-            len(choices),
-        )
-        self.assertEqual(  # no choices are directly related to the parent exercise
-            e1.choices.count(), 0
-        )
+
+        self.assertEqual(e1.choices.count(), len(choices))
 
         i = 0
-        for sub_exercise in e1.sub_exercises.all():
-            # the automatically created sub-exercises have empty text
-            self.assertEqual(sub_exercise.text, "")
-
-            # the automatically created sub-exercises have a single choice
-            self.assertEqual(sub_exercise.choices.count(), 1)
-
-            choice = sub_exercise.choices.first()
+        for choice in e1.choices.all():
             # the created choices are the same ones supplied for the parent exercise
             self.assertEqual({"text": choice.text}, choices[i])
             i += 1

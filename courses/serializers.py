@@ -109,7 +109,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "id",
             "exercise",
             "sub_slots",
-            "selected_choice",
+            "selected_choices",
             "answer_text",
             "attachment",
         ]
@@ -136,8 +136,8 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["selected_choice"] = ExerciseChoiceSerializer(
-            source="submission.selected_choice", read_only=True
+        self.fields["selected_choices"] = ExerciseChoiceSerializer(
+            many=True, source="submission.selected_choices", read_only=True
         )
         self.fields["attachment"] = serializers.FileField(
             source="submission.attachment", read_only=True

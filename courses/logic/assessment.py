@@ -13,19 +13,15 @@ class SubmissionAssessor:
         self.assessment_slot = assessment_slot
 
     def assess_multiple_choice(self):
-        if self.submission_slot.selected_choice is None:
-            # TODO figure out if there's anything smarter you can do
-            return 0
-
-        return self.submission_slot.selected_choice.score
+        return sum([c.score for c in self.submission_slot.selected_choices.all()])
 
     def assess_js(self):
         # TODO implement
         pass
 
     def assess_composite_exercise(self):
-        # for comosite exercises (i.e. MULTIPLE_CHOICE_MULTIPLE_POSSIBLE, COMPLETION,
-        # AGGREGATED) the score is the sum of the scores of the sub-exercises
+        # for comosite exercises (i.e. COMPLETION, AGGREGATED)
+        # the score is the sum of the scores of the sub-exercises
         sub_slots_score = sum([s.score for s in self.assessment_slot.sub_slots.all()])
 
         return sub_slots_score
@@ -54,7 +50,10 @@ class SubmissionAssessor:
         ):
             return self.get_no_automatic_assessment_score()
 
-        if exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+        if (
+            exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
+            or exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE
+        ):
             return self.assess_multiple_choice()
 
         if self.submission_slot.exercise.exercise_type == Exercise.JS:

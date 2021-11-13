@@ -39,16 +39,28 @@ def common_setup(self):
     self.e_multiple_multiple = Exercise.objects.create(
         text="b",
         course=self.course,
-        exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
-        choices=[
+        exercise_type=Exercise.AGGREGATED,
+        sub_exercises=[
             {
-                "text": "aa",
+                "choices": [
+                    {"text": "aa"},
+                ],
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "text": "xxxxxx",
             },
             {
-                "text": "bb",
+                "choices": [
+                    {"text": "bb"},
+                ],
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "text": "yyyyyyy",
             },
             {
-                "text": "cc",
+                "choices": [
+                    {"text": "cc"},
+                ],
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "text": "zzzzzzz",
             },
         ],
     )

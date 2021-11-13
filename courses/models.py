@@ -179,37 +179,37 @@ class Exercise(models.Model):
         # TODO enforce that if parent is not none, then child_position cannot be none
         pass
 
-    def add_choice(self, **choice):
-        """
-        Uses the correct procedure for adding a choice depending
-        on the type of the exercise
-        """
-        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            return ExerciseChoice.objects.create(exercise=self, **choice)
+    # def add_choice(self, **choice):
+    #     """
+    #     Uses the correct procedure for adding a choice depending
+    #     on the type of the exercise
+    #     """
+    #     if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+    #         return ExerciseChoice.objects.create(exercise=self, **choice)
 
-        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
-            Exercise.objects.create(
-                parent=self,
-                exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                choices=[choice],
-                course=self.course,
-                child_position=self.get_next_child_position(),
-            )
+    #     if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
+    #         Exercise.objects.create(
+    #             parent=self,
+    #             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+    #             choices=[choice],
+    #             course=self.course,
+    #             child_position=self.get_next_child_position(),
+    #         )
 
-        if self.exercise_type == Exercise.COMPLETION:
-            raise NotImplemented
+    #     if self.exercise_type == Exercise.COMPLETION:
+    #         raise NotImplemented
 
-    def get_choice(self, **filter):
-        pass
+    # def get_choice(self, **filter):
+    #     pass
 
-    def get_next_child_position(self):
-        max_child_position = self.sub_exercises.all().aggregate(
-            max_child_position=Max("child_position")
-        )["max_child_position"]
-        return max_child_position + 1 if max_child_position is not None else 0
+    # def get_next_child_position(self):
+    #     max_child_position = self.sub_exercises.all().aggregate(
+    #         max_child_position=Max("child_position")
+    #     )["max_child_position"]
+    #     return max_child_position + 1 if max_child_position is not None else 0
 
 
-class ExerciseChoice(UUIDModel):
+class ExerciseChoice(models.Model):
     exercise = models.ForeignKey(
         Exercise,
         related_name="choices",
@@ -238,7 +238,7 @@ class ExerciseChoice(UUIDModel):
     # TODO override delete behavior for multiple choice multiple possible exercises
 
 
-class ExerciseTestCase(UUIDModel):
+class ExerciseTestCase(models.Model):
     exercise = models.ForeignKey(
         Exercise,
         related_name="testcases",
@@ -547,7 +547,6 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
 
     @score.setter
     def score(self, value):
-        print("SETTING")
         self._score = value
 
     @property
@@ -571,10 +570,8 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
     )
     seen_at = models.DateTimeField(null=True, blank=True)
     answered_at = models.DateTimeField(null=True, blank=True)
-    selected_choice = models.ForeignKey(
+    selected_choices = models.ManyToManyField(
         ExerciseChoice,
-        on_delete=models.PROTECT,
-        null=True,
         blank=True,
     )
     answer_text = models.TextField(blank=True)
@@ -611,11 +608,17 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
                 raise ValidationError(
                     "Multiple choice questions cannot have an open answer or attachment submission"
                 )
-        elif (
-            self.selected_choice is not None
-            and self.selected_choice not in self.exercise.choices.all()
+        if (
+            self.exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
+            and self.selected_choices.count() > 1
         ):
-            raise ValidationError("Invalid choice selected")
+            raise ValidationError(
+                "MULTIPLE_CHOICE_SINGLE_POSSIBLE exercise allow only one answer"
+            )
+
+        for c in self.selected_choices.all():
+            if c not in self.exercise.choices.all():
+                raise ValidationError("Invalid choice selected: " + str(c))
 
 
 class EventParticipation(models.Model):
