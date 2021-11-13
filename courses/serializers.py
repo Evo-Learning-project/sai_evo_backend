@@ -1,6 +1,23 @@
 from rest_framework import serializers
 
-from courses.models import Course, Event, EventParticipation, Exercise, ExerciseChoice
+from courses.models import (
+    Course,
+    Event,
+    EventInstanceSlot,
+    EventParticipation,
+    Exercise,
+    ExerciseChoice,
+)
+
+
+class RecursiveField(serializers.Serializer):
+    """
+    Used for serializers that contain self-referencing fields
+    """
+
+    def to_representation(self, value):
+        serializer = self.parent.parent.__class__(value, context=self.context)
+        return serializer.data
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -28,10 +45,6 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         model = Exercise
         fields = ["id", "text", "exercise_type", "tags"]
         hidden_fields = ["solution", "state"]
-        # type_specific_fields = {
-        #     Exercise.AGGREGATED: "sub_exercises",
-        #     Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE: "choices",
-        # }
 
 
 class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
@@ -90,12 +103,43 @@ class ParticipationSubmissionSerializer(serializers.ModelSerializer):
 
 
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
-    # use EventInstanceSlot as model and have fields from ParticipationAssessmentSlotSerializer
-    # and ParticipationSubmissionSlotSerializer; this is meant as a read only serializer
-    pass
+    exercise = ExerciseSerializer()
+    sub_slots = RecursiveField(many=True)
+
+    class Meta:
+        model = EventInstanceSlot
+        fields = [
+            "slot_number",
+            "exercise",
+            "sub_slots",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["score"] = serializers.SerializerMethodField()
+        # TODO submission fields and other assessment fields
+
+    def get_score(self, obj):
+        return obj.get_assessment(self.context["participation"]).score
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventParticipation
-        fields = "__all__"
+        fields = [
+            "id",
+            "state",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["slots"] = serializers.SerializerMethodField()
+
+    def get_slots(self, obj):
+        return EventParticipationSlotSerializer(
+            obj.event_instance.slots.all(),
+            many=True,
+            context={
+                "participation": obj
+            },  # ? is there a way to access obj inside of __init__ instead?
+        ).data

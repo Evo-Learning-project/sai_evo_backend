@@ -43,8 +43,8 @@ class SubmissionAssessor:
         """
         from courses.models import Exercise
 
-        if self.rule.require_manual_assessment:
-            return None
+        # if self.rule.require_manual_assessment:
+        #     return None
 
         exercise_type = self.submission_slot.exercise.exercise_type
 
