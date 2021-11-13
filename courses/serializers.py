@@ -7,6 +7,7 @@ from courses.models import (
     EventParticipation,
     Exercise,
     ExerciseChoice,
+    ParticipationSubmissionSlot,
 )
 
 
@@ -40,18 +41,32 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         hidden_fields = ["visible", "teachers"]
 
 
-class ExerciseSerializer(HiddenFieldsModelSerializer):
-    class Meta:
-        model = Exercise
-        fields = ["id", "text", "exercise_type", "tags"]
-        hidden_fields = ["solution", "state"]
-
-
 class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseChoice
         fields = ["text"]
-        hidden_fields = ["correct"]
+        hidden_fields = ["score"]
+
+
+class ExerciseSerializer(HiddenFieldsModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = [
+            "id",
+            "text",
+            "exercise_type",
+            "tags",
+        ]
+        hidden_fields = ["solution", "state"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context.pop("show_choices", True):
+            self.fields["choices"] = ExerciseChoiceSerializer(
+                many=True,
+                *args,
+                **kwargs,
+            )
 
 
 class EventSerializer(HiddenFieldsModelSerializer):
@@ -103,43 +118,40 @@ class ParticipationSubmissionSerializer(serializers.ModelSerializer):
 
 
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
-    exercise = ExerciseSerializer()
     sub_slots = RecursiveField(many=True)
+    selected_choice = ExerciseChoiceSerializer()
+    score = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        source="assessment.score",
+    )
 
     class Meta:
-        model = EventInstanceSlot
+        model = ParticipationSubmissionSlot
         fields = [
             "slot_number",
             "exercise",
             "sub_slots",
+            "score",
+            "selected_choice",
+            "answer_text",
+            "attachment",
+            "seen_at",
+            "answered_at",
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["score"] = serializers.SerializerMethodField()
-        # TODO submission fields and other assessment fields
-
-    def get_score(self, obj):
-        return obj.get_assessment(self.context["participation"]).score
+        self.fields["exercise"] = ExerciseSerializer(context={"show_choices": False})
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
+    slots = EventParticipationSlotSerializer(many=True, source="submission.slots")
+
     class Meta:
         model = EventParticipation
         fields = [
             "id",
             "state",
+            "slots",
         ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["slots"] = serializers.SerializerMethodField()
-
-    def get_slots(self, obj):
-        return EventParticipationSlotSerializer(
-            obj.event_instance.slots.all(),
-            many=True,
-            context={
-                "participation": obj
-            },  # ? is there a way to access obj inside of __init__ instead?
-        ).data
