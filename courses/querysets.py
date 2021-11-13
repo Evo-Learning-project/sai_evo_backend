@@ -75,3 +75,12 @@ class SlotModelQuerySet(models.QuerySet):
         (i.e. that aren't a sub-slot)
         """
         return self.filter(parent__isnull=True)
+
+
+class EventTemplateQuerySet(models.QuerySet):
+    def public(self):
+        """
+        Returns the slots that don't have a parent foreign key
+        (i.e. that aren't a sub-slot)
+        """
+        return self.filter(public=True)

@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
-from courses.querysets import ExerciseQuerySet, SlotModelQuerySet
+from courses.querysets import EventTemplateQuerySet, ExerciseQuerySet, SlotModelQuerySet
 
 
 class SlottedModelManager(models.Manager):
@@ -248,6 +248,12 @@ class ParticipationAssessmentManager(SlottedModelManager):
 
 
 class EventTemplateManager(models.Manager):
+    def get_queryset(self):
+        return EventTemplateQuerySet(self.model, using=self._db)
+
+    def public(self):
+        return self.get_queryset().public()
+
     def create(self, *args, **kwargs):
         from .models import EventTemplateRule
 

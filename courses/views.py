@@ -56,10 +56,9 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
 
 class EventParticipationViewSet(viewsets.ModelViewSet):
     serializer_class = EventParticipationSerializer
-    queryset = (
-        EventParticipation.objects.all()
-        .select_related("assessment", "submission")
-        .prefetch_related("slots")
+    queryset = EventParticipation.objects.all().select_related(
+        "assessment",
+        "submission",
     )
 
     # TODO filter by course, state, assessment state?

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from courses.models import Course, Event, Exercise, ExerciseChoice
+from courses.models import Course, Event, EventParticipation, Exercise, ExerciseChoice
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -19,14 +19,14 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
 class CourseSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = Course
-        fields = ["name", "description", "creator"]
+        fields = ["id", "name", "description", "creator"]
         hidden_fields = ["visible", "teachers"]
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = Exercise
-        fields = ["text", "exercise_type", "tags"]
+        fields = ["id", "text", "exercise_type", "tags"]
         hidden_fields = ["solution", "state"]
         # type_specific_fields = {
         #     Exercise.AGGREGATED: "sub_exercises",
@@ -45,6 +45,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = Event
         fields = [
+            "id",
             "name",
             "instructions",
             "begin_timestamp",
@@ -95,4 +96,6 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
-    pass
+    class Meta:
+        model = EventParticipation
+        fields = "__all__"
