@@ -9,16 +9,19 @@ from courses.models import (
     EventParticipation,
     EventTemplate,
     Exercise,
+    ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
 )
 
+from .serializers import CourseSerializer  # EventParticipationSerializer,
 from .serializers import (
-    CourseSerializer,
-    EventParticipationSerializer,
-    EventParticipationSlotSerializer,
     EventSerializer,
     EventTemplateSerializer,
     ExerciseSerializer,
+    ParticipationAssessmentSlotSerializer,
+    ParticipationSubmissionSlotSerializer,
+    StudentViewEventParticipationSerializer,
+    TeacherViewEventParticipationSerializer,
 )
 
 
@@ -63,11 +66,15 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
 
 
 class EventParticipationViewSet(viewsets.ModelViewSet):
-    serializer_class = EventParticipationSerializer
+    # serializer_class = TeacherViewEventParticipationSerializer
     queryset = EventParticipation.objects.all().select_related(
         "assessment",
         "submission",
     )
+
+    def get_serializer_class(self):
+        # TODO teacher-view serializer or student-view appropriately
+        return TeacherViewEventParticipationSerializer
 
     # TODO filter by course, state, assessment state?
 
@@ -78,11 +85,14 @@ class EventParticipationSlotViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    serializer_class = EventParticipationSlotSerializer
-    queryset = ParticipationSubmissionSlot.objects.all().prefetch_related("sub_slots")
-    lookup_field = "slot_number"
+    # serializer_class = ParticipationAssessmentSlotSerializer
+    queryset = ParticipationAssessmentSlot.objects.all().prefetch_related("sub_slots")
+
+    def get_serializer_class(self):
+        # TODO assessment slot serializer or submission slot appropriately
+        return ParticipationAssessmentSlotSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset().base_slots()  # TODO change this
-        # print(self.kwargs["participation_pk"])
-        return qs.filter(submission__participation=self.kwargs["participation_pk"])
+        qs = super().get_queryset()
+        # TODO appropriate kwarg for filtering and also get the right queryset
+        return qs.filter(assessment__participation=self.kwargs["participation_pk"])

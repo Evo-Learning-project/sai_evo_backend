@@ -7,6 +7,7 @@ from courses.models import (
     EventParticipation,
     Exercise,
     ExerciseChoice,
+    ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
 )
 from courses.serializer_fields import (
@@ -98,47 +99,70 @@ class EventInstanceSerializer(serializers.ModelSerializer):
     pass
 
 
-class EventParticipationSlotSerializer(HiddenFieldsModelSerializer):
+class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True)
-    selected_choice = NestedSerializerForeignKeyWritableField(
-        serializer=ExerciseChoiceSerializer,
-        queryset=ExerciseChoice.objects.all(),
-    )
+    exercise = ExerciseSerializer()
 
     class Meta:
         model = ParticipationSubmissionSlot
         fields = [
-            "slot_number",
+            "id",
             "exercise",
             "sub_slots",
             "selected_choice",
             "answer_text",
             "attachment",
         ]
-        read_only_fields = [  # TODO make sure these aren't changed
-            "slot_number",
-            "exercise",
-            "seen_at",
-            "answered_at",
-        ]
         hidden_fields = [
             "seen_at",
             "answered_at",
         ]
 
+
+class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
+    sub_slots = RecursiveField(many=True, read_only=True)
+    exercise = ExerciseSerializer(read_only=True)
+    score = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+    class Meta:
+        model = ParticipationAssessmentSlot
+        fields = [
+            "id",
+            "exercise",
+            "score",
+            "comment",
+            "sub_slots",
+        ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.show_hidden_fields:
-            self.fields["score"] = serializers.DecimalField(
-                max_digits=5,
-                decimal_places=2,
-                source="assessment.score",
-            )
-        self.fields["exercise"] = ExerciseSerializer(read_only=True)
+        self.fields["selected_choice"] = ExerciseChoiceSerializer(
+            source="submission.selected_choice", read_only=True
+        )
+        self.fields["attachment"] = serializers.FileField(
+            source="submission.attachment", read_only=True
+        )
+        self.fields["answer_text"] = serializers.CharField(
+            source="submission.answer_text", read_only=True
+        )
+        self.fields["seen_at"] = serializers.DateTimeField(
+            source="submission.seen_at", read_only=True
+        )
+        self.fields["answered_at"] = serializers.DateTimeField(
+            source="submission.answered_at", read_only=True
+        )
 
 
-class EventParticipationSerializer(serializers.ModelSerializer):
-    slots = EventParticipationSlotSerializer(many=True, source="submission.slots")
+class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
+    """
+    Serializer used to show the slots of a participation's EventInstance to students
+    during their participation to an event
+
+    The slots include the fields necessary to submit answers to the exercises in
+    those slots
+    """
+
+    slots = ParticipationSubmissionSlotSerializer(many=True, source="submission.slots")
 
     class Meta:
         model = EventParticipation
@@ -149,17 +173,21 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         ]
 
 
-class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
-    pass
+class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
+    """
+    Serializer used to show the slots of a participation's EventInstance to teacher
+    when assessing a participation to an event
 
+    The slots include the fields necessary to see the answers given to an exercise and
+    assign a score
+    """
 
-class ParticipationAssessmentSerializer(serializers.ModelSerializer):
-    pass
+    slots = ParticipationAssessmentSlotSerializer(many=True, source="assessment.slots")
 
-
-class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
-    pass
-
-
-class ParticipationSubmissionSerializer(serializers.ModelSerializer):
-    pass
+    class Meta:
+        model = EventParticipation
+        fields = [
+            "id",
+            "state",
+            "slots",
+        ]

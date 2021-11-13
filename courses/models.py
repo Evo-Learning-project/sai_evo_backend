@@ -547,6 +547,7 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
 
     @score.setter
     def score(self, value):
+        print("SETTING")
         self._score = value
 
     @property
