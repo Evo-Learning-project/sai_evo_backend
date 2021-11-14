@@ -1,36 +1,125 @@
-from rest_framework import serializers
+import importlib
+import inspect
+
+from rest_framework.fields import Field
+from rest_framework.serializers import BaseSerializer
 
 
-class RecursiveField(serializers.Serializer):
+def _signature_parameters(func):
+    try:
+        inspect.signature
+    except AttributeError:
+        # Python 2.x
+        return inspect.getargspec(func).args
+    else:
+        # Python 3.x
+        return inspect.signature(func).parameters.keys()
+
+
+class RecursiveField(Field):
     """
-    Used for serializers that contain self-referencing fields
+    Copyright (c) 2015, Warren Jin <jinwarren@gmail.com>
+
+    A field that gets its representation from its parent.
+    This method could be used to serialize a tree structure, a linked list, or
+    even a directed acyclic graph. As with all recursive things, it is
+    important to keep the base case in mind. In the case of the tree serializer
+    example below, the base case is a node with an empty list of children. In
+    the case of the list serializer below, the base case is when `next==None`.
+    Above all, beware of cyclical references.
+    Examples:
+    class TreeSerializer(self):
+        children = ListField(child=RecursiveField())
+    class ListSerializer(self):
+        next = RecursiveField(allow_null=True)
     """
 
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
+    # This list of attributes determined by the attributes that
+    # `rest_framework.serializers` calls to on a field object
+    PROXIED_ATTRS = (
+        # methods
+        "get_value",
+        "get_initial",
+        "run_validation",
+        "get_attribute",
+        "to_representation",
+        # attributes
+        "field_name",
+        "source",
+        "read_only",
+        "default",
+        "source_attrs",
+        "write_only",
+    )
 
+    def __init__(self, to=None, **kwargs):
+        """
+        arguments:
+        to - `None`, the name of another serializer defined in the same module
+             as this serializer, or the fully qualified import path to another
+             serializer. e.g. `ExampleSerializer` or
+             `path.to.module.ExampleSerializer`
+        """
+        self.to = to
+        self.init_kwargs = kwargs
+        self._proxied = None
 
-class NestedSerializerForeignKeyWritableField(serializers.PrimaryKeyRelatedField):
-    """
-    Allows related objects to be written using only their pk, but displays them
-    using their serializer in read operations
-    """
+        # need to call super-constructor to support ModelSerializer
+        super_kwargs = dict(
+            (key, kwargs[key])
+            for key in kwargs
+            if key in _signature_parameters(Field.__init__)
+        )
+        super(RecursiveField, self).__init__(**super_kwargs)
 
-    def __init__(self, **kwargs):
-        self.serializer = kwargs.pop("serializer", None)
-        if self.serializer is not None and not issubclass(
-            self.serializer, serializers.Serializer
-        ):
-            raise TypeError('"serializer" is not a valid serializer class')
+    def bind(self, field_name, parent):
+        # Extra-lazy binding, because when we are nested in a ListField, the
+        # RecursiveField will be bound before the ListField is bound
+        self.bind_args = (field_name, parent)
 
-        super().__init__(**kwargs)
+    @property
+    def proxied(self):
+        if not self._proxied:
+            if self.bind_args:
+                field_name, parent = self.bind_args
 
-    def use_pk_only_optimization(self):
-        return False if self.serializer else True
+                if hasattr(parent, "child") and parent.child is self:
+                    # RecursiveField nested inside of a ListField
+                    parent_class = parent.parent.__class__
+                else:
+                    # RecursiveField directly inside a Serializer
+                    parent_class = parent.__class__
 
-    def to_representation(self, instance):
-        # FIXME \|/
-        # if self.serializer:
-        #     return self.serializer(instance, context=self.context).data
-        return super().to_representation(instance)
+                assert issubclass(parent_class, BaseSerializer)
+
+                if self.to is None:
+                    proxied_class = parent_class
+                else:
+                    try:
+                        module_name, class_name = self.to.rsplit(".", 1)
+                    except ValueError:
+                        module_name, class_name = parent_class.__module__, self.to
+
+                    try:
+                        proxied_class = getattr(
+                            importlib.import_module(module_name), class_name
+                        )
+                    except Exception as e:
+                        raise ImportError("could not locate serializer %s" % self.to, e)
+
+                # Create a new serializer instance and proxy it
+                proxied = proxied_class(**self.init_kwargs)
+                proxied.bind(field_name, parent)
+                self._proxied = proxied
+
+        return self._proxied
+
+    def __getattribute__(self, name):
+        if name in RecursiveField.PROXIED_ATTRS:
+            try:
+                proxied = object.__getattribute__(self, "proxied")
+                return getattr(proxied, name)
+            except AttributeError:
+                pass
+
+        return object.__getattribute__(self, name)

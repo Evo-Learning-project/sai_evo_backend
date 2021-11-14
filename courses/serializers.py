@@ -10,13 +10,11 @@ from courses.models import (
     EventTemplateRuleClause,
     Exercise,
     ExerciseChoice,
+    ExerciseTestCase,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
 )
-from courses.serializer_fields import (
-    NestedSerializerForeignKeyWritableField,
-    RecursiveField,
-)
+from courses.serializer_fields import RecursiveField
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -45,7 +43,7 @@ class CourseSerializer(HiddenFieldsModelSerializer):
 class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseChoice
-        fields = ["text"]
+        fields = ["id", "text"]
         hidden_fields = ["score"]
 
 
@@ -56,18 +54,36 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "id",
             "text",
             "exercise_type",
-            "tags",
+            # "tags",
         ]
         hidden_fields = ["solution", "state"]
 
     def __init__(self, *args, **kwargs):
+        kwargs.pop("required", None)  # TODO remove this
         super().__init__(*args, **kwargs)
+        self.fields["sub_exercises"] = RecursiveField(many=True, required=False)
+
         if self.context.pop("show_choices", True):
             self.fields["choices"] = ExerciseChoiceSerializer(
                 many=True,
+                required=False,
                 *args,
                 **kwargs,
             )
+
+    def create(self, validated_data):
+        tags = validated_data.pop("tags", [])
+        print(validated_data)
+        return Exercise.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        # ignore related objects , as they must be dealt
+        # with individually with their own entry points
+        validated_data.pop("choices", [])
+        validated_data.pop("testcases", [])
+        validated_data.pop("sub_exercises", [])
+
+        return super().update(instance, validated_data)
 
 
 class EventSerializer(HiddenFieldsModelSerializer):

@@ -346,10 +346,6 @@ class Event(UUIDModel):
             )
         ]
 
-    def can_participate(self, user):
-        # TODO stub
-        return True
-
 
 class EventTemplate(models.Model):
     course = models.ForeignKey(

@@ -29,9 +29,15 @@ class EventParticipationPermission(permissions.BasePermission):
             # teachers can access all participations
             return True
 
+        if view.action == "create":
+            return request.user.can_participate(obj.event)
+
         if view.action in ["retrieve", "partial_update"]:
-            # students can only retrieve and modify their participations
-            return obj.user == request.user
+            # students can only retrieve and modify their participations and
+            # only if they're allowed to do so (e.g. the event isn't closed)
+            return obj.user == request.user and request.user.can_update_participation(
+                obj
+            )
 
 
 class EventParticipationSlotPermission(permissions.BasePermission):

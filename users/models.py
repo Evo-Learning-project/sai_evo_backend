@@ -28,6 +28,16 @@ class User(AbstractUser):
         # TODO stub
         return self.is_teacher
 
+    def can_participate(self, event):
+        # TODO stub
+        return True
+
+    def can_update_participation(self, participation):
+        from courses.models import Event
+
+        # TODO stub
+        return not participation.event.state == Event.CLOSED
+
 
 class CoursePermission(models.Model):
     # TODO implement

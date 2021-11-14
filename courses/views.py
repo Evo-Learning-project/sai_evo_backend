@@ -10,6 +10,7 @@ from courses.models import (
     EventParticipation,
     EventTemplate,
     Exercise,
+    ExerciseChoice,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
 )
@@ -18,6 +19,7 @@ from .serializers import CourseSerializer  # EventParticipationSerializer,
 from .serializers import (
     EventSerializer,
     EventTemplateSerializer,
+    ExerciseChoiceSerializer,
     ExerciseSerializer,
     ParticipationAssessmentSlotSerializer,
     ParticipationSubmissionSlotSerializer,
@@ -50,6 +52,29 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     # TODO permissions - only teachers should access this viewset directly
     permission_classes = [permissions.TeachersOnly]
     # TODO filtering - by course, tag, type, slug (?)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = qs.filter(course_id=self.kwargs["course_pk"])
+        if self.kwargs.get("exercise_pk") is not None:
+            qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
+
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(
+            course_id=self.kwargs["course_pk"],
+            parent_id=self.kwargs.get("exercise_pk", None),
+        )
+
+
+class ExerciseChoiceViewSet(viewsets.ModelViewSet):
+    serializer_class = ExerciseChoiceSerializer
+    queryset = ExerciseChoice.objects.all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(exercise_id=self.kwargs["exercise_pk"])
 
 
 class EventViewSet(viewsets.ModelViewSet):
