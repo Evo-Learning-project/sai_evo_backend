@@ -24,6 +24,10 @@ class User(AbstractUser):
             ]
         )
 
+    def has_teacher_privileges(self, course):
+        # TODO stub
+        return self.is_teacher
+
 
 class CoursePermission(models.Model):
     # TODO implement

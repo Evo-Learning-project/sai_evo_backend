@@ -3,6 +3,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
+from courses import permissions
 from courses.models import (
     Course,
     Event,
@@ -47,6 +48,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
     )
     # TODO permissions - only teachers should access this viewset directly
+    permission_classes = [permissions.TeachersOnly]
     # TODO filtering - by course, tag, type, slug (?)
 
 
@@ -77,6 +79,7 @@ class EventParticipationViewSet(
         "assessment",
         "submission",
     )
+    permission_classes = [permissions.EventParticipationPermission]
 
     def get_serializer_class(self):
         return (
@@ -101,6 +104,8 @@ class EventParticipationSlotViewSet(
 ):
     # serializer_class = ParticipationAssessmentSlotSerializer
     # queryset = ParticipationAssessmentSlot.objects.all().prefetch_related("sub_slots")
+
+    permission_classes = [permissions.EventParticipationSlotPermission]
 
     def get_serializer_class(self):
         return (

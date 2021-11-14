@@ -38,6 +38,11 @@ class SlotNumberedModel(UUIDModel):
         # shortcut to access the slot's event
         return getattr(self, self.get_container_attribute()).event
 
+    @property
+    def participation(self):
+        # shortcut to access the slot's participation
+        return getattr(self, self.get_container_attribute()).participation
+
     def get_ancestors(self):
         # returns the slot numbers of all the ancestors of
         # `self` up to the ancestor base slot
@@ -340,6 +345,10 @@ class Event(UUIDModel):
                 name="event_unique_name_course",
             )
         ]
+
+    def can_participate(self, user):
+        # TODO stub
+        return True
 
 
 class EventTemplate(models.Model):
