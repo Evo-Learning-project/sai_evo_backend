@@ -78,6 +78,12 @@ class ExerciseManager(models.Manager):
         testcases = kwargs.pop("testcases", [])
         sub_exercises = kwargs.pop("sub_exercises", [])
 
+        if kwargs.get("parent") is not None or kwargs.get("parent_id") is not None:
+            parent = kwargs.get("parent") or Exercise.objects.get(
+                pk=kwargs["parent_id"]
+            )
+            kwargs["child_position"] = parent.get_next_child_position()
+
         exercise = super().create(*args, **kwargs)
 
         if (

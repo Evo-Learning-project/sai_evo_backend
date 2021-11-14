@@ -32,8 +32,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     queryset = Course.objects.all()
     permission_classes = [IsAuthenticated]
-    # TODO filter access so students can see all
-    # courses and teachers only the ones they teach
+    # TODO filter access so students can see all courses and teachers only the ones they teach
 
     def perform_create(self, serializer):
         serializer.save(
@@ -49,7 +48,6 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "testcases",
         "sub_exercises",
     )
-    # TODO permissions - only teachers should access this viewset directly
     permission_classes = [permissions.TeachersOnly]
     # TODO filtering - by course, tag, type, slug (?)
 
@@ -57,6 +55,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         qs = qs.filter(course_id=self.kwargs["course_pk"])
         if self.kwargs.get("exercise_pk") is not None:
+            # using the viewset for sub-exercises
             qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
 
         return qs
@@ -71,6 +70,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseChoiceSerializer
     queryset = ExerciseChoice.objects.all()
+    # TODO permissions
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -82,14 +82,18 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
 
     # TODO filter by course, type, begin_timestamp, state
-    # TODO read-only for students
+    # TODO permissions - read-only for students (to hide events, make a method visible_to in Event)
 
 
 class EventTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateSerializer
     queryset = EventTemplate.objects.public()  # TODO make this
 
-    # TODO filter by course
+    # TODO permissions (define exactly when and how templates are used)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(course_id=self.kwargs["course_pk"])
 
 
 class EventParticipationViewSet(
@@ -99,7 +103,6 @@ class EventParticipationViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    # serializer_class = TeacherViewEventParticipationSerializer
     queryset = EventParticipation.objects.all().select_related(
         "assessment",
         "submission",
@@ -114,7 +117,6 @@ class EventParticipationViewSet(
         )
 
     # TODO filter by course, state, assessment state?
-    # TODO filter so that students can only access their participations
 
     def create(self, request, *args, **kwargs):
         # TODO if participation already exists, return that one, otherwise create it
@@ -127,8 +129,6 @@ class EventParticipationSlotViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    # serializer_class = ParticipationAssessmentSlotSerializer
-    # queryset = ParticipationAssessmentSlot.objects.all().prefetch_related("sub_slots")
 
     permission_classes = [permissions.EventParticipationSlotPermission]
 

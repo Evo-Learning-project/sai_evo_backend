@@ -54,6 +54,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "id",
             "text",
             "exercise_type",
+            # "child_position",
             # "tags",
         ]
         hidden_fields = ["solution", "state"]
