@@ -65,7 +65,13 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
     # TODO filter by course
 
 
-class EventParticipationViewSet(viewsets.ModelViewSet):
+class EventParticipationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     # serializer_class = TeacherViewEventParticipationSerializer
     queryset = EventParticipation.objects.all().select_related(
         "assessment",
@@ -73,10 +79,17 @@ class EventParticipationViewSet(viewsets.ModelViewSet):
     )
 
     def get_serializer_class(self):
-        # TODO teacher-view serializer or student-view appropriately
-        return TeacherViewEventParticipationSerializer
+        return (
+            TeacherViewEventParticipationSerializer
+            if self.request.user.is_teacher
+            else StudentViewEventParticipationSerializer
+        )
 
     # TODO filter by course, state, assessment state?
+
+    def create(self, request, *args, **kwargs):
+        # TODO if participation already exists, return that one, otherwise create it
+        return super().create(request, *args, **kwargs)
 
 
 class EventParticipationSlotViewSet(
@@ -86,13 +99,25 @@ class EventParticipationSlotViewSet(
     viewsets.GenericViewSet,
 ):
     # serializer_class = ParticipationAssessmentSlotSerializer
-    queryset = ParticipationAssessmentSlot.objects.all().prefetch_related("sub_slots")
+    # queryset = ParticipationAssessmentSlot.objects.all().prefetch_related("sub_slots")
 
     def get_serializer_class(self):
-        # TODO assessment slot serializer or submission slot appropriately
-        return ParticipationAssessmentSlotSerializer
+        return (
+            ParticipationAssessmentSlotSerializer
+            if self.request.user.is_teacher
+            else ParticipationSubmissionSlotSerializer
+        )
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        # TODO appropriate kwarg for filtering and also get the right queryset
-        return qs.filter(assessment__participation=self.kwargs["participation_pk"])
+        if self.request.user.is_teacher:
+            qs = ParticipationAssessmentSlot.objects.all()
+            related_kwarg = {
+                "assessment__participation": self.kwargs["participation_pk"]
+            }
+        else:
+            qs = ParticipationSubmissionSlot.objects.all()
+            related_kwarg = {
+                "submission__participation": self.kwargs["participation_pk"]
+            }
+
+        return qs.filter(**related_kwarg).prefetch_related("sub_slots")

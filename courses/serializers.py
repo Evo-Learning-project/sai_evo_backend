@@ -5,6 +5,9 @@ from courses.models import (
     Event,
     EventInstanceSlot,
     EventParticipation,
+    EventTemplate,
+    EventTemplateRule,
+    EventTemplateRuleClause,
     Exercise,
     ExerciseChoice,
     ParticipationAssessmentSlot,
@@ -83,20 +86,26 @@ class EventSerializer(HiddenFieldsModelSerializer):
         hidden_fields = ["template"]
 
 
+class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
+    class Metam:
+        model = EventTemplateRuleClause
+        fields = ["tags"]
+
+
 class EventTemplateRuleSerializer(serializers.ModelSerializer):
-    pass
+    clauses = EventTemplateRuleClauseSerializer(many=True)
+
+    class Meta:
+        model = EventTemplateRule
+        fields = ["rule_type", "target_slot_number", "exercises", "clauses"]
 
 
 class EventTemplateSerializer(serializers.ModelSerializer):
-    pass
+    rules = EventTemplateRuleSerializer(many=True)
 
-
-class EventInstanceSlotSerializer(serializers.ModelSerializer):
-    pass
-
-
-class EventInstanceSerializer(serializers.ModelSerializer):
-    pass
+    class Meta:
+        model = EventTemplate
+        fields = ["name", "rules"]
 
 
 class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
@@ -191,3 +200,11 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             "state",
             "slots",
         ]
+
+
+class EventInstanceSlotSerializer(serializers.ModelSerializer):
+    pass
+
+
+class EventInstanceSerializer(serializers.ModelSerializer):
+    pass
