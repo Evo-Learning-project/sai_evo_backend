@@ -86,6 +86,7 @@ class EventParticipationViewSet(
         )
 
     # TODO filter by course, state, assessment state?
+    # TODO filter so that students can only access their participations
 
     def create(self, request, *args, **kwargs):
         # TODO if participation already exists, return that one, otherwise create it
