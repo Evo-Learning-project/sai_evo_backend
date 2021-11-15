@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from courses import permissions
 from courses.models import (
@@ -48,7 +49,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "testcases",
         "sub_exercises",
     )
-    permission_classes = [permissions.TeachersOnly]
+    permission_classes = [permissions.TeacherPrivilegesOnly]
     # TODO filtering - by course, tag, type, slug (?)
 
     def get_queryset(self):
@@ -80,9 +81,13 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.all()
+    permission_classes = [
+        IsAuthenticated,
+        permissions.EventVisibilityPermission,
+        permissions.TeacherPrivilegesOrReadOnly,
+    ]
 
     # TODO filter by course, type, begin_timestamp, state
-    # TODO permissions - read-only for students (to hide events, make a method visible_to in Event)
 
 
 class EventTemplateViewSet(viewsets.ModelViewSet):
@@ -116,11 +121,17 @@ class EventParticipationViewSet(
             else StudentViewEventParticipationSerializer
         )
 
-    # TODO filter by course, state, assessment state?
+    # TODO filter by state, assessment state?
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(course_id=self.kwargs["event_pk"])
 
     def create(self, request, *args, **kwargs):
-        # TODO if participation already exists, return that one, otherwise create it
-        return super().create(request, *args, **kwargs)
+        # TODO test if the participation is created with the correct event or if you need to put the event in get_or_create explicitly
+        participation, _ = self.get_queryset().get_or_create(user=request.user)
+        serializer = StudentViewEventParticipationSerializer(participation)
+        return Response(serializer.data)
 
 
 class EventParticipationSlotViewSet(
