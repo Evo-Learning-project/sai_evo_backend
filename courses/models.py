@@ -112,6 +112,16 @@ class Course(UUIDModel):
         return self.name
 
 
+class CoursePrivilege(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="privileged_courses"
+    )
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="privileged_users"
+    )
+    privileges = models.JSONField(default=list)  # TODO validate as array
+
+
 class Exercise(models.Model):
     MULTIPLE_CHOICE_SINGLE_POSSIBLE = 0
     MULTIPLE_CHOICE_MULTIPLE_POSSIBLE = 1

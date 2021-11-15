@@ -9,6 +9,11 @@ class CourseAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(CoursePrivilege)
+class CoursePrivilegeAdmin(admin.ModelAdmin):
+    pass
+
+
 class ExerciseChoiceInline(admin.TabularInline):
     model = ExerciseChoice
 

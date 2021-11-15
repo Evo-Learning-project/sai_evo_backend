@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from courses import permissions
+from courses import policies
 from courses.models import (
     Course,
     Event,
@@ -49,7 +49,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "testcases",
         "sub_exercises",
     )
-    permission_classes = [permissions.TeacherPrivilegesOnly]
+    permission_classes = [policies.ExercisePolicy]
     # TODO filtering - by course, tag, type, slug (?)
 
     def get_queryset(self):
@@ -81,11 +81,7 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.all()
-    permission_classes = [
-        IsAuthenticated,
-        permissions.EventVisibilityPermission,
-        permissions.TeacherPrivilegesOrReadOnly,
-    ]
+    permission_classes = [policies.EventPolicy]
 
     # TODO filter by course, type, begin_timestamp, state
 
@@ -112,7 +108,7 @@ class EventParticipationViewSet(
         "assessment",
         "submission",
     )
-    permission_classes = [permissions.EventParticipationPermission]
+    permission_classes = [policies.EventParticipationPolicy]
 
     def get_serializer_class(self):
         return (
@@ -141,7 +137,7 @@ class EventParticipationSlotViewSet(
     viewsets.GenericViewSet,
 ):
 
-    permission_classes = [permissions.EventParticipationSlotPermission]
+    permission_classes = [policies.EventParticipationSlotPolicy]
 
     def get_serializer_class(self):
         return (
