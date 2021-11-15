@@ -19,6 +19,11 @@ class BaseAccessPolicy(AccessPolicy):
         return "__all__" in privileges or privilege in privileges
 
 
+class CoursePolicy(BaseAccessPolicy):
+    # TODO implement
+    pass
+
+
 class EventPolicy(BaseAccessPolicy):
     statements = [
         {
@@ -54,12 +59,17 @@ class EventPolicy(BaseAccessPolicy):
         return True
 
 
+class EventTemplatePolicy(BaseAccessPolicy):
+    # TODO implement
+    pass
+
+
 class ExercisePolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list", "retrieve"],
             "principal": ["*"],
-            "effect": "allow",
+            "effect": "deny",
             "condition": "has_teacher_privileges:access_exercises",
         },
         {
@@ -110,7 +120,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
         return request.user == participation.user
 
     def can_participate(self, request, view, action):
-        return True  # TODO implement
+        return True
 
 
 class EventParticipationSlotPolicy(BaseAccessPolicy):

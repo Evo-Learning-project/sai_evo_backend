@@ -89,7 +89,6 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
         "ATOMIC_REQUESTS": True,
     }
-    # TODO set ATOMIC_REQUESTS to True
 }
 
 

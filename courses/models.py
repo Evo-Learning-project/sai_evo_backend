@@ -119,7 +119,20 @@ class CoursePrivilege(models.Model):
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="privileged_users"
     )
-    privileges = models.JSONField(default=list)  # TODO validate as array
+    privileges = models.JSONField(default=list)
+
+    def save(self, *args, **kwargs):
+        if not isinstance(self.privileges, list):
+            raise ValidationError("Privileges field must be a list")
+
+        for item in self.privileges:
+            if not isinstance(item, str):
+                raise ValidationError("Privileges must be strings")
+
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return str(self.user) + " - " + str(self.course) + " - " + str(self.privileges)
 
 
 class Exercise(models.Model):
@@ -226,8 +239,6 @@ class ExerciseChoice(models.Model):
 
     def __str__(self):
         return str(self.exercise) + " - " + self.text[:100]
-
-    # TODO override delete behavior for multiple choice multiple possible exercises
 
 
 class ExerciseTestCase(models.Model):

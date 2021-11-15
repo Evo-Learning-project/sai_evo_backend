@@ -32,8 +32,7 @@ from .serializers import (
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     queryset = Course.objects.all()
-    permission_classes = [IsAuthenticated]
-    # TODO filter access so students can see all courses and teachers only the ones they teach
+    permission_classes = [policies.CoursePolicy]
 
     def perform_create(self, serializer):
         serializer.save(
@@ -89,8 +88,7 @@ class EventViewSet(viewsets.ModelViewSet):
 class EventTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateSerializer
     queryset = EventTemplate.objects.public()  # TODO make this
-
-    # TODO permissions (define exactly when and how templates are used)
+    permission_classes = [policies.EventTemplatePolicy]
 
     def get_queryset(self):
         qs = super().get_queryset()

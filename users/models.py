@@ -23,25 +23,3 @@ class User(AbstractUser):
                 for t in (self.first_name + " " + self.last_name).split(" ")
             ]
         )
-
-    def has_teacher_privileges(self, course):
-        # TODO stub
-        return self.is_teacher
-
-    def can_participate(self, event):
-        # TODO stub
-        return True
-
-    def can_update_participation(self, participation):
-        from courses.models import Event
-
-        # TODO stub
-        return not participation.event.state == Event.CLOSED
-
-
-class CoursePermission(models.Model):
-    # TODO implement
-    # can add exercises, can edit/delete exercises, can create events, can edit/delete events
-    # can assess submissions, can publish assessments, can create/edit/delete announcements
-    # also have a special __all__ permission
-    pass
