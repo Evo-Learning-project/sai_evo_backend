@@ -1,5 +1,6 @@
 from courses.models import (
     Course,
+    CoursePrivilege,
     Event,
     EventInstance,
     EventInstanceSlot,
@@ -11,34 +12,208 @@ from courses.models import (
     ParticipationSubmissionSlot,
 )
 from django.test import TestCase
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 from users.models import User
 
 
-class CourseViewSetTestCase(TestCase):
+class BaseTestCase(TestCase):
     def setUp(self):
-        pass
+        self.client = APIClient()
+        self.teacher1 = User.objects.create(username="teacher1", is_teacher=True)
+        self.student1 = User.objects.create(username="student1", is_teacher=False)
+        self.teacher2 = User.objects.create(username="teacher2", is_teacher=True)
+        self.student2 = User.objects.create(username="student2", is_teacher=False)
 
+
+class CourseViewSetTestCase(BaseTestCase):
     def test_course_CRUD(self):
+        course_name = "test_course"
+        course_post_body = {"name": course_name}
+
         # show a teacher can create courses
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.post("/courses/", course_post_body)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(Course.objects.count(), 1)
+
+        self.assertEqual(response.data["name"], course_name)
+        course_pk = response.data["id"]
+
+        response = self.client.get(f"/courses/{course_pk}/")
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(Course.objects.count(), 1)
+        self.assertEquals(Course.objects.get(pk=course_pk).creator, self.teacher1)
 
         # show a non-teacher user cannot create courses
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.post("/courses/", {"name": "not gonna happen"})
+
+        self.assertEquals(response.status_code, 403)
+        self.assertEquals(Course.objects.count(), 1)
 
         # show a course creator can update their course
-        # show a user with `update_course` permission can update that course
+        new_course_name = "test_course_1"
+        course_put_body = {"name": new_course_name}
+
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.put(f"/courses/{course_pk}/", course_put_body)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(Course.objects.count(), 1)
+
+        self.assertEqual(response.data["name"], new_course_name)
+        self.assertEqual(course_pk, response.data["id"])
+
         # show a user without `update_course` permission cannot update that course
+        newer_course_name = "test_course_2"
+        course_put_body = {"name": newer_course_name}
+
+        self.client.force_authenticate(user=self.teacher2)
+        response = self.client.put(f"/courses/{course_pk}/", course_put_body)
+
+        self.assertEquals(response.status_code, 403)
+
+        # show a user with `update_course` permission can update that course
+        CoursePrivilege.objects.create(
+            user=self.teacher2,
+            course=Course.objects.get(pk=course_pk),
+            privileges=["update_course"],
+        )
+
+        response = self.client.put(f"/courses/{course_pk}/", course_put_body)
+        self.assertEqual(response.data["name"], newer_course_name)
+
+        self.assertEquals(response.status_code, 200)
 
         # show nobody can delete courses
-        pass
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.delete(f"/courses/{course_pk}/")
+        self.assertEquals(response.status_code, 403)
+        self.client.force_authenticate(user=self.teacher2)
+        response = self.client.delete(f"/courses/{course_pk}/")
+        self.assertEquals(response.status_code, 403)
+        self.assertEquals(Course.objects.count(), 1)
+        response = self.client.get(f"/courses/{course_pk}/")
+        self.assertEquals(response.status_code, 200)
 
 
-class ExerciseViewSetTestCase(TestCase):
-    def setUp(self):
-        pass
-
+class ExerciseViewSetTestCase(BaseTestCase):
     def test_exercise_CRUD(self):
-        # show the course creator can CRUD exercises and their choices
+        course_pk = Course.objects.create(name="test1", creator=self.teacher1).pk
 
-        # show a non-teacher user cannot access the view at all
+        # show the course creator can CRUD exercises and their choices
+        exercise_text = "abc"
+        choice1 = {"text": "c1", "score": "-1.0"}
+        choice2 = {"text": "c2", "score": "1.5"}
+        choices = [choice1, choice2]
+        exercise_post_body = {
+            "text": exercise_text,
+            "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            "choices": choices,
+        }
+
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/", exercise_post_body
+        )
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(
+            Exercise.objects.filter(course_id=course_pk).count(),
+            1,
+        )
+
+        self.assertEqual(response.data["text"], exercise_text)
+        #! fix this
+        # TODO self.assertListEqual(response.data["choices"], choices)
+
+        exercise_pk = response.data["id"]
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 200)
+        response = self.client.get(f"/courses/{course_pk}/exercises/")
+        self.assertEquals(response.status_code, 200)
+
+        # show a user without permissions cannot access the view at all
+        self.client.force_authenticate(user=self.teacher2)
+        response = self.client.get(f"/courses/{course_pk}/exercises/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.delete(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/",
+            {
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/",
+            {
+                "text": "not gonna happen",
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/2222/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/",
+            exercise_post_body={
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(f"/courses/{course_pk}/exercises/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.delete(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/",
+            {
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/",
+            {
+                "text": "not gonna happen",
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/2222/")
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/",
+            exercise_post_body={
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
 
         # show a user with `access_exercises` permission can list/retrieve exercises
         # and their choices/test cases/sub-exercises
@@ -49,7 +224,7 @@ class ExerciseViewSetTestCase(TestCase):
         pass
 
 
-class EventViewSetTestCase(TestCase):
+class EventViewSetTestCase(BaseTestCase):
     def setUp(self):
         pass
 
@@ -71,7 +246,7 @@ class EventViewSetTestCase(TestCase):
         pass
 
 
-class EventParticipationViewSetTestCase(TestCase):
+class EventParticipationViewSetTestCase(BaseTestCase):
     def setUp(self):
         pass
 

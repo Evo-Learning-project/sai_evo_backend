@@ -5,7 +5,9 @@ class BaseAccessPolicy(AccessPolicy):
     def has_teacher_privileges(self, request, view, action, privilege):
         from courses.models import Course, CoursePrivilege
 
-        course = Course.objects.get(pk=view.kwargs["course_pk"])
+        course_pk = view.kwargs.get("course_pk") or view.kwargs.get("pk")
+
+        course = Course.objects.get(pk=course_pk)
         if request.user == course.creator:
             return True
 
@@ -20,8 +22,37 @@ class BaseAccessPolicy(AccessPolicy):
 
 
 class CoursePolicy(BaseAccessPolicy):
-    # TODO implement
-    pass
+    statements = [
+        {
+            "action": ["list"],
+            "principal": ["*"],
+            "effect": "allow",
+        },
+        {
+            "action": ["retrieve"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "is_visible_to",
+        },
+        {
+            "action": ["create"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "is_teacher",
+        },
+        {
+            "action": ["update", "partial_update"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:update_course",
+        },
+    ]
+
+    def is_visible_to(self, request, view, action):
+        return True
+
+    def is_teacher(self, request, view, action):
+        return request.user.is_teacher
 
 
 class EventPolicy(BaseAccessPolicy):
@@ -69,7 +100,7 @@ class ExercisePolicy(BaseAccessPolicy):
         {
             "action": ["list", "retrieve"],
             "principal": ["*"],
-            "effect": "deny",
+            "effect": "allow",
             "condition": "has_teacher_privileges:access_exercises",
         },
         {

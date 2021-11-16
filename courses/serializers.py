@@ -74,7 +74,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
 
     def create(self, validated_data):
         tags = validated_data.pop("tags", [])
-        print(validated_data)
+        # print(validated_data)
         return Exercise.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
