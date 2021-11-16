@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import F, Max, Q
 from users.models import User
 
+from courses import constants
 from courses.logic.assessment import get_assessor_class
 
 from .managers import (
@@ -128,6 +129,8 @@ class CoursePrivilege(models.Model):
         for item in self.privileges:
             if not isinstance(item, str):
                 raise ValidationError("Privileges must be strings")
+            if item not in constants.TEACHER_PRIVILEGES:
+                raise ValidationError(f"{item} not in teacher privileges")
 
         return super().save(*args, **kwargs)
 
@@ -602,7 +605,9 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
         return self.get_sibling_slot("assessment")
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        if self.pk is not None:  # can't clean as m2m field won't work without a pk
+            # TODO clean the m2m field separately
+            self.full_clean()
         return super().save(*args, **kwargs)
 
     def clean(self, *args, **kwargs):

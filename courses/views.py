@@ -49,7 +49,6 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
     )
     permission_classes = [policies.ExercisePolicy]
-    # TODO filtering - by course, tag, type, slug (?)
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -82,8 +81,6 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     permission_classes = [policies.EventPolicy]
 
-    # TODO filter by course, type, begin_timestamp, state
-
 
 class EventTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateSerializer
@@ -114,8 +111,6 @@ class EventParticipationViewSet(
             if self.request.user.is_teacher
             else StudentViewEventParticipationSerializer
         )
-
-    # TODO filter by state, assessment state?
 
     def get_queryset(self):
         qs = super().get_queryset()

@@ -93,13 +93,13 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["list"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:access_events_participations",
+            "condition": "has_teacher_privileges:access_participations",
         },
         {
             "action": ["retrieve"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_own_participation or has_teacher_privileges:access_events_participations",
+            "condition": "is_own_participation or has_teacher_privileges:access_participations",
         },
         {
             "action": ["create"],
@@ -111,7 +111,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_own_participation",
+            "condition": "is_own_participation and can_update_participation",
         },
     ]
 
@@ -122,6 +122,9 @@ class EventParticipationPolicy(BaseAccessPolicy):
     def can_participate(self, request, view, action):
         return True
 
+    def can_update_participation(self, request, view, action):
+        return True
+
 
 class EventParticipationSlotPolicy(BaseAccessPolicy):
     statements = [
@@ -129,7 +132,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
             "action": ["list", "retrieve"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_in_own_participation or has_teacher_privileges:access_events_participations",
+            "condition": "is_in_own_participation or has_teacher_privileges:access_participations",
         },
         {
             "action": ["update", "partial_update"],
