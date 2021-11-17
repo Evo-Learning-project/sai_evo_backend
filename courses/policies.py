@@ -1,5 +1,7 @@
 from rest_access_policy import AccessPolicy
 
+from courses.logic.privileges import check_privileges
+
 
 class BaseAccessPolicy(AccessPolicy):
     def has_teacher_privileges(self, request, view, action, privilege):
@@ -9,17 +11,8 @@ class BaseAccessPolicy(AccessPolicy):
         course_pk = view.kwargs.get("course_pk") or view.kwargs.get("pk")
 
         course = Course.objects.get(pk=course_pk)
-        if request.user == course.creator:
-            return True
 
-        try:
-            privileges = CoursePrivilege.objects.get(
-                user=request.user, course=course
-            ).privileges
-        except CoursePrivilege.DoesNotExist:
-            return False
-
-        return "__all__" in privileges or privilege in privileges
+        return check_privileges(request.user, course, privilege)
 
 
 class CoursePolicy(BaseAccessPolicy):

@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models import F, Max, Q
 from users.models import User
 
-from courses import constants
+from courses.logic import privileges
 from courses.logic.assessment import get_assessor_class
 
 from .managers import (
@@ -129,7 +129,7 @@ class CoursePrivilege(models.Model):
         for item in self.privileges:
             if not isinstance(item, str):
                 raise ValidationError("Privileges must be strings")
-            if item not in constants.TEACHER_PRIVILEGES:
+            if item not in privileges.TEACHER_PRIVILEGES:
                 raise ValidationError(f"{item} not in teacher privileges")
 
         return super().save(*args, **kwargs)

@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from courses import policies
+from courses.logic import privileges
+from courses.logic.privileges import check_privileges
 from courses.models import (
     Course,
     Event,
@@ -49,6 +51,13 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
     )
     permission_classes = [policies.ExercisePolicy]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # this viewset is meant to be accessed by privileged users, therefore
+        # they need to be able to access the hidden serializer fields
+        context["show_hidden_fields"] = True
+        return context
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -130,7 +139,11 @@ class EventParticipationViewSet(
     def get_serializer_class(self):
         return (
             TeacherViewEventParticipationSerializer
-            if self.request.user.is_teacher  # TODO properly check permissions (make a check_teacher_privilege in policies.py and use it here)
+            if check_privileges(
+                self.request.user,
+                self.kwargs["course_pk"],
+                privileges.ASSESS_PARTICIPATIONS,
+            )
             else StudentViewEventParticipationSerializer
         )
 
@@ -157,14 +170,20 @@ class EventParticipationSlotViewSet(
     def get_serializer_class(self):
         return (
             ParticipationAssessmentSlotSerializer
-            if self.request.user.is_teacher  # TODO properly check permissions (make a check_teacher_privilege in policies.py and use it here)
+            if check_privileges(
+                self.request.user,
+                self.kwargs["course_pk"],
+                privileges.ASSESS_PARTICIPATIONS,
+            )
             else ParticipationSubmissionSlotSerializer
         )
 
     def get_queryset(self):
-        if (
-            self.request.user.is_teacher
-        ):  # TODO properly check permissions (make a check_teacher_privilege in policies.py and use it here)
+        if check_privileges(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.ASSESS_PARTICIPATIONS,
+        ):
             qs = ParticipationAssessmentSlot.objects.all()
             related_kwarg = {
                 "assessment__participation": self.kwargs["participation_pk"]
