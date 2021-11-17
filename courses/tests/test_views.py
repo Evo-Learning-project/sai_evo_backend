@@ -103,7 +103,8 @@ class ExerciseViewSetTestCase(BaseTestCase):
     def test_exercise_CRUD(self):
         course_pk = Course.objects.create(name="test1", creator=self.teacher1).pk
 
-        # show the course creator can CRUD exercises and their choices
+        # show the course creator can CRUD exercises and their
+        # choices/test cases/sub-exercises
         exercise_text = "abc"
         choice1 = {"text": "c1", "score": "-1.0"}
         choice2 = {"text": "c2", "score": "1.5"}
@@ -215,19 +216,29 @@ class ExerciseViewSetTestCase(BaseTestCase):
         )
         self.assertEquals(response.status_code, 403)
 
+        # TODO test choice viewset
+        # response = self.client.get(
+        #     f"/courses/{course_pk}/exercises/{exercise_pk}/choices/"
+        # )
+        # self.assertEquals(response.status_code, 403)
+
+        # show a user with `create_exercises` permission can create exercises
+
         # show a user with `access_exercises` permission can list/retrieve exercises
         # and their choices/test cases/sub-exercises
 
-        # show a user without `modify_exercises` permission can update/delete exercises
+        # show a user with `modify_exercises` permission can update/delete exercises
         # and their choices/test cases/sub-exercises
 
+        pass
+
+    def test_view_queryset(self):
+        # show that, for each course, you can only access that course's
+        # exercises from the course's endpoint
         pass
 
 
 class EventViewSetTestCase(BaseTestCase):
-    def setUp(self):
-        pass
-
     def test_exercise_create_update_delete(self):
         # show the course creator can create and update events
 
@@ -245,11 +256,13 @@ class EventViewSetTestCase(BaseTestCase):
 
         pass
 
-
-class EventParticipationViewSetTestCase(BaseTestCase):
-    def setUp(self):
+    def test_view_queryset(self):
+        # show that, for each course, you can only access that course's
+        # events from the course's endpoint
         pass
 
+
+class EventParticipationViewSetTestCase(BaseTestCase):
     def test_participation_submission_and_assessment(self):
         # show an allowed user can create a participation
 
@@ -277,4 +290,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         # show a user with `access_participations` or `assess_participations` cannot
         # create a participation of their own
 
+        pass
+
+    def test_view_queryset(self):
+        # show that, for each event, you can only access that events's
+        # participations from the events's endpoint
         pass

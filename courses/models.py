@@ -318,6 +318,13 @@ class Event(UUIDModel):
         on_delete=models.PROTECT,
         related_name="events",
     )
+    creator = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        related_name="created_events",
+        on_delete=models.SET_NULL,
+    )
     begin_timestamp = models.DateTimeField(null=True, blank=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
@@ -326,7 +333,6 @@ class Event(UUIDModel):
         default=ALL_EXERCISES_AT_ONCE,
     )
     state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
-    # limit_access_to = models.ManyToManyField("users.User", blank=True)
     template = models.ForeignKey(
         "EventTemplate",
         related_name="events",

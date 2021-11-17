@@ -5,6 +5,7 @@ class BaseAccessPolicy(AccessPolicy):
     def has_teacher_privileges(self, request, view, action, privilege):
         from courses.models import Course, CoursePrivilege
 
+        # TODO pick the right kwarg by checking which view we're in
         course_pk = view.kwargs.get("course_pk") or view.kwargs.get("pk")
 
         course = Course.objects.get(pk=course_pk)
@@ -142,7 +143,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_own_participation and can_update_participation",
+            "condition": "is_own_participation and can_update_participation",  # ? give teachers the ability to update participations (e.g. re-open a turned in one)
         },
     ]
 

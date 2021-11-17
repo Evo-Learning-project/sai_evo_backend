@@ -41,7 +41,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
-    serializer_class = ExerciseSerializer
+    serializer_class = ExerciseSerializer  # TODO pass show_hidden_fields in context
     queryset = Exercise.objects.all().prefetch_related(
         "tags",
         "choices",
@@ -57,6 +57,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             # using the viewset for sub-exercises
             qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
 
+        # TODO only show base exercises unless you're listing the sub-exercises of an exercise
         return qs
 
     def perform_create(self, serializer):
@@ -75,11 +76,26 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         return qs.filter(exercise_id=self.kwargs["exercise_pk"])
 
+    def perform_create(self, serializer):
+        serializer.save(
+            exercise_id=self.kwargs["exercise_pk"],
+        )
+
 
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     queryset = Event.objects.all()
     permission_classes = [policies.EventPolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(course_id=self.kwargs["course_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            course_id=self.kwargs["course_pk"],
+            creator=self.request.user,
+        )
 
 
 class EventTemplateViewSet(viewsets.ModelViewSet):
@@ -90,6 +106,12 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(course_id=self.kwargs["course_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            course_id=self.kwargs["course_pk"],
+            creator=self.request.user,
+        )
 
 
 class EventParticipationViewSet(
@@ -108,7 +130,7 @@ class EventParticipationViewSet(
     def get_serializer_class(self):
         return (
             TeacherViewEventParticipationSerializer
-            if self.request.user.is_teacher
+            if self.request.user.is_teacher  # TODO properly check permissions (make a check_teacher_privilege in policies.py and use it here)
             else StudentViewEventParticipationSerializer
         )
 
@@ -135,12 +157,14 @@ class EventParticipationSlotViewSet(
     def get_serializer_class(self):
         return (
             ParticipationAssessmentSlotSerializer
-            if self.request.user.is_teacher
+            if self.request.user.is_teacher  # TODO properly check permissions (make a check_teacher_privilege in policies.py and use it here)
             else ParticipationSubmissionSlotSerializer
         )
 
     def get_queryset(self):
-        if self.request.user.is_teacher:
+        if (
+            self.request.user.is_teacher
+        ):  # TODO properly check permissions (make a check_teacher_privilege in policies.py and use it here)
             qs = ParticipationAssessmentSlot.objects.all()
             related_kwarg = {
                 "assessment__participation": self.kwargs["participation_pk"]
