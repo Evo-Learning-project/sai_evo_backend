@@ -65,7 +65,7 @@ class EventPolicy(BaseAccessPolicy):
             "action": ["create"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:create_events",  # TODO address students creating self-service practice
+            "condition": "has_teacher_privileges:create_events",
         },
         {
             "action": ["retrieve"],
@@ -114,7 +114,7 @@ class ExercisePolicy(BaseAccessPolicy):
             "condition": "has_teacher_privileges:create_exercises",
         },
         {
-            "action": ["update", "partial_update", "delete"],
+            "action": ["update", "partial_update", "destroy"],
             "principal": ["*"],
             "effect": "allow",
             "condition": "has_teacher_privileges:modify_exercises",
@@ -133,7 +133,7 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
             "condition": "has_teacher_privileges:access_exercises",
         },
         {
-            "action": ["create", "update", "partial_update", "delete"],
+            "action": ["create", "update", "partial_update", "destroy"],
             "principal": ["*"],
             "effect": "allow",
             "condition": "has_teacher_privileges:modify_exercises",
@@ -165,7 +165,8 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_own_participation and can_update_participation",  # ? give teachers the ability to update participations (e.g. re-open a turned in one)
+            # ? give teachers the ability to update participations (e.g. re-open a turned in one)
+            "condition": "is_own_participation and can_update_participation",
         },
     ]
 

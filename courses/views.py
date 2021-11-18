@@ -54,7 +54,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.kwargs.get("exercise_pk"):
             # accessing a sub-exercise
-            return policies.ExerciseRelatedObjectsPolicy
+            self.permission_classes = [policies.ExerciseRelatedObjectsPolicy]
 
         return super().get_permissions()
 

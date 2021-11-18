@@ -128,7 +128,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
         )
 
         self.assertEqual(response.data["text"], exercise_text)
-        #! fix this
+        # ! fix this
         # TODO self.assertListEqual(response.data["choices"], choices)
 
         exercise_pk = response.data["id"]
@@ -171,7 +171,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
 
         response = self.client.post(
             f"/courses/{course_pk}/exercises/",
-            exercise_post_body={
+            {
                 "text": "not gonna happen",
                 "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
             },
@@ -210,28 +210,240 @@ class ExerciseViewSetTestCase(BaseTestCase):
 
         response = self.client.post(
             f"/courses/{course_pk}/exercises/",
-            exercise_post_body={
+            {
                 "text": "not gonna happen",
                 "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
             },
         )
         self.assertEquals(response.status_code, 403)
 
-        # TODO test choice viewset
         response = self.client.get(
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/"
         )
         self.assertEquals(response.status_code, 403)
 
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/"
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/",
+            {
+                "text": "not gonna happen either",
+                "score": "1.00",
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.delete(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/"
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/",
+            {
+                "text": "not gonna happen either",
+                "score": "1.00",
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/",
+            {
+                "text": "not gonna happen either",
+                "score": "1.00",
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/"
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/1/"
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/",
+            {
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/",
+            {
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/",
+            {
+                "text": "not gonna happen",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.delete(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/1/",
+        )
+        self.assertEquals(response.status_code, 403)
+
         # show a user with `create_exercises` permission can create exercises
+        CoursePrivilege.objects.create(
+            user=self.student1,
+            course=Course.objects.get(pk=course_pk),
+            privileges=[
+                privileges.CREATE_EXERCISES,
+                privileges.ACCESS_EXERCISES,
+                privileges.MODIFY_EXERCISES,
+            ],
+        )
 
-        # show a user with `access_exercises` permission can list/retrieve exercises
-        # and their choices/test cases/sub-exercises
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(f"/courses/{course_pk}/exercises/")
+        self.assertEquals(response.status_code, 200)
 
-        # show a user with `modify_exercises` permission can update/delete exercises
-        # and their choices/test cases/sub-exercises
+        response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 200)
 
-        pass
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/",
+            {
+                "text": "new text",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/",
+            {
+                "text": "newer text",
+            },
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.delete(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 204)
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/2222/")
+        self.assertEquals(response.status_code, 404)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/",
+            {
+                "text": "one more exercise",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 201)
+        exercise_pk = response.data["id"]
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/")
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        self.assertEquals(response.status_code, 200)
+
+        # response = self.client.delete(f"/courses/{course_pk}/exercises/{exercise_pk}/")
+        # self.assertEquals(response.status_code, 204)
+
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/"
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/",
+            {
+                "text": "new choice",
+                "score": "1.00",
+            },
+        )
+        self.assertEquals(response.status_code, 201)
+        choice_pk = response.data["id"]
+
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/",
+            {
+                "text": "new choice text",
+                "score": "21.00",
+            },
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/",
+            {
+                "text": "newer choice text",
+            },
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/"
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.delete(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/"
+        )
+        self.assertEquals(response.status_code, 204)
+
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/"
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/22/"
+        )
+        self.assertEquals(response.status_code, 404)
+
+        response = self.client.post(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/",
+            {
+                "text": "new sub-exercise",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 201)
+        sub_exercise_pk = response.data["id"]
+
+        response = self.client.put(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/{sub_exercise_pk}/",
+            {
+                "text": "new subex text",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            },
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/{sub_exercise_pk}/",
+            {
+                "text": "newer subext text",
+            },
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.delete(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/{sub_exercise_pk}/",
+        )
+        self.assertEquals(response.status_code, 204)
 
     def test_view_queryset(self):
         # show that, for each course, you can only access that course's
