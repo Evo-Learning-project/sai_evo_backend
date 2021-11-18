@@ -43,7 +43,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
-    serializer_class = ExerciseSerializer  # TODO pass show_hidden_fields in context
+    serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().prefetch_related(
         "tags",
         "choices",
@@ -51,6 +51,13 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
     )
     permission_classes = [policies.ExercisePolicy]
+
+    def get_permissions(self):
+        if self.kwargs.get("exercise_pk"):
+            # accessing a sub-exercise
+            return policies.ExerciseRelatedObjectsPolicy
+
+        return super().get_permissions()
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -65,21 +72,22 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         if self.kwargs.get("exercise_pk") is not None:
             # using the viewset for sub-exercises
             qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
+        else:
+            qs = qs.base_exercises()
 
-        # TODO only show base exercises unless you're listing the sub-exercises of an exercise
         return qs
 
     def perform_create(self, serializer):
         serializer.save(
             course_id=self.kwargs["course_pk"],
-            parent_id=self.kwargs.get("exercise_pk", None),
+            parent_id=self.kwargs.get("exercise_pk"),
         )
 
 
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseChoiceSerializer
     queryset = ExerciseChoice.objects.all()
-    # TODO permissions
+    permission_classes = [policies.ExerciseRelatedObjectsPolicy]
 
     def get_queryset(self):
         qs = super().get_queryset()

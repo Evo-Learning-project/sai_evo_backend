@@ -37,6 +37,7 @@ class CourseSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = Course
         fields = ["id", "name", "description", "creator"]
+        read_only_fields = ["creator"]
         hidden_fields = ["visible", "teachers"]
 
 
@@ -54,6 +55,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "id",
             "text",
             "exercise_type",
+            "state",
             # "child_position",
             # "tags",
         ]
@@ -104,7 +106,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
-    class Metam:
+    class Meta:
         model = EventTemplateRuleClause
         fields = ["tags"]
 

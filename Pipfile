@@ -4,17 +4,18 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
+Django = "*"
 pyparsing = "*"
 pydot = "*"
 django-extensions = "*"
 pygraphviz = "*"
 coverage = "*"
 djangorestframework = "*"
-markdown = "*"
+Markdown = "*"
 django-nested-admin = "*"
 drf-nested-routers = "*"
 drf-access-policy = "*"
+drf-yasg = "*"
 
 [dev-packages]
 

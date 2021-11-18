@@ -162,7 +162,11 @@ class Exercise(models.Model):
     PRIVATE = 1
     PUBLIC = 2
 
-    EXERCISE_STATES = ((DRAFT, "Draft"), (PRIVATE, "Private"), (PUBLIC, "Public"))
+    EXERCISE_STATES = (
+        (DRAFT, "Draft"),
+        (PRIVATE, "Private"),
+        (PUBLIC, "Public"),
+    )
 
     course = models.ForeignKey(
         Course,
@@ -181,7 +185,7 @@ class Exercise(models.Model):
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
     text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
-    state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
+    state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=PUBLIC)
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
     skip_if_timeout = models.BooleanField(default=False)
 
@@ -206,8 +210,7 @@ class Exercise(models.Model):
         return self.text[:100]
 
     def clean(self):
-        # TODO enforce constraints on the various types of exercise
-        # TODO enforce that if parent is not none, then child_position cannot be none
+        # TODO enforce constraints on the various types of exercise, enforce that if parent is not none, then child_position cannot be none
         pass
 
     def get_next_child_position(self):
@@ -481,7 +484,7 @@ class ParticipationAssessment(models.Model):
     NOT_ASSESSED = 0
     PARTIALLY_ASSESSED = 1
     FULLY_ASSESSED = 2
-    # TODO more states (e.g. FOR_REVIEW) maybe settable manually
+    # TODO more states (e.g. FOR_REVIEW) maybe settable manually (not just as a property)
 
     ASSESSMENT_STATES = (
         (NOT_ASSESSED, "Not assessed"),
@@ -568,7 +571,7 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
 
 class ParticipationSubmission(models.Model):
     objects = ParticipationSubmissionManager()
-    # TODO for assignments, have a way to close submissions and possibly re-open them
+    # TODO (for events like assignments) have a way to close submissions and possibly re-open them
 
     class Meta:
         ordering = ["pk"]

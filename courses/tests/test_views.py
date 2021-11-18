@@ -1,3 +1,4 @@
+from courses.logic import privileges
 from courses.models import (
     Course,
     CoursePrivilege,
@@ -79,7 +80,7 @@ class CourseViewSetTestCase(BaseTestCase):
         CoursePrivilege.objects.create(
             user=self.teacher2,
             course=Course.objects.get(pk=course_pk),
-            privileges=["update_course"],
+            privileges=[privileges.UPDATE_COURSE],
         )
 
         response = self.client.put(f"/courses/{course_pk}/", course_put_body)
@@ -217,10 +218,10 @@ class ExerciseViewSetTestCase(BaseTestCase):
         self.assertEquals(response.status_code, 403)
 
         # TODO test choice viewset
-        # response = self.client.get(
-        #     f"/courses/{course_pk}/exercises/{exercise_pk}/choices/"
-        # )
-        # self.assertEquals(response.status_code, 403)
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/{exercise_pk}/choices/"
+        )
+        self.assertEquals(response.status_code, 403)
 
         # show a user with `create_exercises` permission can create exercises
 

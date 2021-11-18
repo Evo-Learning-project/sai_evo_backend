@@ -5,10 +5,14 @@ from courses.logic.privileges import check_privileges
 
 class BaseAccessPolicy(AccessPolicy):
     def has_teacher_privileges(self, request, view, action, privilege):
-        from courses.models import Course, CoursePrivilege
+        from courses.models import Course
+        from courses.views import CourseViewSet
 
-        # TODO pick the right kwarg by checking which view we're in
-        course_pk = view.kwargs.get("course_pk") or view.kwargs.get("pk")
+        course_pk = (
+            view.kwargs.get("pk")
+            if isinstance(view, CourseViewSet)
+            else view.kwargs.get("course_pk")  # nested view
+        )
 
         course = Course.objects.get(pk=course_pk)
 
@@ -85,8 +89,14 @@ class EventPolicy(BaseAccessPolicy):
 
 
 class EventTemplatePolicy(BaseAccessPolicy):
-    # TODO implement
-    pass
+    statements = [
+        {
+            "action": ["*"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:create_events",
+        },
+    ]
 
 
 class ExercisePolicy(BaseAccessPolicy):
@@ -105,6 +115,25 @@ class ExercisePolicy(BaseAccessPolicy):
         },
         {
             "action": ["update", "partial_update", "delete"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:modify_exercises",
+        },
+    ]
+
+
+class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
+    # used for models related to Exercise, like ExerciseChoice,
+    # ExerciseTestCase, and Exercise itself when used as a sub-exercise
+    statements = [
+        {
+            "action": ["list", "retrieve"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:access_exercises",
+        },
+        {
+            "action": ["create", "update", "partial_update", "delete"],
             "principal": ["*"],
             "effect": "allow",
             "condition": "has_teacher_privileges:modify_exercises",

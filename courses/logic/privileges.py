@@ -2,7 +2,6 @@ UPDATE_COURSE = "update_course"
 ACCESS_EXERCISES = "access_exercises"
 CREATE_EXERCISES = "create_exercises"
 MODIFY_EXERCISES = "modify_exercises"
-# ACCESS_PARTICIPATIONS = "access_paricipations"
 ASSESS_PARTICIPATIONS = "assess_paricipations"
 CREATE_EVENTS = "create_events"
 UPDATE_EVENTS = "update_events"
@@ -12,7 +11,6 @@ TEACHER_PRIVILEGES = [
     ACCESS_EXERCISES,  # list/retrieve
     CREATE_EXERCISES,
     MODIFY_EXERCISES,  # update/delete
-    # ACCESS_PARTICIPATIONS,  # list/retrieve
     ASSESS_PARTICIPATIONS,
     CREATE_EVENTS,
     UPDATE_EVENTS,
@@ -21,18 +19,20 @@ TEACHER_PRIVILEGES = [
 
 
 def check_privileges(user, course, privilege):
+    """
+    Returns True if and only `user` has `privilege` for `course`
+    `course` can either be a Course object or the id of a course
+    """
     from courses.models import Course, CoursePrivilege
+
+    if not isinstance(course, Course):
+        course = Course.objects.get(pk=course)
 
     if user == course.creator:
         return True
 
-    if isinstance(course, Course):
-        course_kwarg = {"course": course}
-    else:
-        course_kwarg = {"course_id": course}
-
     try:
-        privileges = CoursePrivilege.objects.get(user=user, **course_kwarg).privileges
+        privileges = CoursePrivilege.objects.get(user=user, course=course).privileges
     except CoursePrivilege.DoesNotExist:
         return False
 
