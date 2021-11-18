@@ -1,8 +1,10 @@
-from courses.models import EventTemplateRule, Exercise
+from courses.models import Exercise
 
 
-def get_exercises_from(template, course=None):
-    exercises = Exercise.objects.base_exercises().public()
+def get_exercises_from(template, course=None, public_only=False):
+    exercises = Exercise.objects.base_exercises()
+    if public_only:
+        exercises = exercises.public()
     if course is not None:
         exercises = exercises.filter(course=course)
 

@@ -59,14 +59,6 @@ class ExerciseQuerySet(models.QuerySet):
         ret = qs.filter(pk__in=picked_ids)
         return ret.first() if amount == 1 else ret
 
-    def get_random_with_priority(self, priority_field, amount=1, exclude=None):
-        """
-        Returns `amount` random exercise(s) from the queryset, the
-        chance of each exercise being picked depending on the value of
-        `priority_field` - lower values (positive) have higher priority probability
-        """
-        pass
-
 
 class SlotModelQuerySet(models.QuerySet):
     def base_slots(self):

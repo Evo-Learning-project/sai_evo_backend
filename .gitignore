@@ -5,4 +5,4 @@ core/media
 htmlcov
 local
 .codegen
-*.sqlite3
+.coverage

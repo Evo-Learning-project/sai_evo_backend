@@ -56,6 +56,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "text",
             "exercise_type",
             "state",
+            "label",
             # "child_position",
             # "tags",
         ]

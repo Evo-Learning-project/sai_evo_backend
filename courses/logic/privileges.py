@@ -18,7 +18,7 @@ TEACHER_PRIVILEGES = [
 ]
 
 
-def check_privileges(user, course, privilege):
+def check_privilege(user, course, privilege):
     """
     Returns True if and only `user` has `privilege` for `course`
     `course` can either be a Course object or the id of a course

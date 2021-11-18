@@ -183,6 +183,7 @@ class Exercise(models.Model):
     child_position = models.PositiveIntegerField(null=True, blank=True)
     tags = models.ManyToManyField("tags.Tag", blank=True)
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
+    label = models.CharField(max_length=75, blank=True)
     text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=PUBLIC)

@@ -1,6 +1,6 @@
 from rest_access_policy import AccessPolicy
 
-from courses.logic.privileges import check_privileges
+from courses.logic.privileges import check_privilege
 
 
 class BaseAccessPolicy(AccessPolicy):
@@ -16,7 +16,7 @@ class BaseAccessPolicy(AccessPolicy):
 
         course = Course.objects.get(pk=course_pk)
 
-        return check_privileges(request.user, course, privilege)
+        return check_privilege(request.user, course, privilege)
 
 
 class CoursePolicy(BaseAccessPolicy):

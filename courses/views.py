@@ -1,12 +1,11 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from courses import policies
 from courses.logic import privileges
-from courses.logic.privileges import check_privileges
+from courses.logic.privileges import check_privilege
 from courses.models import (
     Course,
     Event,
@@ -18,8 +17,8 @@ from courses.models import (
     ParticipationSubmissionSlot,
 )
 
-from .serializers import CourseSerializer  # EventParticipationSerializer,
 from .serializers import (
+    CourseSerializer,
     EventSerializer,
     EventTemplateSerializer,
     ExerciseChoiceSerializer,
@@ -117,7 +116,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
 class EventTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateSerializer
-    queryset = EventTemplate.objects.public()  # TODO make this
+    queryset = EventTemplate.objects.public()
     permission_classes = [policies.EventTemplatePolicy]
 
     def get_queryset(self):
@@ -138,6 +137,18 @@ class EventParticipationViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
+
+    """
+    Viewset for creating, accessing, and updating participations to events
+
+    Non-privileged users (i.e. students) can POST to this viewset to create a
+    participation to an event (i.e. to participate in the event), and update
+    the status of their participation (e.g. turn in)
+
+    Privileged users such as teachers can access all the participations to
+    relevant events and update the statuses relative to the assessments
+    """
+
     queryset = EventParticipation.objects.all().select_related(
         "assessment",
         "submission",
@@ -147,7 +158,7 @@ class EventParticipationViewSet(
     def get_serializer_class(self):
         return (
             TeacherViewEventParticipationSerializer
-            if check_privileges(
+            if check_privilege(
                 self.request.user,
                 self.kwargs["course_pk"],
                 privileges.ASSESS_PARTICIPATIONS,
@@ -172,13 +183,23 @@ class EventParticipationSlotViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
+    """
+    A viewset for accessing and updating the individual slots of a participation
+
+    Non-privileged users (i.e. students) can use PATCH requests to update the
+    submissions to the assigned exercises (e.g. change the text of an open answer
+    or the selected choice)
+
+    Privileged users such as teachers can PATCH the slots to change the assigned
+    score to a slot or to add comments to the assessment slot
+    """
 
     permission_classes = [policies.EventParticipationSlotPolicy]
 
     def get_serializer_class(self):
         return (
             ParticipationAssessmentSlotSerializer
-            if check_privileges(
+            if check_privilege(
                 self.request.user,
                 self.kwargs["course_pk"],
                 privileges.ASSESS_PARTICIPATIONS,
@@ -187,7 +208,7 @@ class EventParticipationSlotViewSet(
         )
 
     def get_queryset(self):
-        if check_privileges(
+        if check_privilege(
             self.request.user,
             self.kwargs["course_pk"],
             privileges.ASSESS_PARTICIPATIONS,
