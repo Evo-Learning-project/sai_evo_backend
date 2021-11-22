@@ -9,8 +9,8 @@ class CourseAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(CoursePrivilege)
-class CoursePrivilegeAdmin(admin.ModelAdmin):
+@admin.register(UserCoursePrivilege)
+class UserCoursePrivilegeAdmin(admin.ModelAdmin):
     pass
 
 

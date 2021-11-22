@@ -1,3 +1,5 @@
+from django.core.exceptions import ValidationError
+
 UPDATE_COURSE = "update_course"
 ACCESS_EXERCISES = "access_exercises"
 CREATE_EXERCISES = "create_exercises"
@@ -18,12 +20,23 @@ TEACHER_PRIVILEGES = [
 ]
 
 
+def validate_permission_list(lst):
+    if not isinstance(lst, list):
+        raise ValidationError("Privileges field must be a list")
+
+    for item in lst:
+        if not isinstance(item, str):
+            raise ValidationError("Privileges must be strings")
+        if item not in TEACHER_PRIVILEGES:
+            raise ValidationError(f"{item} not in teacher privileges")
+
+
 def check_privilege(user, course, privilege):
     """
     Returns True if and only `user` has `privilege` for `course`
     `course` can either be a Course object or the id of a course
     """
-    from courses.models import Course, CoursePrivilege
+    from courses.models import Course, UserCoursePrivilege
 
     if not isinstance(course, Course):
         course = Course.objects.get(pk=course)
@@ -31,9 +44,21 @@ def check_privilege(user, course, privilege):
     if user == course.creator:
         return True
 
-    try:
-        privileges = CoursePrivilege.objects.get(user=user, course=course).privileges
-    except CoursePrivilege.DoesNotExist:
-        return False
+    allow_privileges = [
+        privilege
+        for role_privileges in (
+            role.allow_privileges for role in user.roles.filter(course=course)
+        )
+        for privilege in role_privileges
+    ]  # get all the privileges for this user's roles
 
-    return "__all__" in privileges or privilege in privileges
+    try:
+        per_user_privileges = UserCoursePrivilege.objects.get(user=user, course=course)
+        allow_privileges.extend(per_user_privileges.allow_privileges)  # add per-user
+        deny_privileges = per_user_privileges.deny_privileges
+    except UserCoursePrivilege.DoesNotExist:
+        deny_privileges = []
+
+    return "__all__" in allow_privileges or (
+        privilege not in deny_privileges and privilege in allow_privileges
+    )

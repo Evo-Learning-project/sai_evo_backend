@@ -4,6 +4,7 @@ from django.db import models
 
 class User(AbstractUser):
     is_teacher = models.BooleanField(default=False)
+    roles = models.ManyToManyField("courses.CourseRole", blank=True)
 
     def save(self, *args, **kwargs):
         creating = self.pk is None

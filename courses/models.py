@@ -113,29 +113,77 @@ class Course(UUIDModel):
         return self.name
 
 
-class CoursePrivilege(models.Model):
+class UserCoursePrivilege(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="privileged_courses"
     )
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="privileged_users"
     )
-    privileges = models.JSONField(default=list)
+    allow_privileges = models.JSONField(default=list, blank=True)
+    deny_privileges = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "course_id"],
+                name="same_course_unique_user_permission",
+            )
+        ]
 
     def save(self, *args, **kwargs):
-        if not isinstance(self.privileges, list):
-            raise ValidationError("Privileges field must be a list")
-
-        for item in self.privileges:
-            if not isinstance(item, str):
-                raise ValidationError("Privileges must be strings")
-            if item not in privileges.TEACHER_PRIVILEGES:
-                raise ValidationError(f"{item} not in teacher privileges")
-
+        self.full_clean()
         return super().save(*args, **kwargs)
 
+    def clean(self, *args, **kwargs):
+        privileges.validate_permission_list(self.allow_privileges)
+        privileges.validate_permission_list(self.deny_privileges)
+
     def __str__(self):
-        return str(self.user) + " - " + str(self.course) + " - " + str(self.privileges)
+        return (
+            str(self.user)
+            + " - "
+            + str(self.course)
+            + " - allow: "
+            + str(self.allow_privileges)
+            + " - deny: "
+            + str(self.deny_privileges)
+        )
+
+
+class CourseRole(models.Model):
+    name = models.CharField(max_length=250)
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="roles",
+    )
+    allow_privileges = models.JSONField(default=list)
+
+    class Meta:
+        ordering = ["course_id", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course_id", "name"],
+                name="same_course_unique_role_name",
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def clean(self, *args, **kwargs):
+        privileges.validate_permission_list(self.allow_privileges)
+
+    def __str__(self):
+        return (
+            str(self.course)
+            + " - "
+            + self.name
+            + " - allow: "
+            + str(self.allow_privileges)
+        )
 
 
 class Exercise(models.Model):
@@ -298,7 +346,7 @@ class Event(UUIDModel):
         (ALL_EXERCISES_AT_ONCE, "All exercises at once"),
         (ONE_AT_A_TIME_CAN_GO_BACK, "One at a time, can go back"),
         (ONE_AT_A_TIME_CANNOT_GO_BACK, "One at a time, cannot go back"),
-    )
+    )  # ? convert this to a nullable amount_exercises_at_a_time, with null being equal to all at once, and have a boolean field can_go_back
 
     DRAFT = 0
     PLANNED = 1
@@ -728,51 +776,3 @@ class EventParticipation(models.Model):
         self.current_slot_number -= 1
         self.save()
         return self.current_exercise
-
-
-# class ExerciseAssessmentRule(models.Model):
-#     exercise = models.ForeignKey(
-#         Exercise,
-#         on_delete=models.CASCADE,
-#         related_name="assessment_rules",
-#         null=True,
-#     )
-#     event = models.ForeignKey(
-#         Event,
-#         on_delete=models.CASCADE,
-#         related_name="assessment_rules",
-#         null=True,
-#     )
-#     require_manual_assessment = models.BooleanField(default=False)
-#     points_for_correct = models.DecimalField(
-#         decimal_places=2,
-#         max_digits=5,
-#         default=1,
-#     )
-#     points_for_blank = models.DecimalField(
-#         decimal_places=2,
-#         max_digits=5,
-#         default=0,
-#     )
-#     points_for_incorrect = models.DecimalField(
-#         decimal_places=2,
-#         max_digits=5,
-#         default=0,
-#     )
-#     minimum_score_threshold = models.DecimalField(
-#         decimal_places=2,
-#         max_digits=5,
-#         default=0,
-#     )
-#     # time_to_answer = models.PositiveIntegerField(null=True, blank=True)
-#     # enforce_timeout = models.BooleanField(default=True)
-#     # expected_completion_time = models.PositiveIntegerField(null=True, blank=True)
-
-#     class Meta:
-#         ordering = ["event_id", "exercise_id"]
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=["event_id", "exercise_id"],
-#                 name="assessment_rule_unique_event_exercise",
-#             )
-#         ]

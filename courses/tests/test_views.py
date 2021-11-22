@@ -1,7 +1,6 @@
 from courses.logic import privileges
 from courses.models import (
     Course,
-    CoursePrivilege,
     Event,
     EventInstance,
     EventInstanceSlot,
@@ -11,9 +10,10 @@ from courses.models import (
     ParticipationAssessmentSlot,
     ParticipationSubmission,
     ParticipationSubmissionSlot,
+    UserCoursePrivilege,
 )
 from django.test import TestCase
-from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
+from rest_framework.test import APIClient, force_authenticate
 from users.models import User
 
 
@@ -77,10 +77,10 @@ class CourseViewSetTestCase(BaseTestCase):
         self.assertEquals(response.status_code, 403)
 
         # show a user with `update_course` permission can update that course
-        CoursePrivilege.objects.create(
+        UserCoursePrivilege.objects.create(
             user=self.teacher2,
             course=Course.objects.get(pk=course_pk),
-            privileges=[privileges.UPDATE_COURSE],
+            allow_privileges=[privileges.UPDATE_COURSE],
         )
 
         response = self.client.put(f"/courses/{course_pk}/", course_put_body)
@@ -302,10 +302,10 @@ class ExerciseViewSetTestCase(BaseTestCase):
         self.assertEquals(response.status_code, 403)
 
         # show a user with `create_exercises` permission can create exercises
-        CoursePrivilege.objects.create(
+        UserCoursePrivilege.objects.create(
             user=self.student1,
             course=Course.objects.get(pk=course_pk),
-            privileges=[
+            allow_privileges=[
                 privileges.CREATE_EXERCISES,
                 privileges.ACCESS_EXERCISES,
                 privileges.MODIFY_EXERCISES,
