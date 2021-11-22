@@ -184,7 +184,17 @@ class EventParticipationPolicy(BaseAccessPolicy):
             return request.user.email in event.access_rule_exceptions
 
     def can_update_participation(self, request, view, action):
-        return True
+        from courses.models import Event, EventParticipation
+
+        participation = view.get_object()
+        if participation.state == EventParticipation.TURNED_IN:
+            return False
+
+        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        return event.state == Event.OPEN or (
+            event.state == Event.CLOSED
+            and request.user in event.users_allowed_past_closure
+        )
 
 
 class EventParticipationSlotPolicy(BaseAccessPolicy):
@@ -205,7 +215,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
             "action": ["retrieve", "update", "partial_update"],
             "principal": ["*"],
             "effect": "deny",
-            "condition": "not has_teacher_privileges:assess_participations and slot_out_of_scope",
+            "condition": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
         },
     ]
 
@@ -214,7 +224,35 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
         return request.user == participation.user
 
     def can_update_parent_participation(self, request, view, action):
-        return True
+        # TODO refactor to get rid of duplicated code
+        from courses.models import Event, EventParticipation
 
-    def slot_out_of_scope(self, request, view, action):
-        pass
+        participation = view.get_object().participation
+        if participation.state == EventParticipation.TURNED_IN:
+            return False
+
+        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        return event.state == Event.OPEN or (
+            event.state == Event.CLOSED
+            and request.user in event.users_allowed_past_closure
+        )
+
+    def is_slot_in_scope(self, request, view, action):
+        from courses.models import Event
+
+        slot = view.get_object()
+        event = Event.objects.get(pk=view.kwargs["event_pk"])
+
+        if event.exercises_shown_at_a_time is None:
+            # if event doesn't have a limit on how many exercises to show at
+            # a time, all slots are always in scope and accessible
+            return True
+
+        current_slot_cursor = slot.participation.current_slot_cursor
+        # slot is in scope iff its number is between the `current_slot_cursor` of the
+        # EventParticipation and the next `exercises_shown_at_a_time` slots
+        return (
+            slot.slot_number >= current_slot_cursor
+            and slot.slot_number
+            <= current_slot_cursor + event.exercises_shown_at_a_time
+        )

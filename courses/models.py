@@ -738,7 +738,7 @@ class EventParticipation(models.Model):
         choices=PARTICIPATION_STATES,
         default=IN_PROGRESS,
     )
-    current_slot_number = models.PositiveIntegerField(null=True, blank=True)
+    current_slot_cursor = models.PositiveIntegerField(null=True, blank=True)
 
     objects = EventParticipationManager()
 
@@ -764,29 +764,29 @@ class EventParticipation(models.Model):
         self.validate_unique()
         super().save(*args, **kwargs)
 
-    @property
-    def current_exercise(self):
-        return (
-            self.event_instance.slots.base_slots()
-            .get(slot_number=self.current_slot_number)
-            .exercise
-        )
+    # @property
+    # def current_exercise(self):
+    #     return (
+    #         self.event_instance.slots.base_slots()
+    #         .get(slot_number=self.current_slot_cursor)
+    #         .exercise
+    #     )
 
-    def move_current_slot_number_forward(self):
-        self.current_slot_number += 1
-        self.save()
-        return self.current_exercise
+    # def move_current_slot_number_forward(self):
+    #     self.current_slot_number += 1
+    #     self.save()
+    #     return self.current_exercise
 
-    def move_current_slot_number_back(self):
-        if (
-            self.event_instance.event.progression_rule
-            != Event.ONE_AT_A_TIME_CAN_GO_BACK
-        ):
-            raise ValidationError(
-                "Cannot go back with event type "
-                + getattr(Event, self.event_instance.event.progression_rule)[1]
-            )
+    # def move_current_slot_number_back(self):
+    #     if (
+    #         self.event_instance.event.progression_rule
+    #         != Event.ONE_AT_A_TIME_CAN_GO_BACK
+    #     ):
+    #         raise ValidationError(
+    #             "Cannot go back with event type "
+    #             + getattr(Event, self.event_instance.event.progression_rule)[1]
+    #         )
 
-        self.current_slot_number -= 1
-        self.save()
-        return self.current_exercise
+    #     self.current_slot_number -= 1
+    #     self.save()
+    #     return self.current_exercise
