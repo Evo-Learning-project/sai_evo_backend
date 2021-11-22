@@ -338,31 +338,26 @@ class Event(UUIDModel):
         (EXTERNAL, "External resource"),
     )
 
-    ALL_EXERCISES_AT_ONCE = 0
-    ONE_AT_A_TIME_CAN_GO_BACK = 1
-    ONE_AT_A_TIME_CANNOT_GO_BACK = 2
-
-    PROGRESSION_RULES = (
-        (ALL_EXERCISES_AT_ONCE, "All exercises at once"),
-        (ONE_AT_A_TIME_CAN_GO_BACK, "One at a time, can go back"),
-        (ONE_AT_A_TIME_CANNOT_GO_BACK, "One at a time, cannot go back"),
-    )  # ? convert this to a nullable amount_exercises_at_a_time, with null being equal to all at once, and have a boolean field can_go_back
-
     DRAFT = 0
     PLANNED = 1
     OPEN = 2
     CLOSED = 3
-    # LIMITED_ACCESS = 4
 
     EVENT_STATES = (
         (DRAFT, "Draft"),
         (PLANNED, "Planned"),
         (OPEN, "Open"),
         (CLOSED, "Closed"),
-        # (LIMITED_ACCESS, "Access limited to certain students"),
     )
-    # TODO have a boolean field to toggle whether to show the event (in case of exams) before the begin_timestamp (only the introduction is shown)
-    # TODO possibly implement self-closing exams when time runs out (be mindful of issues such as slightly late answers etc.)
+
+    ALLOW_ACCESS = 0
+    DENY_ACCESS = 1
+
+    ACCESS_RULES = (
+        (ALLOW_ACCESS, "Allow"),
+        (DENY_ACCESS, "Deny"),
+    )
+
     name = models.TextField()
     instructions = models.TextField(blank=True)
     course = models.ForeignKey(
@@ -380,10 +375,6 @@ class Event(UUIDModel):
     begin_timestamp = models.DateTimeField(null=True, blank=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
-    progression_rule = models.PositiveIntegerField(
-        choices=PROGRESSION_RULES,
-        default=ALL_EXERCISES_AT_ONCE,
-    )
     state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
     template = models.ForeignKey(
         "EventTemplate",
@@ -392,6 +383,13 @@ class Event(UUIDModel):
         null=True,
         blank=True,
     )
+    users_allowed_past_closure = models.ManyToManyField(User, blank=True)
+    exercises_shown_at_a_time = models.PositiveIntegerField(null=True, blank=True)
+    allow_going_back = models.BooleanField(default=True)
+    access_rule = models.PositiveIntegerField(
+        choices=ACCESS_RULES, default=ALLOW_ACCESS
+    )
+    access_rule_exceptions = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         return self.name
@@ -404,6 +402,22 @@ class Event(UUIDModel):
                 name="event_unique_name_course",
             )
         ]
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def clean(self, *args, **kwargs):
+        if not isinstance(self.access_rule_exceptions, list):
+            raise ValidationError(
+                f"access_rule_exception must be a list, not {self.access_rule_exceptions}"
+            )
+
+        for item in self.access_rule_exceptions:
+            if not isinstance(item, str):
+                raise ValidationError(
+                    f"access_rule_exception members must be strings, not {item}"
+                )
 
 
 class EventTemplate(models.Model):

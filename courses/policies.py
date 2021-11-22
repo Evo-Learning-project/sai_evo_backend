@@ -147,13 +147,13 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["list"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:access_participations",
+            "condition": "has_teacher_privileges:assess_participations",
         },
         {
             "action": ["retrieve"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_own_participation or has_teacher_privileges:access_participations",
+            "condition": "is_own_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["create"],
@@ -175,7 +175,13 @@ class EventParticipationPolicy(BaseAccessPolicy):
         return request.user == participation.user
 
     def can_participate(self, request, view, action):
-        return True
+        from courses.models import Event
+
+        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        if event.access_rule == Event.ALLOW_ACCESS:
+            return request.user.email not in event.access_rule_exceptions
+        else:  # default is DENY_ACCESS
+            return request.user.email in event.access_rule_exceptions
 
     def can_update_participation(self, request, view, action):
         return True
@@ -187,13 +193,19 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
             "action": ["list", "retrieve"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_in_own_participation or has_teacher_privileges:access_participations",
+            "condition": "is_in_own_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
             "condition": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",
+        },
+        {
+            "action": ["retrieve", "update", "partial_update"],
+            "principal": ["*"],
+            "effect": "deny",
+            "condition": "not has_teacher_privileges:assess_participations and slot_out_of_scope",
         },
     ]
 
@@ -203,3 +215,6 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
 
     def can_update_parent_participation(self, request, view, action):
         return True
+
+    def slot_out_of_scope(self, request, view, action):
+        pass
