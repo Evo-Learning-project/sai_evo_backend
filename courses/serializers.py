@@ -164,6 +164,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # TODO remove the read_only
         self.fields["selected_choices"] = ExerciseChoiceSerializer(
             many=True, source="submission.selected_choices", read_only=True
         )
@@ -190,8 +191,6 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     those slots
     """
 
-    slots = ParticipationSubmissionSlotSerializer(many=True, source="submission.slots")
-
     class Meta:
         model = EventParticipation
         fields = [
@@ -199,6 +198,11 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             "state",
             "slots",
         ]
+
+    def __init__(self, *args, **kwargs):
+        self.fields["slots"] = ParticipationSubmissionSlotSerializer(
+            many=True, source="submission.current_slots"
+        )
 
 
 class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):

@@ -241,18 +241,19 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
         from courses.models import Event
 
         slot = view.get_object()
-        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        return slot in slot.submission.current_slots
+        # event = Event.objects.get(pk=view.kwargs["event_pk"])
 
-        if event.exercises_shown_at_a_time is None:
-            # if event doesn't have a limit on how many exercises to show at
-            # a time, all slots are always in scope and accessible
-            return True
+        # if event.exercises_shown_at_a_time is None:
+        #     # if event doesn't have a limit on how many exercises to show at
+        #     # a time, all slots are always in scope and accessible
+        #     return True
 
-        current_slot_cursor = slot.participation.current_slot_cursor
-        # slot is in scope iff its number is between the `current_slot_cursor` of the
-        # EventParticipation and the next `exercises_shown_at_a_time` slots
-        return (
-            slot.slot_number >= current_slot_cursor
-            and slot.slot_number
-            <= current_slot_cursor + event.exercises_shown_at_a_time
-        )
+        # current_slot_cursor = slot.participation.current_slot_cursor
+        # # slot is in scope iff its number is between the `current_slot_cursor` of the
+        # # EventParticipation and the next `exercises_shown_at_a_time` slots
+        # return (
+        #     slot.slot_number >= current_slot_cursor
+        #     and slot.slot_number
+        #     <= current_slot_cursor + event.exercises_shown_at_a_time
+        # )
