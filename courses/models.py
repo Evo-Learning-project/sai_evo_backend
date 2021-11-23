@@ -103,7 +103,6 @@ class Course(UUIDModel):
         related_name="created_courses",
         null=True,
     )
-    teachers = models.ManyToManyField("users.User", blank=True)
     enrolled_users = models.ManyToManyField(
         "users.User", blank=True
     )  # TODO through model
@@ -519,7 +518,6 @@ class EventInstanceSlot(SlotNumberedModel):
     )
     exercise = models.ForeignKey(
         Exercise,
-        # related_name="slots",
         on_delete=models.CASCADE,
     )
 
@@ -550,15 +548,26 @@ class ParticipationAssessment(models.Model):
     NOT_ASSESSED = 0
     PARTIALLY_ASSESSED = 1
     FULLY_ASSESSED = 2
-    # TODO more states (e.g. FOR_REVIEW) maybe settable manually (not just as a property)
 
-    ASSESSMENT_STATES = (
+    ASSESSMENT_PROGRESS_STEPS = (
         (NOT_ASSESSED, "Not assessed"),
         (PARTIALLY_ASSESSED, "Partially assessed"),
         (FULLY_ASSESSED, "Fully assessed"),
     )
 
-    visible_to_student = models.BooleanField(default=False)
+    DRAFT = 0
+    FOR_REVIEW = 1
+    PUBLISHED = 2
+
+    ASSESSMENT_STATES = (
+        (DRAFT, "Draft"),
+        (FOR_REVIEW, "For review"),
+        (PUBLISHED, "Published"),
+    )
+
+    state = models.PositiveIntegerField(choices=ASSESSMENT_STATES, default=DRAFT)
+
+    # visible_to_student = models.BooleanField(default=False)
 
     objects = ParticipationAssessmentManager()
 
@@ -568,7 +577,7 @@ class ParticipationAssessment(models.Model):
         return self.participation.event
 
     @property
-    def assessment_state(self):
+    def assessment_progress(self):
         slot_states = [s.assessment_state for s in self.slots.all()]
         state = self.NOT_ASSESSED
         for slot_state in slot_states:

@@ -68,7 +68,7 @@ class ParticipationAssessmentSlotInline(admin.TabularInline):
 @admin.register(ParticipationAssessment)
 class ParticipationAssessmentAdmin(admin.ModelAdmin):
     inlines = [ParticipationAssessmentSlotInline]
-    readonly_fields = ("assessment_state",)
+    readonly_fields = ("assessment_progress",)
 
 
 class ParticipationSubmissionSlotInline(admin.TabularInline):

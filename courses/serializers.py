@@ -106,10 +106,15 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "begin_timestamp",
             "end_timestamp",
             "event_type",
-            "progression_rule",
             "state",
         ]
-        hidden_fields = ["template"]
+        hidden_fields = [
+            "template",
+            "users_allowed_past_closure",
+            "exercises_shown_at_a_time",
+            "access_rule",
+            "access_rule_exceptions",
+        ]
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
@@ -230,6 +235,12 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             "state",
             "slots",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["assessment_progress"] = serializers.IntegerField(
+            source="assessment.assessment_progress", read_only=True
+        )
 
 
 class EventInstanceSlotSerializer(serializers.ModelSerializer):
