@@ -71,6 +71,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
     def __init__(self, *args, **kwargs):
         kwargs.pop("required", None)  # TODO remove this
         super().__init__(*args, **kwargs)
+        # TODO you might only show this to teachers (students will always only see exercises through slots)
         self.fields["sub_exercises"] = RecursiveField(many=True, required=False)
 
         if self.context.pop("show_choices", True):

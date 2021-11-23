@@ -240,6 +240,14 @@ class EventParticipationViewSet(
         serializer = StudentViewEventParticipationSerializer(participation)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"])
+    def go_forward(self, request, **kwargs):
+        pass
+
+    @action(detail=True, methods=["post"])
+    def go_back(self, request, **kwargs):
+        pass
+
 
 class EventParticipationSlotViewSet(
     mixins.ListModelMixin,

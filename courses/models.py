@@ -778,6 +778,23 @@ class EventParticipation(models.Model):
         # shortcut to access the participation's event
         return self.event_instance.event
 
+    @property
+    def is_cursor_first_position(self):
+        return self.current_slot_cursor == 0
+
+    @property
+    def is_cursor_last_position(self):
+        return (
+            self.current_slot_cursor
+            >= self.last_slot_number - self.event.exercises_shown_at_a_time
+        )
+
+    @property
+    def last_slot_number(self):
+        return self.slots.base_slots().aggregate(max_slot_number=Max("slot_number"))[
+            "max_slot_number"
+        ]
+
     def __str__(self):
         return str(self.event_instance) + " - " + str(self.user)
 
@@ -793,9 +810,23 @@ class EventParticipation(models.Model):
         super().save(*args, **kwargs)
 
     def move_current_slot_cursor_forward(self):
-        # TODO sum the exercises shown at a time count
-        pass
+        if self.is_cursor_last_position:
+            raise ValidationError(
+                f"Cursor is past the max position: {self.current_slot_cursor}"
+            )
+
+        self.current_slot_cursor += (
+            self.event.exercises_shown_at_a_time
+        )  # ? max between this and max_slot_number?
+        self.save()
+        return self.current_slot_cursor
 
     def move_current_slot_cursor_back(self):
-        # TODO subtract the exercises shown at a time count
-        pass
+        if self.current_slot_cursor == 0:
+            raise ValidationError("Cursor is in position 0")
+
+        self.current_slot_cursor = max(
+            self.current_slot_cursor - self.event.exercises_shown_at_a_time, 0
+        )
+        self.save()
+        return self.current_slot_cursor

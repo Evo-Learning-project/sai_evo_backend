@@ -185,11 +185,23 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "condition": "can_participate",
         },
         {
-            "action": ["update", "partial_update"],
+            "action": ["update", "partial_update", "go_forward", "go_back"],
             "principal": ["*"],
             "effect": "allow",
             # ? give teachers the ability to update participations (e.g. re-open a turned in one)
             "condition": "is_own_participation and can_update_participation",
+        },
+        {
+            "action": ["go_forward"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "can_go_forward",
+        },
+        {
+            "action": ["go_back"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "can_go_back",
         },
     ]
 
@@ -218,6 +230,18 @@ class EventParticipationPolicy(BaseAccessPolicy):
             event.state == Event.CLOSED
             and request.user in event.users_allowed_past_closure
         )
+
+    def can_go_forward(self, request, view, action):
+        participation = view.get_object()
+        return not participation.is_cursor_last_position
+
+    def can_go_back(self, request, view, action):
+        from courses.models import Event
+
+        participation = view.get_object()
+        event = Event.objects.get(pk=view.kwargs["event_pk"])
+
+        return not participation.is_cursor_first_position and event.allow_going_back
 
 
 class EventParticipationSlotPolicy(BaseAccessPolicy):
