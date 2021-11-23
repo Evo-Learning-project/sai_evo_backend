@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from users.models import User
 from users.serializers import UserSerializer
 
 from courses import policies
@@ -9,6 +10,7 @@ from courses.logic import privileges
 from courses.logic.privileges import check_privilege
 from courses.models import (
     Course,
+    CourseRole,
     Event,
     EventParticipation,
     EventTemplate,
@@ -16,9 +18,11 @@ from courses.models import (
     ExerciseChoice,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
+    UserCoursePrivilege,
 )
 
 from .serializers import (
+    CourseRoleSerializer,
     CourseSerializer,
     EventSerializer,
     EventTemplateSerializer,
@@ -46,6 +50,59 @@ class CourseViewSet(viewsets.ModelViewSet):
         course = self.get_object()
         serializer = UserSerializer(course.enrolled_users.all(), many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"])
+    def set_permissions(self, request, **kwargs):
+        course = self.get_object()
+        try:
+            user = get_object_or_404(User, pk=request.data["user"])
+        except KeyError:
+            return Response(status=status.HTTP_404_BAD_REQUEST)
+
+        _, created = UserCoursePrivilege.create_or_update(
+            user=user,
+            course=course,
+            defaults={
+                "allow_privileges": request.data.get("allow_privileges", []),
+                "deny_privileges": request.data.get("deny_privileges", []),
+            },
+        )
+
+        return Response(
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+
+class CourseRoleViewSet(viewsets.ModelViewSet):
+    serializer_class = CourseRoleSerializer
+    queryset = CourseRole.objects.all()
+    permission_classes = [policies.CourseRolePolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(course_id=self.kwargs["course_pk"])
+
+    @action(detail=True, methods=["get"])
+    def add_to_user(self, request, **kwargs):
+        role = self.get_object()
+        try:
+            user = get_object_or_404(User, pk=request.data["user"])
+        except KeyError:
+            return Response(status=status.HTTP_404_BAD_REQUEST)
+
+        user.roles.add(role)
+        return Response(status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"])
+    def remove_from_user(self, request, **kwargs):
+        role = self.get_object()
+        try:
+            user = get_object_or_404(User, pk=request.data["user"])
+        except KeyError:
+            return Response(status=status.HTTP_404_BAD_REQUEST)
+
+        user.roles.remove(role)
+        return Response(status=status.HTTP_200_OK)
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):

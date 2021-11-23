@@ -20,6 +20,8 @@ class UserViewSet(
     queryset = User.objects.all()
     # permission_classes = [policies.CoursePolicy]
 
+    # TODO ability to pass course in serializer context to get course specific permissions
+
     @action(detail=False, methods=["get"])
     def me(self, request, **kwargs):
         serializer = self.get_serializer_class()(instance=request.user)

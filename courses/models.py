@@ -104,6 +104,9 @@ class Course(UUIDModel):
         null=True,
     )
     teachers = models.ManyToManyField("users.User", blank=True)
+    enrolled_users = models.ManyToManyField(
+        "users.User", blank=True
+    )  # TODO through model
     hidden = models.BooleanField(default=False)
 
     class Meta:

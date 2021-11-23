@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from courses.models import (
     Course,
+    CourseRole,
     Event,
     EventInstanceSlot,
     EventParticipation,
@@ -39,6 +40,12 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         fields = ["id", "name", "description", "creator"]
         read_only_fields = ["creator"]
         hidden_fields = ["visible", "teachers"]
+
+
+class CourseRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseRole
+        fields = ["id", "name", "allow_privileges"]
 
 
 class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):

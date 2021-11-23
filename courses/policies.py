@@ -59,6 +59,17 @@ class CoursePolicy(BaseAccessPolicy):
         return request.user.is_teacher
 
 
+class CourseRolePolicy(BaseAccessPolicy):
+    statements = [
+        {
+            "action": ["*"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:manage_permissions",
+        },
+    ]
+
+
 class EventPolicy(BaseAccessPolicy):
     statements = [
         {
