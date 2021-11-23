@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from users.serializers import UserSerializer
 
 from courses import policies
 from courses.logic import privileges
@@ -39,6 +40,12 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(
             creator=self.request.user,
         )
+
+    @action(detail=True, methods=["get"])
+    def enrolled(self, request, **kwargs):
+        course = self.get_object()
+        serializer = UserSerializer(course.enrolled_users.all(), many=True)
+        return Response(serializer.data)
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):

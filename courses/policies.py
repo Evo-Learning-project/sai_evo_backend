@@ -27,6 +27,12 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
         },
         {
+            "action": ["enrolled"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:view_enrolled",
+        },
+        {
             "action": ["retrieve"],
             "principal": ["*"],
             "effect": "allow",
