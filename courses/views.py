@@ -18,6 +18,7 @@ from courses.models import (
     ExerciseChoice,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
+    Tag,
     UserCoursePrivilege,
 )
 
@@ -31,6 +32,7 @@ from .serializers import (
     ParticipationAssessmentSlotSerializer,
     ParticipationSubmissionSlotSerializer,
     StudentViewEventParticipationSerializer,
+    TagSerializer,
     TeacherViewEventParticipationSerializer,
 )
 
@@ -159,6 +161,28 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(
             exercise_id=self.kwargs["exercise_pk"],
+        )
+
+
+class TagViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = TagSerializer
+    queryset = Tag.objects.all()
+    permission_classes = [policies.TagPolicy]
+
+    # TODO abstract this behavior
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(course_id=self.kwargs["course_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            course_id=self.kwargs["course_pk"],
+            creator=self.request.user,
         )
 
 

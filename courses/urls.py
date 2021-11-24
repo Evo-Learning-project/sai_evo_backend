@@ -24,6 +24,13 @@ course_router.register(
     basename="course-roles",
 )
 
+# `/courses/<pk>/tags` entry point
+course_router.register(
+    r"roles",
+    views.TagViewSet,
+    basename="course-tags",
+)
+
 # `/courses/<pk>/exercies` entry point
 course_router.register(
     r"exercises",

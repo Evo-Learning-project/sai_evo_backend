@@ -188,6 +188,35 @@ class CourseRole(models.Model):
         )
 
 
+class Tag(models.Model):
+    course = models.ForeignKey(
+        Course,
+        null=True,
+        blank=True,
+        related_name="tags",
+        on_delete=models.CASCADE,
+    )
+    creator = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    name = models.TextField()
+
+    def __str__(self):
+        return str(self.course) + " - " + self.name
+
+    class Meta:
+        ordering = ["course_id", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course_id", "name"],
+                name="course_unique_tag_name",
+            )
+        ]
+
+
 class Exercise(models.Model):
     MULTIPLE_CHOICE_SINGLE_POSSIBLE = 0
     MULTIPLE_CHOICE_MULTIPLE_POSSIBLE = 1
@@ -231,7 +260,7 @@ class Exercise(models.Model):
         on_delete=models.CASCADE,
     )
     child_position = models.PositiveIntegerField(null=True, blank=True)
-    tags = models.ManyToManyField("tags.Tag", blank=True)
+    tags = models.ManyToManyField(Tag, blank=True)
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
     label = models.CharField(max_length=75, blank=True)
     text = models.TextField(blank=True)
@@ -484,7 +513,7 @@ class EventTemplateRuleClause(models.Model):
         related_name="clauses",
         on_delete=models.CASCADE,
     )
-    tags = models.ManyToManyField("tags.Tag")
+    tags = models.ManyToManyField(Tag)
 
 
 class EventInstance(models.Model):
@@ -653,7 +682,7 @@ class ParticipationSubmission(models.Model):
 
     @property
     def current_slots(self):
-        ret = self.slots.all()
+        ret = self.slots.base_slots()
         if self.event.exercises_shown_at_a_time is not None:
             # slots are among the "current" ones iff their number is between
             # the `current_slot_cursor` of the EventParticipation
@@ -727,6 +756,14 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
         for c in self.selected_choices.all():
             if c not in self.exercise.choices.all():
                 raise ValidationError("Invalid choice selected: " + str(c))
+
+    def is_in_scope(self):
+        """
+        Returns True if the slot is accessible by the user in the corresponding
+        EventParticipation, i.e. it contains one of the exercises currently being
+        shown to the user; False otherwise
+        """
+        return self in self.submission.current_slots or self.parent.is_in_scope()
 
 
 class EventParticipation(models.Model):

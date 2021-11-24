@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "courses",
     "users",
-    "tags",
     "django_extensions",
     "nested_admin",
 ]

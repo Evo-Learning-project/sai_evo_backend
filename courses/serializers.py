@@ -14,6 +14,7 @@ from courses.models import (
     ExerciseTestCase,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
+    Tag,
 )
 from courses.serializer_fields import RecursiveField
 
@@ -40,6 +41,12 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         fields = ["id", "name", "description", "creator"]
         read_only_fields = ["creator"]
         hidden_fields = ["visible", "teachers"]
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ["id", "name"]
 
 
 class CourseRoleSerializer(serializers.ModelSerializer):
@@ -148,6 +155,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
         model = ParticipationSubmissionSlot
         fields = [
             "id",
+            "slot_number",
             "exercise",
             "sub_slots",
             "selected_choices",
@@ -169,6 +177,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
         model = ParticipationAssessmentSlot
         fields = [
             "id",
+            "slot_number",
             "exercise",
             "score",
             "comment",

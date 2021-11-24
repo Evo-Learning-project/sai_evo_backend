@@ -122,6 +122,17 @@ class EventTemplatePolicy(BaseAccessPolicy):
     ]
 
 
+class TagPolicy(BaseAccessPolicy):
+    statements = [
+        {
+            "action": ["list", "retrieve", "create"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:create_exercises",
+        },
+    ]
+
+
 class ExercisePolicy(BaseAccessPolicy):
     statements = [
         {
@@ -285,22 +296,5 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
         )
 
     def is_slot_in_scope(self, request, view, action):
-        from courses.models import Event
-
         slot = view.get_object()
-        return slot in slot.submission.current_slots
-        # event = Event.objects.get(pk=view.kwargs["event_pk"])
-
-        # if event.exercises_shown_at_a_time is None:
-        #     # if event doesn't have a limit on how many exercises to show at
-        #     # a time, all slots are always in scope and accessible
-        #     return True
-
-        # current_slot_cursor = slot.participation.current_slot_cursor
-        # # slot is in scope iff its number is between the `current_slot_cursor` of the
-        # # EventParticipation and the next `exercises_shown_at_a_time` slots
-        # return (
-        #     slot.slot_number >= current_slot_cursor
-        #     and slot.slot_number
-        #     <= current_slot_cursor + event.exercises_shown_at_a_time
-        # )
+        return slot.is_in_scope()
