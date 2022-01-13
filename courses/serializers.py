@@ -26,13 +26,14 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
     """
 
     def __init__(self, *args, **kwargs):
-        context = kwargs.get("context", None)
-        if context is not None and context.get("show_hidden_fields", False):
+        context = kwargs.get("context")
+        self.show_hidden_fields = context is not None and context.get(
+            "show_hidden_fields", False
+        )
+
+        if self.show_hidden_fields:
             self.Meta.fields.extend(self.Meta.hidden_fields)
         super().__init__(*args, **kwargs)
-
-        # for easier use by other serializers that rely on this property after __init__
-        self.show_hidden_fields = self.context.get("show_hidden_fields", False)
 
 
 class CourseSerializer(HiddenFieldsModelSerializer):
@@ -40,7 +41,7 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         model = Course
         fields = ["id", "name", "description", "creator"]
         read_only_fields = ["creator"]
-        hidden_fields = ["visible", "teachers"]
+        hidden_fields = ["visible"]
 
 
 class TagSerializer(serializers.ModelSerializer):

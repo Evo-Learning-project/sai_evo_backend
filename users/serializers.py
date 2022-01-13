@@ -14,16 +14,19 @@ class UserSerializer(serializers.ModelSerializer):
             "is_teacher",
         ]
 
-    def __init__(self, *args, **kwargs):
-        context = kwargs.get("context", None)
-        if self.context is not None and context.get("course") is not None:
-            self.fields["course_permissions"] = serializers.SerializerMethodField()
+    # def __init__(self, *args, **kwargs):
+    #     context = kwargs.get("context", None)
+    # TODO fix
+    # if self.context is not None and context.get("course") is not None:
+    #     self.fields["course_permissions"] = serializers.SerializerMethodField()
 
     def get_course_permissions(self, obj):
-        permissions = UserCoursePrivilege.objects.get(
-            user=obj, course=self.context["course"]
-        )
-        return {
-            "allow_privileges": permissions.allow_privileges,
-            "deny_privileges": permissions.deny_privileges,
-        }
+        # TODO implement
+        return []
+        # permissions = UserCoursePrivilege.objects.get(
+        #     user=obj, course=self.context["course"]
+        # )
+        # return {
+        #     "allow_privileges": permissions.allow_privileges,
+        #     "deny_privileges": permissions.deny_privileges,
+        # }

@@ -16,6 +16,8 @@ django-nested-admin = "*"
 drf-nested-routers = "*"
 drf-access-policy = "*"
 drf-yasg = "*"
+drf-social-oauth2 = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 

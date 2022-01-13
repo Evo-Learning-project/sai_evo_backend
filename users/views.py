@@ -24,5 +24,5 @@ class UserViewSet(
 
     @action(detail=False, methods=["get"])
     def me(self, request, **kwargs):
-        serializer = self.get_serializer_class()(instance=request.user)
+        serializer = self.get_serializer_class()(request.user)
         return Response(serializer.data)
