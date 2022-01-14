@@ -306,7 +306,7 @@ class ExerciseChoice(models.Model):
         related_name="choices",
         on_delete=models.CASCADE,
     )
-    text = models.TextField()
+    text = models.TextField(blank=True)
     score = models.DecimalField(
         decimal_places=2,
         max_digits=5,
