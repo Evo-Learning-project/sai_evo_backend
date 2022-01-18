@@ -116,6 +116,8 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "end_timestamp",
             "event_type",
             "state",
+            "allow_going_back",
+            "exercises_shown_at_a_time",
         ]
         hidden_fields = [
             "template",

@@ -21,6 +21,14 @@ from .managers import (
 )
 
 
+class TimestampableModel(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
 class SlotNumberedModel(UUIDModel):
     parent = models.ForeignKey(
         "self",
@@ -94,7 +102,7 @@ class SideSlotNumberedModel(SlotNumberedModel):
         return self.get_sibling_slot("event_instance").exercise
 
 
-class Course(UUIDModel):
+class Course(UUIDModel, TimestampableModel):
     name = models.TextField(unique=True)
     description = models.TextField(blank=True)
     creator = models.ForeignKey(
@@ -109,7 +117,7 @@ class Course(UUIDModel):
     hidden = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ["pk"]
+        ordering = ["-created", "pk"]
 
     def __str__(self):
         return self.name
@@ -217,7 +225,7 @@ class Tag(models.Model):
         ]
 
 
-class Exercise(models.Model):
+class Exercise(TimestampableModel):
     MULTIPLE_CHOICE_SINGLE_POSSIBLE = 0
     MULTIPLE_CHOICE_MULTIPLE_POSSIBLE = 1
     OPEN_ANSWER = 2
@@ -275,6 +283,7 @@ class Exercise(models.Model):
         ordering = [
             "course_id",
             F("parent_id").asc(nulls_first=True),  # base exercises first
+            "-created",
             F("child_position").asc(nulls_first=True),
             "pk",
         ]
@@ -354,7 +363,7 @@ class ExerciseTestCase(models.Model):
         return str(self.exercise) + " - " + self.code
 
 
-class Event(UUIDModel):
+class Event(UUIDModel, TimestampableModel):
     SELF_SERVICE_PRACTICE = 0
     IN_CLASS_PRACTICE = 1
     EXAM = 2
@@ -389,7 +398,7 @@ class Event(UUIDModel):
         (DENY_ACCESS, "Deny"),
     )
 
-    name = models.TextField()
+    name = models.TextField(blank=True)
     instructions = models.TextField(blank=True)
     course = models.ForeignKey(
         Course,
@@ -426,12 +435,17 @@ class Event(UUIDModel):
         return self.name
 
     class Meta:
-        ordering = ["course_id", "pk"]
+        ordering = [
+            "course_id",
+            "-created",
+            "pk",
+        ]
         constraints = [
-            models.UniqueConstraint(
-                fields=["course_id", "name"],
-                name="event_unique_name_course",
-            )
+            # TODO disallow duplicates only in non-draft state and with non-empty names
+            # models.UniqueConstraint(
+            #     fields=["course_id", "name"],
+            #     name="event_unique_name_course",
+            # )
         ]
 
     def save(self, *args, **kwargs):
