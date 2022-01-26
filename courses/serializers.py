@@ -105,7 +105,33 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         return super().update(instance, validated_data)
 
 
+class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventTemplateRuleClause
+        fields = ["tags"]
+
+
+class EventTemplateRuleSerializer(serializers.ModelSerializer):
+    clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = EventTemplateRule
+        fields = ["id", "rule_type", "target_slot_number", "exercises", "clauses"]
+        read_only_fields = ["target_slot_number"]
+
+
+class EventTemplateSerializer(serializers.ModelSerializer):
+    rules = EventTemplateRuleSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = EventTemplate
+        fields = ["id", "name", "rules"]
+        read_only_fields = ["rules"]
+
+
 class EventSerializer(HiddenFieldsModelSerializer):
+    template = EventTemplateSerializer(read_only=True)
+
     class Meta:
         model = Event
         fields = [
@@ -118,36 +144,15 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "state",
             "allow_going_back",
             "exercises_shown_at_a_time",
+            "template",
         ]
         hidden_fields = [
-            "template",
+            # "template",
             "users_allowed_past_closure",
             "exercises_shown_at_a_time",
             "access_rule",
             "access_rule_exceptions",
         ]
-
-
-class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EventTemplateRuleClause
-        fields = ["tags"]
-
-
-class EventTemplateRuleSerializer(serializers.ModelSerializer):
-    clauses = EventTemplateRuleClauseSerializer(many=True)
-
-    class Meta:
-        model = EventTemplateRule
-        fields = ["rule_type", "target_slot_number", "exercises", "clauses"]
-
-
-class EventTemplateSerializer(serializers.ModelSerializer):
-    rules = EventTemplateRuleSerializer(many=True)
-
-    class Meta:
-        model = EventTemplate
-        fields = ["name", "rules"]
 
 
 class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):

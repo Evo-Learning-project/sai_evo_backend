@@ -10,6 +10,7 @@ from courses.logic.assessment import get_assessor_class
 from .managers import (
     EventInstanceManager,
     EventInstanceSlotManager,
+    EventManager,
     EventParticipationManager,
     EventTemplateManager,
     EventTemplateRuleManager,
@@ -416,9 +417,8 @@ class Event(UUIDModel, TimestampableModel):
     end_timestamp = models.DateTimeField(null=True, blank=True)
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
     state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
-    template = models.ForeignKey(
+    template = models.OneToOneField(
         "EventTemplate",
-        related_name="events",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -430,6 +430,8 @@ class Event(UUIDModel, TimestampableModel):
         choices=ACCESS_RULES, default=ALLOW_ACCESS
     )
     access_rule_exceptions = models.JSONField(default=list, blank=True)
+
+    objects = EventManager()
 
     def __str__(self):
         return self.name
@@ -485,6 +487,19 @@ class EventTemplate(models.Model):
     class Meta:
         ordering = ["course_id", "pk"]
 
+    def __str__(self):
+        return (
+            (self.event.name + " template")
+            if self.event is not None
+            else "--- template"
+        )
+
+    def get_next_rule_target_slot_number(self):
+        max_rule_target_slot = self.rules.all().aggregate(
+            max_target_slot=Max("target_slot_number")
+        )["max_target_slot"]
+        return max_rule_target_slot + 1 if max_rule_target_slot is not None else 0
+
 
 class EventTemplateRule(models.Model):
     TAG_BASED = 0
@@ -502,7 +517,9 @@ class EventTemplateRule(models.Model):
         on_delete=models.CASCADE,
         related_name="rules",
     )
-    rule_type = models.PositiveSmallIntegerField(choices=RULE_TYPES)
+    rule_type = models.PositiveSmallIntegerField(
+        choices=RULE_TYPES, null=True, blank=True
+    )
     exercises = models.ManyToManyField(
         "courses.Exercise",
         blank=True,

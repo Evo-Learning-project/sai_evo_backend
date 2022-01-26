@@ -253,6 +253,19 @@ class ParticipationAssessmentManager(SlottedModelManager):
     pass
 
 
+class EventManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .models import EventTemplate
+
+        event = super().create(*args, **kwargs)
+
+        # automatically create an event template for this event
+        event.template = EventTemplate.objects.create(course=event.course)
+        event.save()
+
+        return event
+
+
 class EventTemplateManager(models.Manager):
     def get_queryset(self):
         return EventTemplateQuerySet(self.model, using=self._db)
@@ -263,7 +276,7 @@ class EventTemplateManager(models.Manager):
     def create(self, *args, **kwargs):
         from .models import EventTemplateRule
 
-        rules = kwargs.pop("rules")
+        rules = kwargs.pop("rules", [])
         template = super().create(*args, **kwargs)
 
         target_slot_number = 0
@@ -280,40 +293,50 @@ class EventTemplateManager(models.Manager):
 
 class EventTemplateRuleManager(models.Manager):
     def create(self, *args, **kwargs):
-        """
-        Creates an EventTemplateRule.
+        from .models import EventTemplate
 
-        If the rule is ID-based, expects to receive an iterable of Exercise
-        If the rule is tag-based, expectes to receive a list of iterables of Tag
-        """
-        from .models import EventTemplateRule, EventTemplateRuleClause
+        kwargs["target_slot_number"] = EventTemplate.objects.get(
+            pk=kwargs["template_id"]
+        ).get_next_rule_target_slot_number()
+        print("KWARGS ARE")
+        print(kwargs)
+        return super().create(*args, **kwargs)
 
-        tags = kwargs.pop("tags", [])
-        exercises = kwargs.pop("exercises", [])
+    # def create(self, *args, **kwargs):
+    #     """
+    #     Creates an EventTemplateRule.
 
-        rule = super().create(*args, **kwargs)
+    #     If the rule is ID-based, expects to receive an iterable of Exercise
+    #     If the rule is tag-based, expectes to receive a list of iterables of Tag
+    #     """
+    #     from .models import EventTemplateRule, EventTemplateRuleClause
 
-        if rule.rule_type == EventTemplateRule.ID_BASED:
-            if len(tags) > 0:
-                raise ValidationError("ID-based rules cannot have tag clauses")
-            for exercise in exercises:
-                if exercise.parent is not None:
-                    raise ValidationError(
-                        "You can only directly assign base exercises to an EventRule"
-                    )
-            rule.exercises.set(exercises)
-        elif rule.rule_type == EventTemplateRule.TAG_BASED:
-            if len(exercises) > 0:
-                raise ValidationError(
-                    "Tag-based rules cannot refer to specific exercises"
-                )
-            for tag_group in tags:
-                clause = EventTemplateRuleClause.objects.create(rule=rule)
-                clause.tags.set(tag_group)
-        else:  # fully random rule
-            if len(tags) > 0 or len(exercises) > 0:
-                raise ValidationError(
-                    "Fully random rules cannot have tag clauses or specify exercises"
-                )
+    #     tags = kwargs.pop("tags", [])
+    #     exercises = kwargs.pop("exercises", [])
 
-        return rule
+    #     rule = super().create(*args, **kwargs)
+
+    #     if rule.rule_type == EventTemplateRule.ID_BASED:
+    #         if len(tags) > 0:
+    #             raise ValidationError("ID-based rules cannot have tag clauses")
+    #         for exercise in exercises:
+    #             if exercise.parent is not None:
+    #                 raise ValidationError(
+    #                     "You can only directly assign base exercises to an EventRule"
+    #                 )
+    #         rule.exercises.set(exercises)
+    #     elif rule.rule_type == EventTemplateRule.TAG_BASED:
+    #         if len(exercises) > 0:
+    #             raise ValidationError(
+    #                 "Tag-based rules cannot refer to specific exercises"
+    #             )
+    #         for tag_group in tags:
+    #             clause = EventTemplateRuleClause.objects.create(rule=rule)
+    #             clause.tags.set(tag_group)
+    #     else:  # fully random rule
+    #         if len(tags) > 0 or len(exercises) > 0:
+    #             raise ValidationError(
+    #                 "Fully random rules cannot have tag clauses or specify exercises"
+    #             )
+
+    #     return rule

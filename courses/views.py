@@ -14,6 +14,7 @@ from courses.models import (
     Event,
     EventParticipation,
     EventTemplate,
+    EventTemplateRule,
     Exercise,
     ExerciseChoice,
     ParticipationAssessmentSlot,
@@ -26,6 +27,7 @@ from .serializers import (
     CourseRoleSerializer,
     CourseSerializer,
     EventSerializer,
+    EventTemplateRuleSerializer,
     EventTemplateSerializer,
     ExerciseChoiceSerializer,
     ExerciseSerializer,
@@ -216,6 +218,21 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
             course_id=self.kwargs["course_pk"],
             creator=self.request.user,
         )
+
+
+class EventTemplateRuleViewSet(viewsets.ModelViewSet):
+    serializer_class = EventTemplateRuleSerializer
+    queryset = EventTemplateRule.objects.all()
+    permission_classes = [policies.EventTemplatePolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(
+            template_id=self.kwargs["template_pk"],
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(template_id=self.kwargs["template_pk"])
 
 
 class EventParticipationViewSet(
