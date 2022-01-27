@@ -35,6 +35,11 @@ class ExerciseAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    pass
+
+
 class EventTemplateRuleClauseInline(nested_admin.NestedTabularInline):
     model = EventTemplateRuleClause
 

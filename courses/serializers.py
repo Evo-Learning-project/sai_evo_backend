@@ -64,6 +64,8 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+
     class Meta:
         model = Exercise
         fields = [

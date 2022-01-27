@@ -419,7 +419,7 @@ class Event(UUIDModel, TimestampableModel):
     state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
     template = models.OneToOneField(
         "EventTemplate",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
     )

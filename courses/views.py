@@ -177,6 +177,31 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         serializer.is_valid()
         return Response(serializer.data)
 
+    @action(detail=True, methods=["put", "delete"])
+    def tags(self, request, **kwargs):
+        exercise = self.get_object()
+        try:
+            text = request.data["tag"]
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == "PUT":
+            # create tag if it doesn't exist already
+            tag, _ = Tag.objects.get_or_create(course_id=kwargs["course_pk"], name=text)
+
+            exercise.tags.add(tag)
+        elif request.method == "DELETE":
+            # remove tag from exercise
+            tag = get_object_or_404(
+                Tag.objects.filter(course_id=kwargs["course_pk"]), name=text
+            )
+
+            exercise.tags.remove(tag)
+        else:
+            assert False
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseChoiceSerializer
