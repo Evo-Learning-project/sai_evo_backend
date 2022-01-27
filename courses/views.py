@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
@@ -22,6 +22,7 @@ from courses.models import (
     Tag,
     UserCoursePrivilege,
 )
+from courses.pagination import ExercisePagination
 
 from .serializers import (
     CourseRoleSerializer,
@@ -118,6 +119,9 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
     )
     permission_classes = [policies.ExercisePolicy]
+    pagination_class = ExercisePagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["label", "text"]
 
     def get_permissions(self):
         if self.kwargs.get("exercise_pk"):
