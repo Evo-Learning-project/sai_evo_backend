@@ -154,6 +154,29 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             parent_id=self.kwargs.get("exercise_pk"),
         )
 
+    @action(detail=False, methods=["get"])
+    def bulk_get(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        exercises = []
+        course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
+
+        for pk in id_list:
+            exercise = get_object_or_404(self.get_queryset(), pk=pk)
+            exercises.append(exercise)
+
+        serializer = self.get_serializer_class()(
+            data=exercises,
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        serializer.is_valid()
+        return Response(serializer.data)
+
 
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseChoiceSerializer

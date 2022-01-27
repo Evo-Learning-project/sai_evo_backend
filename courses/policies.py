@@ -136,7 +136,7 @@ class TagPolicy(BaseAccessPolicy):
 class ExercisePolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list", "retrieve"],
+            "action": ["list", "retrieve", "bulk_get"],
             "principal": ["*"],
             "effect": "allow",
             "condition": "has_teacher_privileges:access_exercises",
