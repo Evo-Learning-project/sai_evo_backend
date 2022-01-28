@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from users.serializers import UserSerializer
 
+from courses.logic.privileges import get_user_privileges
 from courses.models import (
     Course,
     CourseRole,
@@ -37,11 +39,28 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(HiddenFieldsModelSerializer):
+    is_enrolled = serializers.SerializerMethodField()
+    privileges = serializers.SerializerMethodField()
+    creator = UserSerializer(read_only=True)
+
     class Meta:
         model = Course
-        fields = ["id", "name", "description", "creator"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "creator",
+            "is_enrolled",
+            "privileges",
+        ]
         read_only_fields = ["creator"]
         hidden_fields = ["visible"]
+
+    def get_is_enrolled(self, obj):
+        return self.context["request"].user in obj.enrolled_users.all()
+
+    def get_privileges(self, obj):
+        return get_user_privileges(self.context["request"].user, obj)
 
 
 class TagSerializer(serializers.ModelSerializer):

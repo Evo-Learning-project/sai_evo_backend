@@ -33,6 +33,32 @@ def validate_permission_list(lst):
             raise ValidationError(f"{item} not in teacher privileges")
 
 
+def get_user_privileges(user, course):
+    from courses.models import Course, UserCoursePrivilege
+
+    if user == course.creator:
+        return ["__all__"]
+
+    allow_privileges = [
+        privilege
+        for role_privileges in (
+            role.allow_privileges for role in user.roles.filter(course=course)
+        )
+        for privilege in role_privileges
+    ]
+
+    try:
+        per_user_privileges = UserCoursePrivilege.objects.get(user=user, course=course)
+        allow_privileges.extend(per_user_privileges.allow_privileges)  # add per-user
+        deny_privileges = per_user_privileges.deny_privileges
+    except UserCoursePrivilege.DoesNotExist:
+        deny_privileges = []
+
+    return [
+        privilege for privilege in allow_privileges if privilege not in deny_privileges
+    ]
+
+
 def check_privilege(user, course, privilege):
     """
     Returns True if and only `user` has `privilege` for `course`
