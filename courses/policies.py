@@ -187,7 +187,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["retrieve"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_own_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "is_own_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["create"],
@@ -200,7 +200,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "principal": ["*"],
             "effect": "allow",
             # ? give teachers the ability to update participations (e.g. re-open a turned in one)
-            "condition": "is_own_participation and can_update_participation",
+            "condition_expression": "is_own_participation and can_update_participation",
         },
         {
             "action": ["go_forward"],
@@ -261,20 +261,20 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
             "action": ["list", "retrieve"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_in_own_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "is_in_own_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",
         },
-        {
-            "action": ["retrieve", "update", "partial_update"],
-            "principal": ["*"],
-            "effect": "deny",
-            "condition": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
-        },
+        # {
+        #     "action": ["retrieve", "update", "partial_update"],
+        #     "principal": ["*"],
+        #     "effect": "deny",
+        #     "condition_expression": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
+        # },
     ]
 
     def is_in_own_participation(self, request, view, action):
