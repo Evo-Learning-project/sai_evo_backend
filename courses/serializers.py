@@ -247,10 +247,11 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "state",
-            "slots",
+            # "slots",
         ]
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.fields["slots"] = ParticipationSubmissionSlotSerializer(
             many=True, source="submission.current_slots"
         )

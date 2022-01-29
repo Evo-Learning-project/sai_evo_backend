@@ -325,11 +325,22 @@ class EventParticipationViewSet(
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["event_pk"])
+        return qs.filter(
+            event_instance__isnull=False,
+            event_instance__event_id=self.kwargs["event_pk"],
+        )
 
     def create(self, request, *args, **kwargs):
-        # TODO test if the participation is created with the correct event or if you need to put the event in get_or_create explicitly
-        participation, _ = self.get_queryset().get_or_create(user=request.user)
+
+        # cannot use get_or_create because the custom manager won't be called
+        # participation, _ = self.get_queryset().get_or_create(user=request.user)
+        try:
+            participation = self.get_queryset().get(user=request.user)
+        except EventParticipation.DoesNotExist:
+            participation = EventParticipation.objects.create(
+                user=request.user, event_id=self.kwargs["event_pk"]
+            )
+
         serializer = StudentViewEventParticipationSerializer(participation)
         return Response(serializer.data)
 

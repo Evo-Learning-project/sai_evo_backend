@@ -146,7 +146,7 @@ class ExerciseManager(models.Manager):
 
 
 class EventParticipationManager(models.Manager):
-    def create(self, event=None, event_instance=None, *args, **kwargs):
+    def create(self, event_id=None, event_instance=None, *args, **kwargs):
         """
         Creates an event participation. If supplied an EventInstance, assigns that instance
         to the new participation, otherwise creates one on demand and assigns it to the new
@@ -158,19 +158,27 @@ class EventParticipationManager(models.Manager):
             ParticipationSubmission,
         )
 
-        if event_instance is None and event is None:
+        if event_instance is None and event_id is None:
             raise ValueError("Either provide an Event or an EventInstance")
 
         if event_instance is None:
-            event_instance = EventInstance.objects.create(event=event)
+            event_instance = EventInstance.objects.create(event_id=event_id)
 
-        kwargs["event_instance"] = event_instance
+        kwargs["event_instance_id"] = event_instance.pk
         participation = super().create(*args, **kwargs)
 
         ParticipationSubmission.objects.create(participation=participation)
         ParticipationAssessment.objects.create(participation=participation)
 
         participation.save()
+        print(
+            "participation",
+            participation,
+            "sub",
+            participation.submission,
+            "ass",
+            participation.assessment,
+        )
 
         return participation
 
@@ -183,10 +191,10 @@ class EventInstanceManager(models.Manager):
         in the event template
         """
         from .logic.event_instances import get_exercises_from
-        from .models import EventInstanceSlot
+        from .models import EventInstanceSlot, EventTemplate
 
         if (exercises := kwargs.pop("exercises", None)) is None:
-            event_template = kwargs["event"].template
+            event_template = EventTemplate.objects.get(event__id=kwargs["event_id"])
             exercises = get_exercises_from(event_template)
 
         instance = super().create(*args, **kwargs)
@@ -200,6 +208,7 @@ class EventInstanceManager(models.Manager):
             )
             slot_number += 1
 
+        print("instance", instance)
         return instance
 
 

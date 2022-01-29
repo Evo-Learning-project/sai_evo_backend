@@ -712,6 +712,11 @@ class ParticipationSubmission(models.Model):
         ordering = ["pk"]
 
     @property
+    def event(self):
+        # shortcut to access the participation's event
+        return self.participation.event
+
+    @property
     def current_slots(self):
         ret = self.slots.base_slots()
         if self.event.exercises_shown_at_a_time is not None:
@@ -720,8 +725,8 @@ class ParticipationSubmission(models.Model):
             # and the next `exercises_shown_at_a_time` slots
             ret = ret.filter(
                 slot_number__gte=self.participation.current_slot_cursor,
-                slot_number__lte=(
-                    self.participation.current_slot_number
+                slot_number__lt=(
+                    self.participation.current_slot_cursor
                     + self.event.exercises_shown_at_a_time
                 ),
             )
@@ -834,7 +839,7 @@ class EventParticipation(models.Model):
         choices=PARTICIPATION_STATES,
         default=IN_PROGRESS,
     )
-    current_slot_cursor = models.PositiveIntegerField(null=True, blank=True)
+    current_slot_cursor = models.PositiveIntegerField(default=0)
 
     objects = EventParticipationManager()
 
