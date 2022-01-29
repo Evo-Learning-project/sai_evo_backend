@@ -224,6 +224,9 @@ class EventParticipationPolicy(BaseAccessPolicy):
         from courses.models import Event
 
         event = Event.objects.get(pk=view.kwargs["event_pk"])
+        if event.state != Event.OPEN:
+            return False
+
         if event.access_rule == Event.ALLOW_ACCESS:
             return request.user.email not in event.access_rule_exceptions
         else:  # default is DENY_ACCESS
@@ -269,12 +272,12 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition_expression": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",
         },
-        # {
-        #     "action": ["retrieve", "update", "partial_update"],
-        #     "principal": ["*"],
-        #     "effect": "deny",
-        #     "condition_expression": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
-        # },
+        {
+            "action": ["retrieve", "update", "partial_update"],
+            "principal": ["*"],
+            "effect": "deny",
+            "condition_expression": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
+        },
     ]
 
     def is_in_own_participation(self, request, view, action):
@@ -287,6 +290,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
 
         participation = view.get_object().participation
         if participation.state == EventParticipation.TURNED_IN:
+            print("turned in")
             return False
 
         event = Event.objects.get(pk=view.kwargs["event_pk"])
