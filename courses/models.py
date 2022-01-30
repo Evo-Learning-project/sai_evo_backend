@@ -864,9 +864,9 @@ class EventParticipation(models.Model):
 
     @property
     def last_slot_number(self):
-        return self.slots.base_slots().aggregate(max_slot_number=Max("slot_number"))[
-            "max_slot_number"
-        ]
+        return self.submission.slots.base_slots().aggregate(
+            max_slot_number=Max("slot_number")
+        )["max_slot_number"]
 
     def __str__(self):
         return str(self.event_instance) + " - " + str(self.user)

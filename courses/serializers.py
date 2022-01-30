@@ -2,22 +2,12 @@ from rest_framework import serializers
 from users.serializers import UserSerializer
 
 from courses.logic.privileges import get_user_privileges
-from courses.models import (
-    Course,
-    CourseRole,
-    Event,
-    EventInstanceSlot,
-    EventParticipation,
-    EventTemplate,
-    EventTemplateRule,
-    EventTemplateRuleClause,
-    Exercise,
-    ExerciseChoice,
-    ExerciseTestCase,
-    ParticipationAssessmentSlot,
-    ParticipationSubmissionSlot,
-    Tag,
-)
+from courses.models import (Course, CourseRole, Event, EventInstanceSlot,
+                            EventParticipation, EventTemplate,
+                            EventTemplateRule, EventTemplateRuleClause,
+                            Exercise, ExerciseChoice, ExerciseTestCase,
+                            ParticipationAssessmentSlot,
+                            ParticipationSubmissionSlot, Tag)
 from courses.serializer_fields import RecursiveField
 
 
@@ -179,6 +169,14 @@ class EventSerializer(HiddenFieldsModelSerializer):
 class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True)
     exercise = ExerciseSerializer()
+    is_last = serializers.BooleanField(
+        read_only=True,
+        source="participation.is_cursor_last_position",
+    )
+    is_first = serializers.BooleanField(
+        read_only=True,
+        source="participation.is_cursor_first_position",
+    )
 
     class Meta:
         model = ParticipationSubmissionSlot
@@ -190,6 +188,8 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "selected_choices",
             "answer_text",
             "attachment",
+            "is_last",
+            "is_first",
         ]
         hidden_fields = [
             "seen_at",
@@ -242,11 +242,14 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     those slots
     """
 
+    event = EventSerializer(read_only=True)
+
     class Meta:
         model = EventParticipation
         fields = [
             "id",
             "state",
+            "event",
             # "slots",
         ]
 
