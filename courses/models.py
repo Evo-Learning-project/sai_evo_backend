@@ -857,6 +857,9 @@ class EventParticipation(models.Model):
 
     @property
     def is_cursor_last_position(self):
+        if self.event.exercises_shown_at_a_time is None:
+            return True
+
         return (
             self.current_slot_cursor
             >= self.last_slot_number - self.event.exercises_shown_at_a_time
