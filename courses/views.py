@@ -346,11 +346,21 @@ class EventParticipationViewSet(
 
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
-        pass
+        participation = self.get_object()
+        participation.move_current_slot_cursor_forward()
+
+        current_slot = participation.submission.current_slots[0]
+        serializer = ParticipationSubmissionSlotSerializer(current_slot)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def go_back(self, request, **kwargs):
-        pass
+        participation = self.get_object()
+        participation.move_current_slot_cursor_back()
+
+        current_slot = participation.submission.current_slots[0]
+        serializer = ParticipationSubmissionSlotSerializer(current_slot)
+        return Response(serializer.data)
 
 
 class EventParticipationSlotViewSet(

@@ -2,12 +2,22 @@ from rest_framework import serializers
 from users.serializers import UserSerializer
 
 from courses.logic.privileges import get_user_privileges
-from courses.models import (Course, CourseRole, Event, EventInstanceSlot,
-                            EventParticipation, EventTemplate,
-                            EventTemplateRule, EventTemplateRuleClause,
-                            Exercise, ExerciseChoice, ExerciseTestCase,
-                            ParticipationAssessmentSlot,
-                            ParticipationSubmissionSlot, Tag)
+from courses.models import (
+    Course,
+    CourseRole,
+    Event,
+    EventInstanceSlot,
+    EventParticipation,
+    EventTemplate,
+    EventTemplateRule,
+    EventTemplateRuleClause,
+    Exercise,
+    ExerciseChoice,
+    ExerciseTestCase,
+    ParticipationAssessmentSlot,
+    ParticipationSubmissionSlot,
+    Tag,
+)
 from courses.serializer_fields import RecursiveField
 
 
@@ -211,6 +221,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
             "score",
             "comment",
             "sub_slots",
+            "assessment_state",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -250,6 +261,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             "id",
             "state",
             "event",
+            "last_slot_number"
             # "slots",
         ]
 
@@ -270,14 +282,11 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
     """
 
     slots = ParticipationAssessmentSlotSerializer(many=True, source="assessment.slots")
+    user = UserSerializer(read_only=True)
 
     class Meta:
         model = EventParticipation
-        fields = [
-            "id",
-            "state",
-            "slots",
-        ]
+        fields = ["id", "state", "slots", "user"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

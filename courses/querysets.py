@@ -51,9 +51,11 @@ class ExerciseQuerySet(models.QuerySet):
         """
         Returns `amount` random exercise(s) from the queryset
         """
+        # TODO handle error
         qs = self
 
         ids = list(qs.values_list("pk", flat=True))
+        # print("ids", ids, "amount", amount)
         picked_ids = random.sample(ids, amount)
 
         ret = qs.filter(pk__in=picked_ids)

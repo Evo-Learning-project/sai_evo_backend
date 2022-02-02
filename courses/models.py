@@ -643,7 +643,7 @@ class ParticipationAssessment(models.Model):
         for slot_state in slot_states:
             if slot_state == ParticipationAssessmentSlot.ASSESSED:
                 state = self.FULLY_ASSESSED
-            elif state == self.FULLY_ASSESSED:
+            else:
                 return self.PARTIALLY_ASSESSED
         return state
 
@@ -719,7 +719,11 @@ class ParticipationSubmission(models.Model):
     @property
     def current_slots(self):
         ret = self.slots.base_slots()
-        if self.event.exercises_shown_at_a_time is not None:
+        if (
+            self.event.exercises_shown_at_a_time is not None
+            # if the participation has been turned in, show all slots to allow reviewing answers
+            and self.participation.state != EventParticipation.TURNED_IN
+        ):
             # slots are among the "current" ones iff their number is between
             # the `current_slot_cursor` of the EventParticipation
             # and the next `exercises_shown_at_a_time` slots
@@ -862,7 +866,7 @@ class EventParticipation(models.Model):
 
         return (
             self.current_slot_cursor
-            >= self.last_slot_number - self.event.exercises_shown_at_a_time
+            > self.last_slot_number - self.event.exercises_shown_at_a_time
         )
 
     @property
