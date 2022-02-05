@@ -294,7 +294,7 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             source="assessment.assessment_progress", read_only=True
         )
         self.fields["visibility"] = serializers.IntegerField(
-            source="assessment.state", read_only=True
+            source="assessment_visibility"
         )
 
 

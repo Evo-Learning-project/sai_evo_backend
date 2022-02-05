@@ -344,6 +344,29 @@ class EventParticipationViewSet(
         serializer = StudentViewEventParticipationSerializer(participation)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["patch"])
+    def bulk_patch(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
+        print(request.data)
+        ret = []
+        for pk in id_list:
+            participation = get_object_or_404(self.get_queryset(), pk=pk)
+            ret.append(participation)
+
+            serializer = TeacherViewEventParticipationSerializer(
+                participation, data=data, partial=True
+            )
+            serializer.is_valid()
+            serializer.save()
+
+        serializer = TeacherViewEventParticipationSerializer(ret, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
         participation = self.get_object()

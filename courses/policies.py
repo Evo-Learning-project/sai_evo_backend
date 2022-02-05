@@ -199,8 +199,13 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["update", "partial_update", "go_forward", "go_back"],
             "principal": ["*"],
             "effect": "allow",
-            # ? give teachers the ability to update participations (e.g. re-open a turned in one)
-            "condition_expression": "is_own_participation and can_update_participation",
+            "condition_expression": "is_own_participation and can_update_participation or has_teacher_privileges:assess_participations",
+        },
+        {
+            "action": ["bulk_patch"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition_expression": "has_teacher_privileges:assess_participations",
         },
         {
             "action": ["go_forward"],

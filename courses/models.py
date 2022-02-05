@@ -875,6 +875,15 @@ class EventParticipation(models.Model):
             max_slot_number=Max("slot_number")
         )["max_slot_number"]
 
+    @property
+    def assessment_visibility(self):
+        return self.assessment.state
+
+    @assessment_visibility.setter
+    def assessment_visibility(self, value):
+        self.assessment.state = value
+        self.assessment.save()
+
     def __str__(self):
         return str(self.event_instance) + " - " + str(self.user)
 
