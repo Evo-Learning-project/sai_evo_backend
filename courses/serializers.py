@@ -227,7 +227,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # TODO remove the read_only
-        self.fields["selected_choices"] = ExerciseChoiceSerializer(
+        self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
             many=True, source="submission.selected_choices", read_only=True
         )
         self.fields["attachment"] = serializers.FileField(
@@ -292,6 +292,9 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         self.fields["assessment_progress"] = serializers.IntegerField(
             source="assessment.assessment_progress", read_only=True
+        )
+        self.fields["visibility"] = serializers.IntegerField(
+            source="assessment.state", read_only=True
         )
 
 
