@@ -2,6 +2,7 @@ from core.models import UUIDModel
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
+from django.utils import timezone
 from users.models import User
 
 from courses.logic import privileges
@@ -415,8 +416,12 @@ class Event(UUIDModel, TimestampableModel):
     )
     begin_timestamp = models.DateTimeField(null=True, blank=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
+    open_automatically = models.BooleanField(default=True)
+    close_automatically = models.BooleanField(default=False)
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
-    state = models.PositiveIntegerField(choices=EVENT_STATES, default=DRAFT)
+    _event_state = models.PositiveIntegerField(
+        choices=EVENT_STATES, default=DRAFT, db_column="state"
+    )
     template = models.OneToOneField(
         "EventTemplate",
         on_delete=models.CASCADE,
@@ -449,6 +454,33 @@ class Event(UUIDModel, TimestampableModel):
             #     name="event_unique_name_course",
             # )
         ]
+
+    @property
+    def state(self):
+        now = timezone.localtime(timezone.now())
+
+        if (
+            self._event_state == Event.PLANNED
+            and self.open_automatically
+            and now >= self.begin_timestamp
+        ):
+            self._event_state = Event.OPEN
+            self.save()
+
+        if (
+            self._event_state == Event.OPEN
+            and self.close_automatically
+            and now >= self.end_timestamp
+        ):
+            self._event_state = Event.CLOSED
+            self.save()
+
+        return self._event_state
+
+    @state.setter
+    def state(self, value):
+        print("setting!!")
+        self._event_state = value
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -487,12 +519,12 @@ class EventTemplate(models.Model):
     class Meta:
         ordering = ["course_id", "pk"]
 
-    def __str__(self):
-        return (
-            (self.event.name + " template")
-            if self.event is not None
-            else "--- template"
-        )
+    # def __str__(self):
+    #     return (
+    #         (self.event.name + " template")
+    #         if self.event is not None
+    #         else "--- template"
+    #     )
 
     def get_next_rule_target_slot_number(self):
         max_rule_target_slot = self.rules.all().aggregate(

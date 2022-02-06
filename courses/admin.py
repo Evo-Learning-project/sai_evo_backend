@@ -58,7 +58,7 @@ admin.site.register(EventTemplate, EventTemplateAdmin)
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ("state",)
 
 
 class EventInstanceInline(admin.TabularInline):

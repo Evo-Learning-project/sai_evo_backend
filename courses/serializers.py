@@ -152,6 +152,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
 class EventSerializer(HiddenFieldsModelSerializer):
     template = EventTemplateSerializer(read_only=True)
+    state = serializers.IntegerField()
 
     class Meta:
         model = Event
