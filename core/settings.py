@@ -156,7 +156,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Rome"
 
 USE_I18N = True
 
