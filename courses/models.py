@@ -462,6 +462,7 @@ class Event(UUIDModel, TimestampableModel):
         if (
             self._event_state == Event.PLANNED
             and self.open_automatically
+            and self.begin_timestamp is not None
             and now >= self.begin_timestamp
         ):
             self._event_state = Event.OPEN
@@ -470,6 +471,7 @@ class Event(UUIDModel, TimestampableModel):
         if (
             self._event_state == Event.OPEN
             and self.close_automatically
+            and self.end_timestamp is not None
             and now >= self.end_timestamp
         ):
             self._event_state = Event.CLOSED
@@ -479,7 +481,6 @@ class Event(UUIDModel, TimestampableModel):
 
     @state.setter
     def state(self, value):
-        print("setting!!")
         self._event_state = value
 
     def save(self, *args, **kwargs):

@@ -295,13 +295,12 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
 
         participation = view.get_object().participation
         if participation.state == EventParticipation.TURNED_IN:
-            print("turned in")
             return False
 
         event = Event.objects.get(pk=view.kwargs["event_pk"])
         return event.state == Event.OPEN or (
             event.state == Event.CLOSED
-            and request.user in event.users_allowed_past_closure
+            and request.user in event.users_allowed_past_closure.all()
         )
 
     def is_slot_in_scope(self, request, view, action):

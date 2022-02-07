@@ -167,10 +167,12 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "allow_going_back",
             "exercises_shown_at_a_time",
             "template",
+            "users_allowed_past_closure",
         ]
         hidden_fields = [
+            # TODO make hidden fields work
             # "template",
-            "users_allowed_past_closure",
+            # "users_allowed_past_closure",
             "exercises_shown_at_a_time",
             "access_rule",
             "access_rule_exceptions",
