@@ -1,3 +1,4 @@
+from courses.logic.privileges import get_user_privileges
 from courses.models import UserCoursePrivilege
 from rest_framework import serializers
 
@@ -14,19 +15,10 @@ class UserSerializer(serializers.ModelSerializer):
             "is_teacher",
         ]
 
-    # def __init__(self, *args, **kwargs):
-    #     context = kwargs.get("context", None)
-    # TODO fix
-    # if self.context is not None and context.get("course") is not None:
-    #     self.fields["course_permissions"] = serializers.SerializerMethodField()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context is not None and self.context.get("course") is not None:
+            self.fields["course_privileges"] = serializers.SerializerMethodField()
 
-    def get_course_permissions(self, obj):
-        # TODO implement
-        return []
-        # permissions = UserCoursePrivilege.objects.get(
-        #     user=obj, course=self.context["course"]
-        # )
-        # return {
-        #     "allow_privileges": permissions.allow_privileges,
-        #     "deny_privileges": permissions.deny_privileges,
-        # }
+    def get_course_privileges(self, obj):
+        return get_user_privileges(obj, self.context["course"])
