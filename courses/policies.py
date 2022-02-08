@@ -85,10 +85,10 @@ class EventPolicy(BaseAccessPolicy):
             "condition": "is_course_visible_to",
         },
         {
-            "action": ["create"],
+            "action": ["create", "update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:create_events",
+            "condition": "has_teacher_privileges:manage_events",
         },
         {
             "action": ["retrieve"],
@@ -96,12 +96,12 @@ class EventPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "is_event_visible_to",
         },
-        {
-            "action": ["update", "partial_update"],
-            "principal": ["*"],
-            "effect": "allow",
-            "condition": "has_teacher_privileges:update_events",
-        },
+        # {
+        #     "action": ["update", "partial_update"],
+        #     "principal": ["*"],
+        #     "effect": "allow",
+        #     "condition": "has_teacher_privileges:update_events",
+        # },
     ]
 
     def is_course_visible_to(self, request, view, action):
@@ -125,10 +125,10 @@ class EventTemplatePolicy(BaseAccessPolicy):
 class TagPolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list", "retrieve", "create"],
+            "action": ["list", "retrieve"],  # "create"
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:create_exercises",
+            "condition": "has_teacher_privileges:access_exercises",
         },
     ]
 
@@ -142,17 +142,17 @@ class ExercisePolicy(BaseAccessPolicy):
             "condition": "has_teacher_privileges:access_exercises",
         },
         {
-            "action": ["create"],
+            "action": ["create", "update", "partial_update", "destroy", "tags"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:create_exercises",
+            "condition": "has_teacher_privileges:manage_exercises",
         },
-        {
-            "action": ["update", "partial_update", "destroy", "tags"],
-            "principal": ["*"],
-            "effect": "allow",
-            "condition": "has_teacher_privileges:modify_exercises",
-        },
+        # {
+        #     "action": ["update", "partial_update", "destroy", "tags"],
+        #     "principal": ["*"],
+        #     "effect": "allow",
+        #     "condition": "has_teacher_privileges:modify_exercises",
+        # },
     ]
 
 
@@ -170,7 +170,7 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
             "action": ["create", "update", "partial_update", "destroy"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:modify_exercises",
+            "condition": "has_teacher_privileges:manage_exercises",
         },
     ]
 

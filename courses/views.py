@@ -221,7 +221,7 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
 class TagViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin,
+    # mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = TagSerializer
