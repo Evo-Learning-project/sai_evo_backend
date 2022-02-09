@@ -18,7 +18,7 @@ TEACHER_PRIVILEGES = [
     ASSESS_PARTICIPATIONS,
     MANAGE_EVENTS,
     # UPDATE_EVENTS,
-    "__all__",
+    # "__all__",
 ]
 
 
@@ -37,7 +37,7 @@ def get_user_privileges(user, course):
     from courses.models import Course, UserCoursePrivilege
 
     if user == course.creator:
-        return ["__all__"]
+        return TEACHER_PRIVILEGES
 
     allow_privileges = [
         privilege
