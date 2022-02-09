@@ -117,7 +117,7 @@ class EventTemplatePolicy(BaseAccessPolicy):
             "action": ["*"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:create_events",
+            "condition": "has_teacher_privileges:manage_events",
         },
     ]
 
