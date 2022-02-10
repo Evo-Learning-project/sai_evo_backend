@@ -1,3 +1,4 @@
+from courses.logic.privileges import ACCESS_EXERCISES, MANAGE_EXERCISES
 from courses.models import Course, UserCoursePrivilege
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
@@ -53,6 +54,18 @@ class UserViewSet(
             course_privileges, _ = UserCoursePrivilege.objects.get_or_create(
                 user=user, course=course
             )
+
+            # prevent users from having edit privileges on exercises if they don't have access to exercises
+            if (
+                MANAGE_EXERCISES in new_privileges
+                and ACCESS_EXERCISES not in course_privileges.allow_privileges
+            ):
+                new_privileges.append(ACCESS_EXERCISES)
+
+            # if someone is granted edit privileges on exercises, gran them access to exercises
+            if ACCESS_EXERCISES not in new_privileges:
+                new_privileges = [p for p in new_privileges if p != MANAGE_EXERCISES]
+
             course_privileges.allow_privileges = new_privileges
             course_privileges.save()
         except Exception as e:
