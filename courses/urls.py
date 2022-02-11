@@ -26,7 +26,7 @@ course_router.register(
 
 # `/courses/<pk>/tags` entry point
 course_router.register(
-    r"roles",
+    r"tags",
     views.TagViewSet,
     basename="course-tags",
 )
@@ -58,6 +58,13 @@ template_router = routers.NestedSimpleRouter(
 )
 # `/courses/<pk>/templates/<pk>/rules` entry point
 template_router.register(r"rules", views.EventTemplateRuleViewSet)
+
+template_rule_router = routers.NestedSimpleRouter(
+    template_router, r"rules", lookup="rule"
+)
+
+# `/courses/<pk>/templates/<pk>/rules/<pk>/clauses` entry point
+template_rule_router.register(r"clauses", views.EventTemplateRuleClauseViewSet)
 
 # `/courses/<pk>/events` entry point
 course_router.register(
@@ -92,4 +99,5 @@ urlpatterns = [
     path("", include(participation_router.urls)),
     path("", include(exercise_router.urls)),
     path("", include(template_router.urls)),
+    path("", include(template_rule_router.urls)),
 ]

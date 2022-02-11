@@ -113,9 +113,9 @@ class Course(UUIDModel, TimestampableModel):
         related_name="created_courses",
         null=True,
     )
-    enrolled_users = models.ManyToManyField(
-        "users.User", blank=True
-    )  # TODO through model
+    # enrolled_users = models.ManyToManyField(
+    #     "users.User", blank=True
+    # )  # TODO through model
     hidden = models.BooleanField(default=False)
 
     class Meta:
@@ -577,7 +577,7 @@ class EventTemplateRuleClause(models.Model):
         related_name="clauses",
         on_delete=models.CASCADE,
     )
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, blank=True)
 
 
 class EventInstance(models.Model):

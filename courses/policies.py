@@ -2,6 +2,8 @@ from rest_access_policy import AccessPolicy
 
 from courses.logic.privileges import check_privilege
 
+from .models import Event
+
 
 class BaseAccessPolicy(AccessPolicy):
     def has_teacher_privileges(self, request, view, action, privilege):
@@ -32,12 +34,12 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_permissions",
         },
-        {
-            "action": ["enrolled"],
-            "principal": ["*"],
-            "effect": "allow",
-            "condition": "has_teacher_privileges:view_enrolled",
-        },
+        # {
+        #     "action": ["enrolled"],
+        #     "principal": ["*"],
+        #     "effect": "allow",
+        #     "condition": "has_teacher_privileges:view_enrolled",
+        # },
         {
             "action": ["retrieve"],
             "principal": ["*"],
@@ -88,7 +90,7 @@ class EventPolicy(BaseAccessPolicy):
             "action": ["create", "update", "partial_update"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_events",
+            "condition_expression": "is_self_service_practice or has_teacher_privileges:manage_events",
         },
         {
             "action": ["retrieve"],
@@ -103,6 +105,12 @@ class EventPolicy(BaseAccessPolicy):
         #     "condition": "has_teacher_privileges:update_events",
         # },
     ]
+
+    def is_self_service_practice(self, request, view, action):
+        try:
+            return request.data["event_type"] == Event.SELF_SERVICE_PRACTICE
+        except Exception:
+            return False
 
     def is_course_visible_to(self, request, view, action):
         return True

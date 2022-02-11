@@ -15,6 +15,7 @@ from courses.models import (
     EventParticipation,
     EventTemplate,
     EventTemplateRule,
+    EventTemplateRuleClause,
     Exercise,
     ExerciseChoice,
     ParticipationAssessmentSlot,
@@ -28,6 +29,7 @@ from .serializers import (
     CourseRoleSerializer,
     CourseSerializer,
     EventSerializer,
+    EventTemplateRuleClauseSerializer,
     EventTemplateRuleSerializer,
     EventTemplateSerializer,
     ExerciseChoiceSerializer,
@@ -50,11 +52,11 @@ class CourseViewSet(viewsets.ModelViewSet):
             creator=self.request.user,
         )
 
-    @action(detail=True, methods=["get"])
-    def enrolled(self, request, **kwargs):
-        course = self.get_object()
-        serializer = UserSerializer(course.enrolled_users.all(), many=True)
-        return Response(serializer.data)
+    # @action(detail=True, methods=["get"])
+    # def enrolled(self, request, **kwargs):
+    #     course = self.get_object()
+    #     serializer = UserSerializer(course.enrolled_users.all(), many=True)
+    #     return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def set_permissions(self, request, **kwargs):
@@ -285,6 +287,21 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(template_id=self.kwargs["template_pk"])
+
+
+class EventTemplateRuleClauseViewSet(viewsets.ModelViewSet):
+    serializer_class = EventTemplateRuleClauseSerializer
+    queryset = EventTemplateRuleClause.objects.all()
+    permission_classes = [policies.EventTemplatePolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(
+            rule_id=self.kwargs["rule_pk"],
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(rule_id=self.kwargs["rule_pk"])
 
 
 class EventParticipationViewSet(
