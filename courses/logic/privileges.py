@@ -36,6 +36,9 @@ def validate_permission_list(lst):
 def get_user_privileges(user, course):
     from courses.models import Course, UserCoursePrivilege
 
+    if user.is_anonymous:
+        return []
+
     if user == course.creator:
         return TEACHER_PRIVILEGES
 

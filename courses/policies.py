@@ -23,6 +23,7 @@ class BaseAccessPolicy(AccessPolicy):
 
 class CoursePolicy(BaseAccessPolicy):
     statements = [
+        # TODO prevent for unauthenticated
         {
             "action": ["list"],
             "principal": ["*"],
@@ -116,6 +117,7 @@ class EventPolicy(BaseAccessPolicy):
         return True
 
     def is_event_visible_to(self, request, view, action):
+        # TODO implement
         return True
 
 

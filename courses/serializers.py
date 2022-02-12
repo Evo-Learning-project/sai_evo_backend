@@ -153,6 +153,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 class EventSerializer(HiddenFieldsModelSerializer):
     template = EventTemplateSerializer(read_only=True)
     state = serializers.IntegerField()
+    participation_exists = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -168,6 +169,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "exercises_shown_at_a_time",
             "template",
             "users_allowed_past_closure",
+            "participation_exists",
         ]
         hidden_fields = [
             # TODO make hidden fields work
@@ -177,6 +179,15 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "access_rule",
             "access_rule_exceptions",
         ]
+
+    def get_participation_exists(self, obj):
+        try:
+            user = self.context["request"].user
+            return EventParticipation.objects.filter(
+                user=user, event_instance__event=obj
+            ).exists()
+        except KeyError:
+            return None
 
 
 class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
