@@ -47,6 +47,12 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     permission_classes = [policies.CoursePolicy]
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["preview"] = True
+        return context
+
     def perform_create(self, serializer):
         serializer.save(
             creator=self.request.user,

@@ -14,6 +14,7 @@ from courses.models import (
     Exercise,
     ExerciseChoice,
     ExerciseTestCase,
+    ParticipationAssessment,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
     Tag,
@@ -56,11 +57,31 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         read_only_fields = ["creator"]
         hidden_fields = ["visible"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.context.pop("preview", False):
+            self.fields["participations"] = serializers.SerializerMethodField()
+
     # def get_is_enrolled(self, obj):
     #     return self.context["request"].user in obj.enrolled_users.all()
 
     def get_privileges(self, obj):
         return get_user_privileges(self.context["request"].user, obj)
+
+    def get_participations(self, obj):
+        try:
+            user = self.context["request"].user
+        except KeyError:
+            return None
+
+        participations = EventParticipation.objects.filter(
+            user=user, event_instance__event__course=obj
+        )
+        return StudentViewEventParticipationSerializer(
+            participations,
+            many=True,
+            context={"preview": True},
+        ).data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -220,6 +241,15 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "answered_at",
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.context.pop("show_assessment"):
+            self.fields["score"] = serializers.DecimalField(
+                max_digits=5, decimal_places=2, source="assessment.score"
+            )
+            self.fields["comment"] = serializers.CharField(source="assessment.comment")
+
 
 class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True, read_only=True)
@@ -240,6 +270,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         # TODO remove the read_only
         self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
             many=True, source="submission.selected_choices", read_only=True
@@ -281,9 +312,16 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["slots"] = ParticipationSubmissionSlotSerializer(
-            many=True, source="submission.current_slots"
-        )
+        if not self.context.pop("preview", False):
+            self.fields["slots"] = ParticipationSubmissionSlotSerializer(
+                many=True,
+                source="submission.current_slots",
+                context={"show_assessment": self.context.pop("show_assessment", False)},
+            )
+        self.fields["assessment_available"] = serializers.SerializerMethodField()
+
+    def get_assessment_available(self, obj):
+        return obj.assessment.state == ParticipationAssessment.PUBLISHED
 
 
 class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
