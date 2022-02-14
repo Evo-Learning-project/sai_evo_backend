@@ -127,9 +127,24 @@ class EventTemplatePolicy(BaseAccessPolicy):
             "action": ["*"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_events",
+            "condition": "is_related_to_self_service_practice or has_teacher_privileges:manage_events",
         },
     ]
+
+    def is_related_to_self_service_practice(self, request, view, action):
+        from courses.views import (
+            EventTemplateRuleClauseViewSet,
+            EventTemplateRuleViewSet,
+        )
+
+        template = self.get_object()
+
+        if isinstance(view, EventTemplateRuleViewSet):
+            template = object.template
+        elif isinstance(view, EventTemplateRuleClauseViewSet):
+            template = object.rule.template
+
+        return template.event.event_type == Event.SELF_SERVICE_PRACTICE
 
 
 class TagPolicy(BaseAccessPolicy):

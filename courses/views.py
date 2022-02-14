@@ -335,6 +335,9 @@ class EventParticipationViewSet(
     )
     permission_classes = [policies.EventParticipationPolicy]
 
+    # TODO implement get_serializer_context where you add "show_assessment" field
+    # TODO to serializer only if it's present in the url params AND the assessment is published
+
     def get_serializer_class(self):
         return (
             TeacherViewEventParticipationSerializer

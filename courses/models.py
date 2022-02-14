@@ -871,7 +871,9 @@ class EventParticipation(models.Model):
         on_delete=models.PROTECT,
     )
     begin_timestamp = models.DateTimeField(auto_now_add=True)
-    end_timestamp = models.DateTimeField(null=True, blank=True)
+    end_timestamp = models.DateTimeField(
+        null=True, blank=True
+    )  # TODO set when state is updated to TURNED_IN
     state = models.PositiveSmallIntegerField(
         choices=PARTICIPATION_STATES,
         default=IN_PROGRESS,

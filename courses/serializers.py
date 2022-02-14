@@ -306,7 +306,9 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             "id",
             "state",
             "event",
-            "last_slot_number"
+            "last_slot_number",
+            "begin_timestamp",
+            "end_timestamp",
             # "slots",
         ]
 
@@ -338,7 +340,14 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventParticipation
-        fields = ["id", "state", "slots", "user"]
+        fields = [
+            "id",
+            "state",
+            "slots",
+            "user",
+            "begin_timestamp",
+            "end_timestamp",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
