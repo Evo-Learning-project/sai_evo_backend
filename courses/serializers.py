@@ -104,7 +104,10 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)
+    public_tags = TagSerializer(many=True, read_only=True)
+    private_tags = TagSerializer(
+        many=True, read_only=True
+    )  # TODO hide from non-teachers
 
     class Meta:
         model = Exercise
@@ -114,7 +117,8 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "exercise_type",
             "label",
             # "child_position",
-            "tags",
+            "public_tags",
+            "private_tags",
         ]
         hidden_fields = ["solution", "state"]
 

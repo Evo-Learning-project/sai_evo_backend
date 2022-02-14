@@ -270,7 +270,16 @@ class Exercise(TimestampableModel):
         on_delete=models.CASCADE,
     )
     child_position = models.PositiveIntegerField(null=True, blank=True)
-    tags = models.ManyToManyField(Tag, blank=True)
+    public_tags = models.ManyToManyField(
+        Tag,
+        related_name="public_in_exercises",
+        blank=True,
+    )
+    private_tags = models.ManyToManyField(
+        Tag,
+        related_name="private_in_exercises",
+        blank=True,
+    )
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
     label = models.CharField(max_length=75, blank=True)
     text = models.TextField(blank=True)
