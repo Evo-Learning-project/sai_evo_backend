@@ -2,7 +2,7 @@ from rest_access_policy import AccessPolicy
 
 from courses.logic.privileges import check_privilege
 
-from .models import Event
+from .models import Event, EventTemplate
 
 
 class BaseAccessPolicy(AccessPolicy):
@@ -127,7 +127,7 @@ class EventTemplatePolicy(BaseAccessPolicy):
             "action": ["*"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_related_to_self_service_practice or has_teacher_privileges:manage_events",
+            "condition_expression": "is_related_to_self_service_practice or has_teacher_privileges:manage_events",
         },
     ]
 
@@ -137,12 +137,12 @@ class EventTemplatePolicy(BaseAccessPolicy):
             EventTemplateRuleViewSet,
         )
 
-        template = self.get_object()
+        # template = view.get_object()
 
-        if isinstance(view, EventTemplateRuleViewSet):
-            template = object.template
-        elif isinstance(view, EventTemplateRuleClauseViewSet):
-            template = object.rule.template
+        if isinstance(view, EventTemplateRuleViewSet) or isinstance(
+            view, EventTemplateRuleClauseViewSet
+        ):
+            template = EventTemplate.objects.get(pk=view.kwargs["template_pk"])
 
         return template.event.event_type == Event.SELF_SERVICE_PRACTICE
 

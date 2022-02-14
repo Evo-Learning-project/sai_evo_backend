@@ -2,23 +2,13 @@ from rest_framework import serializers
 from users.serializers import UserSerializer
 
 from courses.logic.privileges import get_user_privileges
-from courses.models import (
-    Course,
-    CourseRole,
-    Event,
-    EventInstanceSlot,
-    EventParticipation,
-    EventTemplate,
-    EventTemplateRule,
-    EventTemplateRuleClause,
-    Exercise,
-    ExerciseChoice,
-    ExerciseTestCase,
-    ParticipationAssessment,
-    ParticipationAssessmentSlot,
-    ParticipationSubmissionSlot,
-    Tag,
-)
+from courses.models import (Course, CourseRole, Event, EventInstanceSlot,
+                            EventParticipation, EventTemplate,
+                            EventTemplateRule, EventTemplateRuleClause,
+                            Exercise, ExerciseChoice, ExerciseTestCase,
+                            ParticipationAssessment,
+                            ParticipationAssessmentSlot,
+                            ParticipationSubmissionSlot, Tag)
 from courses.serializer_fields import RecursiveField
 
 
@@ -88,6 +78,7 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ["id", "name"]
+
 
 
 class CourseRoleSerializer(serializers.ModelSerializer):

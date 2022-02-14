@@ -240,6 +240,8 @@ class TagViewSet(
     queryset = Tag.objects.all()
     permission_classes = [policies.TagPolicy]
 
+    # TODO filter to only tags contained in the public list of at least one exercise if student
+
     # TODO abstract this behavior
     def get_queryset(self):
         qs = super().get_queryset()
@@ -268,6 +270,7 @@ class EventViewSet(viewsets.ModelViewSet):
         )
 
 
+# TODO disallow actions and make read-only
 class EventTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateSerializer
     queryset = EventTemplate.objects.public()
@@ -296,7 +299,17 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        serializer.save(template_id=self.kwargs["template_pk"])
+        serializer.save(
+            template_id=self.kwargs["template_pk"],
+            search_public_tags_only=(
+                # if rule was created by a student, rule should only search for public tags
+                not check_privilege(
+                    self.request.user,
+                    self.kwargs["course_pk"],
+                    privileges.MANAGE_EXERCISES,
+                )
+            ),
+        )
 
 
 class EventTemplateRuleClauseViewSet(viewsets.ModelViewSet):

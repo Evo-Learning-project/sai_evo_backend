@@ -568,6 +568,9 @@ class EventTemplateRule(models.Model):
     )
     target_slot_number = models.PositiveIntegerField()
 
+    # whether tag-based rules should limit search to the list of public tags in exercises
+    search_public_tags_only = models.BooleanField(null=True, blank=True)
+
     objects = EventTemplateRuleManager()
 
     class Meta:

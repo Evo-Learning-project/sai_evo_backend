@@ -1,7 +1,7 @@
 import random
 
 from django.db import models
-from django.db.models import aggregates
+from django.db.models import Q, aggregates
 from django.db.models.aggregates import Max, Min
 
 
@@ -40,7 +40,13 @@ class ExerciseQuerySet(models.QuerySet):
             ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])
         elif rule.rule_type == EventTemplateRule.TAG_BASED:
             for clause in rule.clauses.all():
-                ret_qs = ret_qs.filter(tags__in=[t for t in clause.tags.all()])
+                clause_tags = clause.tags.all()
+                # TODO test
+                qs_filter = Q(public_tags__in=clause_tags)
+                if not rule.search_public_tags_only:
+                    qs_filter |= Q(private_tags__in=clause_tags)
+
+                ret_qs = ret_qs.filter(qs_filter)
             ret_qs = (
                 ret_qs.distinct()
             )  # if more than one tag match, an item may be returned more than once
