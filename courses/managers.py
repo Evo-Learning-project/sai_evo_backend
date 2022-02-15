@@ -78,14 +78,15 @@ class ExerciseManager(models.Manager):
         testcases = kwargs.pop("testcases", [])
         sub_exercises = kwargs.pop("sub_exercises", [])
 
-        if kwargs.get("parent") is not None or kwargs.get("parent_id") is not None:
-            parent = kwargs.get("parent") or Exercise.objects.get(
-                pk=kwargs["parent_id"]
-            )
-            kwargs["child_position"] = parent.get_next_child_position()
+        # if kwargs.get("parent") is not None or kwargs.get("parent_id") is not None:
+        #     parent = kwargs.get("parent") or Exercise.objects.get(
+        #         pk=kwargs["parent_id"]
+        #     )
+        #     kwargs["child_position"] = parent.get_next_child_position()
 
         exercise = super().create(*args, **kwargs)
 
+        # TODO review everything
         if (
             exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
             or exercise.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE
@@ -285,30 +286,28 @@ class EventTemplateManager(models.Manager):
     def create(self, *args, **kwargs):
         from .models import EventTemplateRule
 
-        rules = kwargs.pop("rules", [])
+        # rules = kwargs.pop("rules", [])
         template = super().create(*args, **kwargs)
 
-        target_slot_number = 0
-        for rule in rules:
-            EventTemplateRule.objects.create(
-                template=template,
-                target_slot_number=target_slot_number,
-                **rule,
-            )
-            target_slot_number += 1
+        # target_slot_number = 0
+        # for rule in rules:
+        #     EventTemplateRule.objects.create(
+        #         template=template,
+        #         target_slot_number=target_slot_number,
+        #         **rule,
+        #     )
+        #     target_slot_number += 1
 
         return template
 
 
 class EventTemplateRuleManager(models.Manager):
     def create(self, *args, **kwargs):
-        from .models import EventTemplate
+        # from .models import EventTemplate
 
-        kwargs["target_slot_number"] = EventTemplate.objects.get(
-            pk=kwargs["template_id"]
-        ).get_next_rule_target_slot_number()
-        print("KWARGS ARE")
-        print(kwargs)
+        # kwargs["target_slot_number"] = EventTemplate.objects.get(
+        #     pk=kwargs["template_id"]
+        # ).get_next_rule_target_slot_number()
         return super().create(*args, **kwargs)
 
     # def create(self, *args, **kwargs):

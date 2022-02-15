@@ -2,13 +2,23 @@ from rest_framework import serializers
 from users.serializers import UserSerializer
 
 from courses.logic.privileges import get_user_privileges
-from courses.models import (Course, CourseRole, Event, EventInstanceSlot,
-                            EventParticipation, EventTemplate,
-                            EventTemplateRule, EventTemplateRuleClause,
-                            Exercise, ExerciseChoice, ExerciseTestCase,
-                            ParticipationAssessment,
-                            ParticipationAssessmentSlot,
-                            ParticipationSubmissionSlot, Tag)
+from courses.models import (
+    Course,
+    CourseRole,
+    Event,
+    EventInstanceSlot,
+    EventParticipation,
+    EventTemplate,
+    EventTemplateRule,
+    EventTemplateRuleClause,
+    Exercise,
+    ExerciseChoice,
+    ExerciseTestCase,
+    ParticipationAssessment,
+    ParticipationAssessmentSlot,
+    ParticipationSubmissionSlot,
+    Tag,
+)
 from courses.serializer_fields import RecursiveField
 
 
@@ -80,7 +90,6 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ["id", "name"]
 
 
-
 class CourseRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseRole
@@ -150,11 +159,19 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 
 class EventTemplateRuleSerializer(serializers.ModelSerializer):
     clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
+    target_slot_number = serializers.IntegerField(source="_ordering", read_only=True)
 
     class Meta:
         model = EventTemplateRule
-        fields = ["id", "rule_type", "target_slot_number", "exercises", "clauses"]
-        read_only_fields = ["target_slot_number"]
+        fields = [
+            "id",
+            "rule_type",
+            "target_slot_number",
+            "exercises",
+            "clauses",
+        ]
+
+    # read_only_fields = ["target_slot_number"]
 
 
 class EventTemplateSerializer(serializers.ModelSerializer):

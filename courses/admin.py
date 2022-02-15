@@ -35,6 +35,11 @@ class ExerciseAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(ExerciseChoice)
+class ExerciseChoiceAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     pass
@@ -54,6 +59,11 @@ class EventTemplateAdmin(nested_admin.NestedModelAdmin):
 
 
 admin.site.register(EventTemplate, EventTemplateAdmin)
+
+
+@admin.register(EventTemplateRule)
+class EventTemplateRuleAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Event)

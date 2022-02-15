@@ -311,6 +311,8 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
             ),
         )
 
+    # TODO custom action to get the count of exercises that satisfy this rule and an example one
+
 
 class EventTemplateRuleClauseViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateRuleClauseSerializer

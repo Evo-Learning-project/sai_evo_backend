@@ -57,7 +57,7 @@ class ExerciseQuerySet(models.QuerySet):
         """
         Returns `amount` random exercise(s) from the queryset
         """
-        # TODO handle error
+        # TODO handle case where no item can be returned
         qs = self
 
         ids = list(qs.values_list("pk", flat=True))

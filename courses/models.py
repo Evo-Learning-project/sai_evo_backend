@@ -23,6 +23,36 @@ from .managers import (
 )
 
 
+class OrderableModel(models.Model):
+    ORDER_WITH_RESPECT_TO_FIELD = ""
+
+    _ordering = models.PositiveIntegerField()
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:  # creating new instance
+            # automatically populate the ordering field based on the ordering of siblings
+            setattr(self, "_ordering", self.get_ordering_position())
+
+        return super().save(*args, **kwargs)
+
+    def get_ordering_position(self):
+        # filter to get parent
+        filter_kwarg = {
+            self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
+                self, self.ORDER_WITH_RESPECT_TO_FIELD
+            )
+        }
+
+        # get all model instances that reference the same parent
+        siblings = type(self).objects.filter(**filter_kwarg)
+
+        max_ordering = siblings.aggregate(max_ordering=Max("_ordering"))["max_ordering"]
+        return max_ordering + 1 if max_ordering is not None else 0
+
+    class Meta:
+        abstract = True
+
+
 class TimestampableModel(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
@@ -227,7 +257,7 @@ class Tag(models.Model):
         ]
 
 
-class Exercise(TimestampableModel):
+class Exercise(TimestampableModel, OrderableModel):
     MULTIPLE_CHOICE_SINGLE_POSSIBLE = 0
     MULTIPLE_CHOICE_MULTIPLE_POSSIBLE = 1
     OPEN_ANSWER = 2
@@ -269,7 +299,6 @@ class Exercise(TimestampableModel):
         related_name="sub_exercises",
         on_delete=models.CASCADE,
     )
-    child_position = models.PositiveIntegerField(null=True, blank=True)
     public_tags = models.ManyToManyField(
         Tag,
         related_name="public_in_exercises",
@@ -290,37 +319,40 @@ class Exercise(TimestampableModel):
 
     objects = ExerciseManager()
 
+    ORDER_WITH_RESPECT_TO_FIELD = "parent"
+
     class Meta:
         ordering = [
             "course_id",
             F("parent_id").asc(nulls_first=True),  # base exercises first
+            "_ordering",
             "-created",
-            F("child_position").asc(nulls_first=True),
             "pk",
         ]
         constraints = [
-            models.UniqueConstraint(
-                fields=["parent_id", "child_position"],
-                condition=Q(parent__isnull=False),
-                name="same_parent_unique_child_position",
-            )
+            # models.UniqueConstraint(
+            #     # ! fields=["parent_id", "child_position"],
+            #     condition=Q(parent__isnull=False),
+            #     name="same_parent_unique_child_position",
+            # )
         ]
 
     def __str__(self):
         return self.text[:100]
 
+    # TODO create property "max_score"
+
     def clean(self):
-        # TODO enforce constraints on the various types of exercise, enforce that if parent is not none, then child_position cannot be none
         pass
 
-    def get_next_child_position(self):
-        max_child_position = self.sub_exercises.all().aggregate(
-            max_child_position=Max("child_position")
-        )["max_child_position"]
-        return max_child_position + 1 if max_child_position is not None else 0
+    # def get_next_child_position(self):
+    #     max_child_position = self.sub_exercises.all().aggregate(
+    #         max_child_position=Max("child_position")
+    #     )["max_child_position"]
+    #     return max_child_position + 1 if max_child_position is not None else 0
 
 
-class ExerciseChoice(models.Model):
+class ExerciseChoice(OrderableModel):
     exercise = models.ForeignKey(
         Exercise,
         related_name="choices",
@@ -334,8 +366,10 @@ class ExerciseChoice(models.Model):
     )
     # correct = models.BooleanField()
 
+    ORDER_WITH_RESPECT_TO_FIELD = "exercise"
+
     class Meta:
-        ordering = ["exercise_id", "pk"]
+        ordering = ["exercise_id", "_ordering"]
         constraints = [
             # models.UniqueConstraint(
             #     fields=["exercise_id", "text"],
@@ -393,6 +427,7 @@ class Event(UUIDModel, TimestampableModel):
     PLANNED = 1
     OPEN = 2
     CLOSED = 3
+    # TODO !!! make a restricted state
 
     EVENT_STATES = (
         (DRAFT, "Draft"),
@@ -536,14 +571,14 @@ class EventTemplate(models.Model):
     #         else "--- template"
     #     )
 
-    def get_next_rule_target_slot_number(self):
-        max_rule_target_slot = self.rules.all().aggregate(
-            max_target_slot=Max("target_slot_number")
-        )["max_target_slot"]
-        return max_rule_target_slot + 1 if max_rule_target_slot is not None else 0
+    # def get_next_rule_target_slot_number(self):
+    #     max_rule_target_slot = self.rules.all().aggregate(
+    #         max_target_slot=Max("target_slot_number")
+    #     )["max_target_slot"]
+    #     return max_rule_target_slot + 1 if max_rule_target_slot is not None else 0
 
 
-class EventTemplateRule(models.Model):
+class EventTemplateRule(OrderableModel):
     TAG_BASED = 0
     ID_BASED = 1
     FULLY_RANDOM = 2
@@ -566,21 +601,23 @@ class EventTemplateRule(models.Model):
         "courses.Exercise",
         blank=True,
     )
-    target_slot_number = models.PositiveIntegerField()
+    # target_slot_number = models.PositiveIntegerField()
 
     # whether tag-based rules should limit search to the list of public tags in exercises
     search_public_tags_only = models.BooleanField(null=True, blank=True)
 
     objects = EventTemplateRuleManager()
 
+    ORDER_WITH_RESPECT_TO_FIELD = "template"
+
     class Meta:
-        ordering = ["template_id", "target_slot_number"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["template_id", "target_slot_number"],
-                name="template_unique_target_slot_number",
-            )
-        ]
+        ordering = ["template_id", "_ordering"]
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=["template_id", "target_slot_number"],
+        #         name="template_unique_target_slot_number",
+        #     )
+        # ]
 
 
 class EventTemplateRuleClause(models.Model):
@@ -613,6 +650,9 @@ class EventInstance(models.Model):
 
     class Meta:
         ordering = ["event_id", "pk"]
+
+    def __str__(self):
+        return self.event.name
 
 
 class EventInstanceSlot(SlotNumberedModel):
@@ -676,6 +716,15 @@ class ParticipationAssessment(models.Model):
 
     objects = ParticipationAssessmentManager()
 
+    class Meta:
+        ordering = ["pk"]
+
+    def __str__(self):
+        try:
+            return str(self.participation)
+        except Exception:
+            return "-"
+
     @property
     def event(self):
         # shortcut to access the participation's event
@@ -691,9 +740,6 @@ class ParticipationAssessment(models.Model):
             else:
                 return self.PARTIALLY_ASSESSED
         return state
-
-    class Meta:
-        ordering = ["pk"]
 
 
 class ParticipationAssessmentSlot(SideSlotNumberedModel):
@@ -755,6 +801,12 @@ class ParticipationSubmission(models.Model):
 
     class Meta:
         ordering = ["pk"]
+
+    def __str__(self):
+        try:
+            return str(self.participation)
+        except Exception:
+            return "-"
 
     @property
     def event(self):
