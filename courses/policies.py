@@ -143,6 +143,8 @@ class EventTemplatePolicy(BaseAccessPolicy):
             view, EventTemplateRuleClauseViewSet
         ):
             template = EventTemplate.objects.get(pk=view.kwargs["template_pk"])
+        else:
+            template = view.get_object()
 
         return template.event.event_type == Event.SELF_SERVICE_PRACTICE
 

@@ -39,7 +39,11 @@ class OrderableModel(TrackFieldsMixin):
             # automatically populate the ordering field based on the ordering of siblings
             setattr(self, "_ordering", self.get_ordering_position())
 
-        if self._old__ordering != self._ordering and not force_no_swap:
+        if (
+            self.pk is not None
+            and self._old__ordering != self._ordering
+            and not force_no_swap
+        ):
             target_ordering, self._ordering = self._ordering, self._old__ordering
 
             while target_ordering != self._ordering:
@@ -102,15 +106,8 @@ class OrderableModel(TrackFieldsMixin):
             self.save(force_no_swap=True)
 
     def get_ordering_position(self):
-        # filter to get parent
-        filter_kwarg = {
-            self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
-                self, self.ORDER_WITH_RESPECT_TO_FIELD
-            )
-        }
-
         # get all model instances that reference the same parent
-        siblings = type(self).objects.filter(**filter_kwarg)
+        siblings = self.get_siblings()
 
         max_ordering = siblings.aggregate(max_ordering=Max("_ordering"))["max_ordering"]
         return max_ordering + 1 if max_ordering is not None else 0

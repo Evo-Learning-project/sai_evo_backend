@@ -100,7 +100,7 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseChoice
         fields = ["id", "text"]
-        hidden_fields = ["score"]
+        hidden_fields = ["score", "_ordering"]
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
@@ -160,16 +160,16 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 
 class EventTemplateRuleSerializer(serializers.ModelSerializer):
     clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
-    target_slot_number = serializers.IntegerField(source="_ordering", read_only=True)
+    _ordering = serializers.IntegerField(required=False)
 
     class Meta:
         model = EventTemplateRule
         fields = [
             "id",
             "rule_type",
-            "target_slot_number",
             "exercises",
             "clauses",
+            "_ordering",
         ]
 
     # read_only_fields = ["target_slot_number"]

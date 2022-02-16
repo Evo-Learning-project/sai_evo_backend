@@ -273,7 +273,7 @@ class EventViewSet(viewsets.ModelViewSet):
 # TODO disallow actions and make read-only
 class EventTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = EventTemplateSerializer
-    queryset = EventTemplate.objects.public()
+    queryset = EventTemplate.objects.all()
     permission_classes = [policies.EventTemplatePolicy]
 
     def get_queryset(self):

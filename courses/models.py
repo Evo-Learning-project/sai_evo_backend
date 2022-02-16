@@ -278,9 +278,17 @@ class ExerciseChoice(OrderableModel):
                 deferrable=models.Deferrable.DEFERRED,
             ),
         ]
+        # TODO add constraints to other orderable models
 
     def __str__(self):
-        return str(self.exercise) + " - " + self.text[:100]
+        return (
+            str(self.exercise)
+            + " - "
+            + self.text[:100]
+            + " (order: "
+            + str(self._ordering)
+            + ")"
+        )
 
 
 class ExerciseTestCase(models.Model):
@@ -514,12 +522,13 @@ class EventTemplateRule(OrderableModel):
 
     class Meta:
         ordering = ["template_id", "_ordering"]
-        # constraints = [
-        #     models.UniqueConstraint(
-        #         fields=["template_id", "target_slot_number"],
-        #         name="template_unique_target_slot_number",
-        #     )
-        # ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["template_id", "_ordering"],
+                name="same_template_unique_ordering",
+                deferrable=models.Deferrable.DEFERRED,
+            )
+        ]
 
 
 class EventTemplateRuleClause(models.Model):
