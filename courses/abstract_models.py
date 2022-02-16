@@ -1,6 +1,7 @@
 from core.models import UUIDModel
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models import Max
 
 
 class TrackFieldsMixin(models.Model):
@@ -32,26 +33,62 @@ class OrderableModel(TrackFieldsMixin):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
+    def save(self, force_no_swap=False, *args, **kwargs):
+        # return super().save(*args, **kwargs)
         if self.pk is None:  # creating new instance
             # automatically populate the ordering field based on the ordering of siblings
             setattr(self, "_ordering", self.get_ordering_position())
 
-        if self._old__ordering != self._ordering:
-            # get model instance that currently has _ordering value
-            # that's being assigned to this instance
-            to_be_swapped = type(self).objects.get(
-                _ordering=self._ordering,
-                **{
-                    self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
-                        self, self.ORDER_WITH_RESPECT_TO_FIELD
-                    )
-                },
-            )
-            self.swap_ordering_with(to_be_swapped)
+        if self._old__ordering != self._ordering and not force_no_swap:
+            target_ordering, self._ordering = self._ordering, self._old__ordering
+
+            while target_ordering != self._ordering:
+                to_be_swapped = (
+                    self.get_next()
+                    if target_ordering > self._ordering
+                    else self.get_previous()
+                )
+                # print("TO BE SWAPPED", to_be_swapped)
+                # self.refresh_from_db()
+                # type(self).objects.get(
+                #     _ordering=self._ordering,
+                #     **{
+                #         self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
+                #             self, self.ORDER_WITH_RESPECT_TO_FIELD
+                #         )
+                #     },
+                # )
+                if to_be_swapped is not None:
+                    self.swap_ordering_with(to_be_swapped)
 
         else:
             super().save(*args, **kwargs)
+
+    def get_siblings(self):
+        return type(self).objects.filter(
+            **{
+                self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
+                    self, self.ORDER_WITH_RESPECT_TO_FIELD
+                )
+            },
+        )
+
+    def get_adjacent(self, step):
+        delta = step
+        siblings = self.get_siblings()
+        for _ in range(0, len(siblings)):
+            try:
+                return siblings.get(_ordering=self._ordering + delta)
+            except type(self).DoesNotExist:
+                delta += step
+
+        return None
+
+    def get_next(self):
+        return self.get_adjacent(1)
+
+    def get_previous(self):
+        return self.get_adjacent(-1)
 
     def swap_ordering_with(self, other):
         if not isinstance(other, type(self)) or getattr(
@@ -61,8 +98,8 @@ class OrderableModel(TrackFieldsMixin):
 
         with transaction.atomic():
             self._ordering, other._ordering = other._ordering, self._ordering
-            other.save()
-            self.save()
+            other.save(force_no_swap=True)
+            self.save(force_no_swap=True)
 
     def get_ordering_position(self):
         # filter to get parent

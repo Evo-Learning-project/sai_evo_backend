@@ -272,10 +272,11 @@ class ExerciseChoice(OrderableModel):
     class Meta:
         ordering = ["exercise_id", "_ordering"]
         constraints = [
-            # models.UniqueConstraint(
-            #     fields=["exercise_id", "text"],
-            #     name="same_exercise_unique_choice_text",
-            # )
+            models.UniqueConstraint(
+                fields=["exercise_id", "_ordering"],
+                name="same_exercise_unique_ordering",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
         ]
 
     def __str__(self):
