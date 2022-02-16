@@ -119,6 +119,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             # "child_position",
             "public_tags",
             "private_tags",
+            "max_score",
         ]
         hidden_fields = ["solution", "state"]
 
@@ -256,7 +257,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.context.pop("show_assessment"):
+        if self.context.pop("show_assessment", False):
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5, decimal_places=2, source="assessment.score"
             )
@@ -332,6 +333,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
                 source="submission.current_slots",
                 context={"show_assessment": self.context.pop("show_assessment", False)},
             )
+            # TODO add field score if assessment is available
         self.fields["assessment_available"] = serializers.SerializerMethodField()
 
     def get_assessment_available(self, obj):
@@ -349,6 +351,9 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
 
     slots = ParticipationAssessmentSlotSerializer(many=True, source="assessment.slots")
     user = UserSerializer(read_only=True)
+    score = serializers.DecimalField(
+        max_digits=5, decimal_places=2, source="assessment.score"
+    )
 
     class Meta:
         model = EventParticipation
@@ -359,6 +364,7 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             "user",
             "begin_timestamp",
             "end_timestamp",
+            "score",
         ]
 
     def __init__(self, *args, **kwargs):
