@@ -1,3 +1,4 @@
+from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from users.serializers import UserSerializer
 
@@ -61,9 +62,9 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         super().__init__(*args, **kwargs)
         if not self.context.pop("preview", False):
             self.fields["participations"] = serializers.SerializerMethodField()
-
-    # def get_is_enrolled(self, obj):
-    #     return self.context["request"].user in obj.enrolled_users.all()
+            self.fields[
+                "unstarted_practice_events"
+            ] = serializers.SerializerMethodField()
 
     def get_privileges(self, obj):
         return get_user_privileges(self.context["request"].user, obj)
@@ -82,6 +83,32 @@ class CourseSerializer(HiddenFieldsModelSerializer):
             many=True,
             context={"preview": True},
         ).data
+
+    def get_unstarted_practice_events(self, obj):
+        """
+        Returns Events with type SELF_SERVICE_PRACTICE created by the user
+        for which a participation doesn't exist yet
+        """
+        try:
+            user = self.context["request"].user
+        except KeyError:
+            return None
+
+        # sub-query that retrieves a user's participation to events
+        exists_user_participation = EventParticipation.objects.filter(
+            user=user, event_instance__event=OuterRef("pk")
+        )
+
+        practice_events = Event.objects.annotate(
+            user_participation_exists=Exists(exists_user_participation)
+        ).filter(
+            creator=user,
+            course=obj,
+            event_type=Event.SELF_SERVICE_PRACTICE,
+            user_participation_exists=False,
+        )
+
+        return EventSerializer(practice_events, many=True).data
 
 
 class TagSerializer(serializers.ModelSerializer):
