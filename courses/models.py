@@ -393,7 +393,7 @@ class Event(UUIDModel, TimestampableModel):
     objects = EventManager()
 
     def __str__(self):
-        return self.name
+        return self.name + " -"
 
     class Meta:
         ordering = [
@@ -511,7 +511,9 @@ class EventTemplateRule(OrderableModel):
         "courses.Exercise",
         blank=True,
     )
-    # target_slot_number = models.PositiveIntegerField()
+
+    # how many exercises need to be retrieved using this rule's criteria
+    amount = models.PositiveIntegerField(default=1)
 
     # whether tag-based rules should limit search to the list of public tags in exercises
     search_public_tags_only = models.BooleanField(null=True, blank=True)

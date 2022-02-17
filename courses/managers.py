@@ -172,14 +172,6 @@ class EventParticipationManager(models.Manager):
         ParticipationAssessment.objects.create(participation=participation)
 
         participation.save()
-        print(
-            "participation",
-            participation,
-            "sub",
-            participation.submission,
-            "ass",
-            participation.assessment,
-        )
 
         return participation
 
@@ -209,7 +201,6 @@ class EventInstanceManager(models.Manager):
             )
             slot_number += 1
 
-        print("instance", instance)
         return instance
 
 

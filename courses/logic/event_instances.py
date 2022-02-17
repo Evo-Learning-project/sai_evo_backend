@@ -12,9 +12,9 @@ def get_exercises_from(template, course=None, public_only=False):
     for rule in template.rules.all():
         rule_qs = exercises.satisfying(rule)
 
-        picked_exercise = rule_qs.exclude(
+        rule_picked_exercises = rule_qs.exclude(
             pk__in=[e.pk for e in picked_exercises]  # don't pick same exercise again
-        ).get_random()
-        picked_exercises.append(picked_exercise)
+        ).get_random(amount=rule.amount)
+        picked_exercises.extend(rule_picked_exercises)
 
     return picked_exercises

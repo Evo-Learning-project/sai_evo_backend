@@ -57,15 +57,20 @@ class ExerciseQuerySet(models.QuerySet):
         """
         Returns `amount` random exercise(s) from the queryset
         """
-        # TODO handle case where no item can be returned
         qs = self
 
         ids = list(qs.values_list("pk", flat=True))
-        # print("ids", ids, "amount", amount)
-        picked_ids = random.sample(ids, amount)
+
+        # avoid trying to pick a larger sample than the list of id's
+        amount = max(amount, len(ids))
+
+        picked_ids = random.sample(
+            ids,
+            amount,
+        )
 
         ret = qs.filter(pk__in=picked_ids)
-        return ret.first() if amount == 1 else ret
+        return ret
 
 
 class SlotModelQuerySet(models.QuerySet):
