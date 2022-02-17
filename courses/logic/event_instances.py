@@ -1,12 +1,12 @@
 from courses.models import Exercise
 
 
-def get_exercises_from(template, course=None, public_only=False):
-    exercises = Exercise.objects.base_exercises()
+def get_exercises_from(template, public_only=False):
+    course = template.event.course
+    exercises = Exercise.objects.base_exercises().filter(course=course)
+
     if public_only:
         exercises = exercises.public()
-    if course is not None:
-        exercises = exercises.filter(course=course)
 
     picked_exercises = []
     for rule in template.rules.all():

@@ -184,11 +184,16 @@ class EventInstanceManager(models.Manager):
         in the event template
         """
         from .logic.event_instances import get_exercises_from
-        from .models import EventInstanceSlot, EventTemplate
+        from .models import Event, EventInstanceSlot
 
         if (exercises := kwargs.pop("exercises", None)) is None:
-            event_template = EventTemplate.objects.get(event__id=kwargs["event_id"])
-            exercises = get_exercises_from(event_template)
+            event = Event.objects.get(pk=kwargs["event_id"])
+            event_template = event.template
+
+            exercises = get_exercises_from(
+                event_template,
+                public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
+            )
 
         instance = super().create(*args, **kwargs)
 
