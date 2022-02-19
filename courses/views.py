@@ -354,8 +354,12 @@ class EventParticipationViewSet(
     )
     permission_classes = [policies.EventParticipationPolicy]
 
-    # TODO implement get_serializer_context where you add "show_assessment" field
-    # TODO to serializer only if it's present in the url params AND the assessment is published
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "retrieve":
+            participation = self.get_object()
+            context["show_assessment"] = participation.is_assessment_available()
+        return context
 
     def get_serializer_class(self):
         return (

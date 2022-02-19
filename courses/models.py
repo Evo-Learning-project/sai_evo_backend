@@ -623,7 +623,11 @@ class ParticipationAssessment(models.Model):
         (PUBLISHED, "Published"),
     )
 
-    state = models.PositiveIntegerField(choices=ASSESSMENT_STATES, default=DRAFT)
+    _assessment_state = models.PositiveIntegerField(
+        choices=ASSESSMENT_STATES,
+        default=DRAFT,
+        db_column="state",
+    )
     _score = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -657,6 +661,21 @@ class ParticipationAssessment(models.Model):
             else:
                 return self.PARTIALLY_ASSESSED
         return state
+
+    @property
+    def state(self):
+        if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
+            return (
+                self.PUBLISHED
+                if self.participation.state == EventParticipation.TURNED_IN
+                else self.NOT_ASSESSED
+            )
+
+        return self._assessment_state
+
+    @state.setter
+    def state(self, value):
+        self._assessment_state = value
 
     @property
     def score(self):
@@ -946,3 +965,6 @@ class EventParticipation(models.Model):
         )
         self.save()
         return self.current_slot_cursor
+
+    def is_assessment_available(self):
+        return self.assessment.state == ParticipationAssessment.PUBLISHED
