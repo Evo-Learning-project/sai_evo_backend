@@ -264,6 +264,9 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
         source="participation.is_cursor_first_position",
     )
 
+    score = serializers.SerializerMethodField()
+    comment = serializers.SerializerMethodField()
+
     class Meta:
         model = ParticipationSubmissionSlot
         fields = [
@@ -276,20 +279,28 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "attachment",
             "is_last",
             "is_first",
+            "score",
         ]
         hidden_fields = [
             "seen_at",
             "answered_at",
         ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def get_score(self, obj):
+        if not obj.participation.is_assessment_available():
+            return None
 
-        if self.context.pop("show_assessment", False):
-            self.fields["score"] = serializers.DecimalField(
-                max_digits=5, decimal_places=2, source="assessment.score"
-            )
-            self.fields["comment"] = serializers.CharField(source="assessment.comment")
+        return obj.assessment.score
+        # return serializers.DecimalField(
+        #     max_digits=5, decimal_places=2, source="assessment.score"
+        # )
+
+    def get_comment(self, obj):
+        if not obj.participation.is_assessment_available():
+            return None
+
+        return obj.assessment.comment
+        # return serializers.CharField(source="assessment.comment")
 
 
 class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
@@ -340,6 +351,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     """
 
     event = EventSerializer(read_only=True)
+    score = serializers.SerializerMethodField()
 
     class Meta:
         model = EventParticipation
@@ -350,28 +362,33 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             "last_slot_number",
             "begin_timestamp",
             "end_timestamp",
-            # "slots",
+            "score",
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.context.pop("preview", False):
-            show_assessment = self.context.pop("show_assessment", False)
             self.fields["slots"] = ParticipationSubmissionSlotSerializer(
                 many=True,
                 source="submission.current_slots",
                 context={"show_assessment": show_assessment},
             )
-            if show_assessment:
-                self.fields["score"] = serializers.DecimalField(
-                    max_digits=5,
-                    decimal_places=2,
-                    source="assessment.score",
-                )
         self.fields["assessment_available"] = serializers.SerializerMethodField()
 
     def get_assessment_available(self, obj):
         return obj.is_assessment_available()
+
+    def get_score(self, obj):
+        if not obj.is_assessment_available():
+            return None
+
+        return obj.assessment.score
+
+        # return serializers.DecimalField(
+        #     max_digits=5,
+        #     decimal_places=2,
+        #     source="assessment.score",
+        # )
 
 
 class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
