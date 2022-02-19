@@ -196,6 +196,7 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
             "rule_type",
             "exercises",
             "clauses",
+            "amount",
             "_ordering",
         ]
 

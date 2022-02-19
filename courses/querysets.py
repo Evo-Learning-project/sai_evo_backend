@@ -62,7 +62,7 @@ class ExerciseQuerySet(models.QuerySet):
         ids = list(qs.values_list("pk", flat=True))
 
         # avoid trying to pick a larger sample than the list of id's
-        amount = max(amount, len(ids))
+        amount = min(amount, len(ids))
 
         picked_ids = random.sample(
             ids,
