@@ -124,10 +124,12 @@ class CourseRoleSerializer(serializers.ModelSerializer):
 
 
 class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
+    _ordering = serializers.IntegerField(required=False)
+
     class Meta:
         model = ExerciseChoice
-        fields = ["id", "text"]
-        hidden_fields = ["score", "_ordering"]
+        fields = ["id", "text", "_ordering"]
+        hidden_fields = ["score"]
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
@@ -280,6 +282,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "is_last",
             "is_first",
             "score",
+            "comment",
         ]
         hidden_fields = [
             "seen_at",
@@ -352,6 +355,11 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
 
     event = EventSerializer(read_only=True)
     score = serializers.SerializerMethodField()
+    max_score = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        source="event_instance.max_score",
+    )
 
     class Meta:
         model = EventParticipation
@@ -363,6 +371,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             "begin_timestamp",
             "end_timestamp",
             "score",
+            "max_score",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -371,7 +380,6 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             self.fields["slots"] = ParticipationSubmissionSlotSerializer(
                 many=True,
                 source="submission.current_slots",
-                context={"show_assessment": show_assessment},
             )
         self.fields["assessment_available"] = serializers.SerializerMethodField()
 

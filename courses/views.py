@@ -8,38 +8,23 @@ from users.serializers import UserSerializer
 from courses import policies
 from courses.logic import privileges
 from courses.logic.privileges import check_privilege
-from courses.models import (
-    Course,
-    CourseRole,
-    Event,
-    EventParticipation,
-    EventTemplate,
-    EventTemplateRule,
-    EventTemplateRuleClause,
-    Exercise,
-    ExerciseChoice,
-    ParticipationAssessmentSlot,
-    ParticipationSubmissionSlot,
-    Tag,
-    UserCoursePrivilege,
-)
+from courses.models import (Course, CourseRole, Event, EventParticipation,
+                            EventTemplate, EventTemplateRule,
+                            EventTemplateRuleClause, Exercise, ExerciseChoice,
+                            ParticipationAssessmentSlot,
+                            ParticipationSubmissionSlot, Tag,
+                            UserCoursePrivilege)
 from courses.pagination import ExercisePagination
 
-from .serializers import (
-    CourseRoleSerializer,
-    CourseSerializer,
-    EventSerializer,
-    EventTemplateRuleClauseSerializer,
-    EventTemplateRuleSerializer,
-    EventTemplateSerializer,
-    ExerciseChoiceSerializer,
-    ExerciseSerializer,
-    ParticipationAssessmentSlotSerializer,
-    ParticipationSubmissionSlotSerializer,
-    StudentViewEventParticipationSerializer,
-    TagSerializer,
-    TeacherViewEventParticipationSerializer,
-)
+from .serializers import (CourseRoleSerializer, CourseSerializer,
+                          EventSerializer, EventTemplateRuleClauseSerializer,
+                          EventTemplateRuleSerializer, EventTemplateSerializer,
+                          ExerciseChoiceSerializer, ExerciseSerializer,
+                          ParticipationAssessmentSlotSerializer,
+                          ParticipationSubmissionSlotSerializer,
+                          StudentViewEventParticipationSerializer,
+                          TagSerializer,
+                          TeacherViewEventParticipationSerializer)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -354,12 +339,12 @@ class EventParticipationViewSet(
     )
     permission_classes = [policies.EventParticipationPolicy]
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        if self.action == "retrieve":
-            participation = self.get_object()
-            context["show_assessment"] = participation.is_assessment_available()
-        return context
+    # def get_serializer_context(self):
+    #     context = super().get_serializer_context()
+    #     if self.action == "retrieve":
+    #         participation = self.get_object()
+    #         context["show_assessment"] = participation.is_assessment_available()
+    #     return context
 
     def get_serializer_class(self):
         return (

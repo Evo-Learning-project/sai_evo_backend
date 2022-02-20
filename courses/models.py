@@ -237,8 +237,8 @@ class Exercise(TimestampableModel, OrderableModel):
 
     @property
     def max_score(self):
-        if self.choices.count() == 0:
-            return None
+        # if self.choices.count() == 0:
+        #     return None
 
         max_score = self.choices.all().aggregate(max_score=Max("score"))["max_score"]
         return max_score
@@ -566,6 +566,11 @@ class EventInstance(models.Model):
 
     def __str__(self):
         return self.event.name
+
+    @property
+    def max_score(self):
+        exercises = self.exercises.all()
+        return sum([e.max_score for e in exercises if e.max_score is not None])
 
 
 class EventInstanceSlot(SlotNumberedModel):
@@ -942,6 +947,8 @@ class EventParticipation(models.Model):
 
     def save(self, *args, **kwargs):
         self.validate_unique()
+        if self.state == EventParticipation.TURNED_IN and self.end_timestamp is None:
+            self.end_timestamp = timezone.localtime(timezone.now())
         super().save(*args, **kwargs)
 
     def move_current_slot_cursor_forward(self):
