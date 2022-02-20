@@ -7,27 +7,23 @@ from rest_framework.response import Response
 
 from users.models import User
 
+from . import policies
 from .serializers import UserSerializer
 
 
 class UserViewSet(
     mixins.ListModelMixin,
-    # mixins.RetrieveModelMixin,
-    # mixins.CreateModelMixin,
-    # mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = UserSerializer
     queryset = User.objects.all()
 
-    # TODO check user is a teacher
-    # permission_classes = [policies.CoursePolicy]
+    permission_classes = [policies.UserPolicy]
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         params = context["request"].query_params
         if "course_id" in params:
-            # TODO check user is allowed to see permissions for this course
             course = get_object_or_404(Course, pk=params["course_id"])
             context["course"] = course
         return context
@@ -41,7 +37,6 @@ class UserViewSet(
     def privileges(self, request, **kwargs):
         params = request.query_params
         if "course_id" in params:
-            # TODO check user is allowed to see permissions for this course
             course = get_object_or_404(Course, pk=params["course_id"])
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
