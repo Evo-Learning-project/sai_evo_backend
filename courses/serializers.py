@@ -190,6 +190,7 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 class EventTemplateRuleSerializer(serializers.ModelSerializer):
     clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
     _ordering = serializers.IntegerField(required=False)
+    satisfying = serializers.SerializerMethodField()
 
     class Meta:
         model = EventTemplateRule
@@ -200,9 +201,16 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
             "clauses",
             "amount",
             "_ordering",
+            "satisfying",
         ]
 
-    # read_only_fields = ["target_slot_number"]
+    def get_satisfying(self, obj):
+        qs = Exercise.objects.filter(course=obj.template.event.course).satisfying(obj)
+
+        return {
+            "count": qs.count(),
+            "example": ExerciseSerializer(qs.first()).data if qs.count() > 0 else None,
+        }
 
 
 class EventTemplateSerializer(serializers.ModelSerializer):
