@@ -852,7 +852,11 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
         EventParticipation, i.e. it contains one of the exercises currently being
         shown to the user; False otherwise
         """
-        return self in self.submission.current_slots or self.parent.is_in_scope()
+        return (
+            self in self.submission.current_slots
+            or self.parent is not None
+            and self.parent.is_in_scope()
+        )
 
 
 class EventParticipation(models.Model):

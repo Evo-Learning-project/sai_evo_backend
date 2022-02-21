@@ -155,7 +155,7 @@ class TagPolicy(BaseAccessPolicy):
             "action": ["list", "retrieve"],  # "create"
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:access_exercises",
+            # "condition": "has_teacher_privileges:access_exercises",
         },
     ]
 
@@ -208,7 +208,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["list"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:assess_participations",
+            "condition": "has_teacher_privileges:manage_events",  # "has_teacher_privileges:assess_participations",
         },
         {
             "action": ["retrieve"],
