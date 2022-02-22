@@ -221,7 +221,7 @@ class Exercise(TimestampableModel, OrderableModel):
             "course_id",
             F("parent_id").asc(nulls_first=True),  # base exercises first
             "_ordering",
-            "-created",
+            "-updated",
             "pk",
         ]
         constraints = [
