@@ -39,8 +39,12 @@ class ExerciseQuerySet(models.QuerySet):
         if rule.rule_type == EventTemplateRule.ID_BASED:
             ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])
         elif rule.rule_type == EventTemplateRule.TAG_BASED:
+            # print("-----NEW RULE--------------------------")
             for clause in rule.clauses.all():
+                # print(clause.tags.all())
                 clause_tags = clause.tags.all()
+                if not clause_tags.exists():  # empty clause
+                    continue
                 # TODO test
                 qs_filter = Q(public_tags__in=clause_tags)
                 if not rule.search_public_tags_only:
@@ -50,7 +54,8 @@ class ExerciseQuerySet(models.QuerySet):
             ret_qs = (
                 ret_qs.distinct()
             )  # if more than one tag match, an item may be returned more than once
-
+        # print("QUERY")
+        # print(ret_qs.query)
         return ret_qs
 
     def get_random(self, amount=1):
