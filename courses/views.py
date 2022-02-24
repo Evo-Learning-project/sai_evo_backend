@@ -393,11 +393,16 @@ class EventParticipationViewSet(
         try:
             participation = self.get_queryset().get(user=request.user)
         except EventParticipation.DoesNotExist:
-            participation = EventParticipation.objects.create(
-                user=request.user, event_id=self.kwargs["event_pk"]
-            )
+            try:
+                participation = EventParticipation.objects.create(
+                    user=request.user, event_id=self.kwargs["event_pk"]
+                )
+            except Event.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = StudentViewEventParticipationSerializer(participation)
+        serializer = StudentViewEventParticipationSerializer(
+            participation, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
     @action(detail=False, methods=["patch"])

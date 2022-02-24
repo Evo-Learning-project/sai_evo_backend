@@ -255,7 +255,11 @@ class EventParticipationPolicy(BaseAccessPolicy):
     def can_participate(self, request, view, action):
         from courses.models import Event
 
-        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        try:
+            event = Event.objects.get(pk=view.kwargs["event_pk"])
+        except Event.DoesNotExist:
+            return True
+
         if event.state != Event.OPEN:
             return False
 
