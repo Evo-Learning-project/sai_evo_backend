@@ -273,7 +273,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
 
         event = Event.objects.get(pk=view.kwargs["event_pk"])
         return event.state == Event.OPEN or (
-            event.state == Event.CLOSED
+            event.state == Event.RESTRICTED
             and request.user in event.users_allowed_past_closure
         )
 
@@ -326,7 +326,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
 
         event = Event.objects.get(pk=view.kwargs["event_pk"])
         return event.state == Event.OPEN or (
-            event.state == Event.CLOSED
+            event.state == Event.RESTRICTED
             and request.user in event.users_allowed_past_closure.all()
         )
 

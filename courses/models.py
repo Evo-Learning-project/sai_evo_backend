@@ -221,7 +221,7 @@ class Exercise(TimestampableModel, OrderableModel):
             "course_id",
             F("parent_id").asc(nulls_first=True),  # base exercises first
             "_ordering",
-            "-updated",
+            "-modified",
             "pk",
         ]
         constraints = [
@@ -337,13 +337,14 @@ class Event(UUIDModel, TimestampableModel):
     PLANNED = 1
     OPEN = 2
     CLOSED = 3
-    # TODO !!! make a restricted state
+    RESTRICTED = 4
 
     EVENT_STATES = (
         (DRAFT, "Draft"),
         (PLANNED, "Planned"),
         (OPEN, "Open"),
         (CLOSED, "Closed"),
+        (RESTRICTED, "Restricted"),
     )
 
     ALLOW_ACCESS = 0

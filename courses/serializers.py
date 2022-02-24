@@ -2,7 +2,7 @@ from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from users.serializers import UserSerializer
 
-from courses.logic.privileges import get_user_privileges
+from courses.logic.privileges import MANAGE_EVENTS, check_privilege, get_user_privileges
 from courses.models import (
     Course,
     CourseRole,
@@ -81,7 +81,7 @@ class CourseSerializer(HiddenFieldsModelSerializer):
         return StudentViewEventParticipationSerializer(
             participations,
             many=True,
-            context={"preview": True},
+            context={"preview": True, **self.context},
         ).data
 
     def get_unstarted_practice_events(self, obj):
@@ -108,7 +108,7 @@ class CourseSerializer(HiddenFieldsModelSerializer):
             user_participation_exists=False,
         )
 
-        return EventSerializer(practice_events, many=True).data
+        return EventSerializer(practice_events, many=True, context=self.context).data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -168,7 +168,6 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
 
     def create(self, validated_data):
         tags = validated_data.pop("tags", [])
-        # print(validated_data)
         return Exercise.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
@@ -226,6 +225,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
     template = EventTemplateSerializer(read_only=True)
     state = serializers.IntegerField()
     participation_exists = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -251,6 +251,20 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "access_rule",
             "access_rule_exceptions",
         ]
+
+    def get_state(self, obj):
+        state = obj.state
+        user = self.context["request"].user
+        if (
+            not check_privilege(user, obj.course, MANAGE_EVENTS)
+            and state == Event.RESTRICTED
+        ):
+            return (
+                Event.OPEN
+                if user in obj.users_allowed_past_closure.all()
+                else Event.CLOSED
+            )
+        return state
 
     def get_participation_exists(self, obj):
         try:
@@ -361,7 +375,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     those slots
     """
 
-    event = EventSerializer(read_only=True)
+    event = serializers.SerializerMethodField()  # to pass context to EventSerializer
     score = serializers.SerializerMethodField()
     max_score = serializers.DecimalField(
         max_digits=5,
@@ -399,6 +413,9 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             return None
 
         return obj.assessment.score
+
+    def get_event(self, obj):
+        return EventSerializer(obj.event, read_only=True, context=self.context).data
 
 
 class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
