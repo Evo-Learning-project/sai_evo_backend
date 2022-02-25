@@ -2,7 +2,7 @@ import importlib
 import inspect
 
 from rest_framework.fields import Field
-from rest_framework.serializers import BaseSerializer
+from rest_framework.serializers import BaseSerializer, SerializerMethodField
 
 
 def _signature_parameters(func):
@@ -123,3 +123,17 @@ class RecursiveField(Field):
                 pass
 
         return object.__getattribute__(self, name)
+
+
+class ReadWriteSerializerMethodField(SerializerMethodField):
+    """
+    Taken from https://stackoverflow.com/a/62579804/12424975
+    """
+
+    def __init__(self, method_name=None, **kwargs):
+        self.method_name = method_name
+        kwargs["source"] = "*"
+        super(SerializerMethodField, self).__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        return {self.field_name: data}

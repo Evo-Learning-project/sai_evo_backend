@@ -20,7 +20,7 @@ from courses.models import (
     ParticipationSubmissionSlot,
     Tag,
 )
-from courses.serializer_fields import RecursiveField
+from courses.serializer_fields import ReadWriteSerializerMethodField, RecursiveField
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -223,9 +223,8 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
 class EventSerializer(HiddenFieldsModelSerializer):
     template = EventTemplateSerializer(read_only=True)
-    state = serializers.IntegerField()
     participation_exists = serializers.SerializerMethodField()
-    state = serializers.SerializerMethodField()
+    state = ReadWriteSerializerMethodField()
 
     class Meta:
         model = Event

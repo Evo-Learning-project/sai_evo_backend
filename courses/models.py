@@ -432,6 +432,13 @@ class Event(UUIDModel, TimestampableModel):
             self._event_state = Event.CLOSED
             self.save()
 
+        if (
+            self._event_state == Event.RESTRICTED
+            and not self.users_allowed_past_closure.exists()
+        ):
+            self._event_state = Event.CLOSED
+            self.save()
+
         return self._event_state
 
     @state.setter
@@ -687,7 +694,9 @@ class ParticipationAssessment(models.Model):
     def score(self):
         if self._score is None:
             # TODO review this (sum base slots only?)
-            return sum([s.score for s in self.slots.all()])
+            return sum(
+                [s.score if s.score is not None else 0 for s in self.slots.all()]
+            )
         return self._score
 
     @score.setter
