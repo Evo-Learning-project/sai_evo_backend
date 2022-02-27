@@ -6,6 +6,7 @@ from rest_access_policy import AccessPolicy
 class UserPolicy(AccessPolicy):
     statements = [
         {
+            # TODO fix getting 403 on this
             "action": ["me"],
             "principal": ["*"],
             "effect": ["allow"],
