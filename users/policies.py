@@ -9,7 +9,7 @@ class UserPolicy(AccessPolicy):
             # TODO fix getting 403 on this
             "action": ["me"],
             "principal": ["*"],
-            "effect": ["allow"],
+            "effect": "allow",
         },
         {
             "action": ["list", "privileges"],
