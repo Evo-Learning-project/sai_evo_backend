@@ -41,10 +41,12 @@ course_router.register(
 exercise_router = routers.NestedSimpleRouter(
     course_router, r"exercises", lookup="exercise"
 )
-# `/courses/<pk>/exercies/<pk>/choices` entry point
+# `/courses/<pk>/exercises/<pk>/choices` entry point
 exercise_router.register(r"choices", views.ExerciseChoiceViewSet)
-# `/courses/<pk>/exercies/<pk>/sub_exercises` entry point
+# `/courses/<pk>/exercises/<pk>/sub_exercises` entry point
 exercise_router.register(r"sub_exercises", views.ExerciseViewSet)
+# `/courses/<pk>/exercises/<pk>/testcases` entry point
+exercise_router.register(r"testcases", views.ExerciseTestCaseViewSet)
 
 # `/courses/<pk>/templates` entry point
 course_router.register(

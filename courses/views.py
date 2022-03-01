@@ -20,6 +20,7 @@ from courses.models import (
     EventTemplateRuleClause,
     Exercise,
     ExerciseChoice,
+    ExerciseTestCase,
     ParticipationAssessmentSlot,
     ParticipationSubmissionSlot,
     Tag,
@@ -36,6 +37,7 @@ from .serializers import (
     EventTemplateSerializer,
     ExerciseChoiceSerializer,
     ExerciseSerializer,
+    ExerciseTestCaseSerializer,
     ParticipationAssessmentSlotSerializer,
     ParticipationSubmissionSlotSerializer,
     StudentViewEventParticipationSerializer,
@@ -230,6 +232,21 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
         serializer.save(
             exercise_id=self.kwargs["exercise_pk"],
         )
+
+class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
+    serializer_class = ExerciseTestCaseSerializer
+    queryset = ExerciseTestCase.objects.all()
+    permission_classes = [policies.ExerciseRelatedObjectsPolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(exercise_id=self.kwargs["exercise_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            exercise_id=self.kwargs["exercise_pk"],
+        )
+
 
 
 class TagViewSet(

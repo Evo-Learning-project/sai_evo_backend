@@ -40,6 +40,12 @@ class ExerciseChoiceAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(ExerciseTestCase)
+class ExerciseTestCaseAdmin(admin.ModelAdmin):
+    pass
+
+
+
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     pass

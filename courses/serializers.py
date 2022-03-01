@@ -132,6 +132,15 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
         hidden_fields = ["score"]
 
 
+class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
+    _ordering = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = ExerciseTestCase
+        fields = ['id', 'code', 'text', '_ordering']
+        hidden_fields = ['testcase_type']
+
+
 class ExerciseSerializer(HiddenFieldsModelSerializer):
     public_tags = TagSerializer(many=True, read_only=True)
     private_tags = TagSerializer(
@@ -165,6 +174,9 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
                 *args,
                 **kwargs,
             )
+        
+        if self.context.pop("show_testcases", True):
+            self.fields["testcases"] = ExerciseTestCaseSerializer(many=True, required=False, *args, **kwargs,)
 
     def create(self, validated_data):
         tags = validated_data.pop("tags", [])

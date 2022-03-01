@@ -291,27 +291,37 @@ class ExerciseChoice(OrderableModel):
         )
 
 
-class ExerciseTestCase(models.Model):
+class ExerciseTestCase(OrderableModel):
+    SHOW_CODE_SHOW_TEXT = 0
+    SHOW_TEXT_ONLY = 1
+    HIDDEN = 2
+
+    TESTCASE_TYPES = (
+        (SHOW_CODE_SHOW_TEXT, "Show both code and text"),
+        (SHOW_TEXT_ONLY, "Show text only"),
+        (HIDDEN, "Hidden")
+    )
+
     exercise = models.ForeignKey(
         Exercise,
         related_name="testcases",
         on_delete=models.CASCADE,
     )
-    code = models.TextField()
-    label = models.TextField(blank=True)
-    hidden = models.BooleanField(default=False)
+    code = models.TextField(blank=True)
+    text = models.TextField(blank=True)
+    testcase_type = models.PositiveIntegerField(default=SHOW_CODE_SHOW_TEXT, choices=TESTCASE_TYPES)
+
+    ORDER_WITH_RESPECT_TO_FIELD = "exercise"
+
 
     class Meta:
-        ordering = ["exercise_id", "pk"]
+        ordering = ["exercise_id", "_ordering"]
         constraints = [
             models.UniqueConstraint(
-                fields=["exercise_id", "code"],
-                name="same_exercise_unique_testcase_code",
+                fields=["exercise_id", "_ordering"],
+                name="same_exercise_unique_ordering_testcase",
+                deferrable=models.Deferrable.DEFERRED,
             ),
-            # models.UniqueConstraint(
-            #     fields=["exercise_id", "label"],
-            #     name="same_exercise_unique_testcase_label",
-            # ),
         ]
 
     def __str__(self):

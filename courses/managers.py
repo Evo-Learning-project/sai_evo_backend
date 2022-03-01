@@ -325,6 +325,7 @@ class EventTemplateRuleManager(models.Manager):
     #             raise ValidationError("ID-based rules cannot have tag clauses")
     #         for exercise in exercises:
     #             if exercise.parent is not None:
+    #                  TODO this should be kept around
     #                 raise ValidationError(
     #                     "You can only directly assign base exercises to an EventRule"
     #                 )
