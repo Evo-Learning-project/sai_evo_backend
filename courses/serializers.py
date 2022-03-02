@@ -316,11 +316,13 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "is_first",
             "score",
             "comment",
+            "execution_results"
         ]
         hidden_fields = [
             "seen_at",
             "answered_at",
         ]
+        read_only_fields = ['execution_results']
 
     def get_score(self, obj):
         if not obj.participation.is_assessment_available():
@@ -354,7 +356,10 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
             "comment",
             "sub_slots",
             "assessment_state",
+            #"execution_results"
         ]
+
+        #read_only_fields = ['execution_results']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -375,6 +380,10 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
         self.fields["answered_at"] = serializers.DateTimeField(
             source="submission.answered_at", read_only=True
         )
+        self.fields["execution_results"] = serializers.JSONField(
+            source="submission.execution_results", read_only=True
+        )
+
 
 
 class StudentViewEventParticipationSerializer(serializers.ModelSerializer):

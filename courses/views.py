@@ -515,5 +515,9 @@ class EventParticipationSlotViewSet(
     
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
-         return Response(get_code_execution_results(self.get_object()))
+        slot = self.get_object()
+        slot.execution_results = get_code_execution_results(slot)
+        slot.save()
+        serializer = self.get_serializer_class()(slot)
+        return Response(serializer.data)
 

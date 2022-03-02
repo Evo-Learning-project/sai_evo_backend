@@ -820,7 +820,7 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
     )
     answer_text = models.TextField(blank=True)
     attachment = models.FileField(null=True, blank=True)
-    # TODO add manytomany to testcases with through model for js exercises
+    execution_results = models.JSONField(blank=True, null=True)
 
     objects = ParticipationSubmissionSlotManager()
 
