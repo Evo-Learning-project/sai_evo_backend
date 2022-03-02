@@ -18,6 +18,7 @@ drf-access-policy = "~=1.0"
 drf-yasg = "*"
 drf-social-oauth2 = "*"
 django-cors-headers = "*"
+black = "*"
 
 [dev-packages]
 

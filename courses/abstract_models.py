@@ -69,6 +69,9 @@ class OrderableModel(TrackFieldsMixin):
             super().save(*args, **kwargs)
 
     def get_siblings(self):
+        if getattr(self, self.ORDER_WITH_RESPECT_TO_FIELD) is None:
+            return []
+
         return type(self).objects.filter(
             **{
                 self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
