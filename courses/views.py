@@ -1,6 +1,7 @@
 import time
 
 from django.shortcuts import get_object_or_404
+from coding.helpers import get_code_execution_results
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -511,3 +512,8 @@ class EventParticipationSlotViewSet(
             }
 
         return qs.filter(**related_kwarg).prefetch_related("sub_slots")
+    
+    @action(detail=True, methods=["post"])
+    def run(self, request, **kwargs):
+         return Response(get_code_execution_results(self.get_object()))
+
