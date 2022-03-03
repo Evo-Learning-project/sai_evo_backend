@@ -21,6 +21,7 @@ django-cors-headers = "*"
 black = "*"
 
 [dev-packages]
+mypy = "*"
 
 [requires]
 python_version = "3.8"

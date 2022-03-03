@@ -234,6 +234,7 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
             exercise_id=self.kwargs["exercise_pk"],
         )
 
+
 class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseTestCaseSerializer
     queryset = ExerciseTestCase.objects.all()
@@ -247,7 +248,6 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
         serializer.save(
             exercise_id=self.kwargs["exercise_pk"],
         )
-
 
 
 class TagViewSet(
@@ -382,18 +382,22 @@ class EventParticipationViewSet(
     #     return context
 
     def get_serializer_class(self):
+        force_student = "as_student" in self.request.query_params
         return (
             TeacherViewEventParticipationSerializer
-            if check_privilege(
-                self.request.user,
-                self.kwargs["course_pk"],
-                privileges.ASSESS_PARTICIPATIONS,
+            if (
+                check_privilege(
+                    self.request.user,
+                    self.kwargs["course_pk"],
+                    privileges.ASSESS_PARTICIPATIONS,
+                )
+                or check_privilege(
+                    self.request.user,
+                    self.kwargs["course_pk"],
+                    privileges.MANAGE_EVENTS,
+                )
             )
-            or check_privilege(
-                self.request.user,
-                self.kwargs["course_pk"],
-                privileges.MANAGE_EVENTS,
-            )
+            and not force_student
             else StudentViewEventParticipationSerializer
         )
 
@@ -485,6 +489,7 @@ class EventParticipationSlotViewSet(
     permission_classes = [policies.EventParticipationSlotPolicy]
 
     def get_serializer_class(self):
+        force_student = "as_student" in self.request.query_params
         return (
             ParticipationAssessmentSlotSerializer
             if check_privilege(
@@ -492,14 +497,19 @@ class EventParticipationSlotViewSet(
                 self.kwargs["course_pk"],
                 privileges.ASSESS_PARTICIPATIONS,
             )
+            and not force_student
             else ParticipationSubmissionSlotSerializer
         )
 
     def get_queryset(self):
-        if check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.ASSESS_PARTICIPATIONS,
+        force_student = "as_student" in self.request.query_params
+        if (
+            check_privilege(
+                self.request.user,
+                self.kwargs["course_pk"],
+                privileges.ASSESS_PARTICIPATIONS,
+            )
+            and not force_student
         ):
             qs = ParticipationAssessmentSlot.objects.all()
             related_kwarg = {
@@ -512,7 +522,7 @@ class EventParticipationSlotViewSet(
             }
 
         return qs.filter(**related_kwarg).prefetch_related("sub_slots")
-    
+
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
@@ -520,4 +530,3 @@ class EventParticipationSlotViewSet(
         slot.save()
         serializer = self.get_serializer_class()(slot)
         return Response(serializer.data)
-
