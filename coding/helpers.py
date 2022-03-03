@@ -19,7 +19,7 @@ def run_code_in_vm(code, testcases):
     # testcases_json = list(ExerciseTestCaseSerializer(testcases, many=True).data)
     # print(testcases_json)
 
-    testcases_json = [{'id': t.id, 'assertion': t.code} for t in testcases]
+    testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
 
     # call node subprocess and run user code against test cases
     res = subprocess.check_output(
@@ -30,14 +30,13 @@ def run_code_in_vm(code, testcases):
             json.dumps(testcases_json),
         ]
     )
-    print("RESULTS", json.loads(res))
     return json.loads(res)
 
 
 def get_code_execution_results(slot: ParticipationSubmissionSlot):
     if slot.exercise.exercise_type != Exercise.JS:
         raise ValidationError("Non-JS exercise " + slot.exercise.pk)
-    
+
     testcases = slot.exercise.testcases.all()
 
     return run_code_in_vm(slot.answer_text, testcases)

@@ -26,6 +26,7 @@ from .managers import (
     ParticipationAssessmentSlotManager,
     ParticipationSubmissionManager,
     ParticipationSubmissionSlotManager,
+    TagManager,
 )
 
 
@@ -138,6 +139,8 @@ class Tag(models.Model):
         on_delete=models.SET_NULL,
     )
     name = models.TextField()
+
+    objects = TagManager()
 
     def __str__(self):
         return str(self.course) + " - " + self.name
@@ -299,7 +302,7 @@ class ExerciseTestCase(OrderableModel):
     TESTCASE_TYPES = (
         (SHOW_CODE_SHOW_TEXT, "Show both code and text"),
         (SHOW_TEXT_ONLY, "Show text only"),
-        (HIDDEN, "Hidden")
+        (HIDDEN, "Hidden"),
     )
 
     exercise = models.ForeignKey(
@@ -309,10 +312,11 @@ class ExerciseTestCase(OrderableModel):
     )
     code = models.TextField(blank=True)
     text = models.TextField(blank=True)
-    testcase_type = models.PositiveIntegerField(default=SHOW_CODE_SHOW_TEXT, choices=TESTCASE_TYPES)
+    testcase_type = models.PositiveIntegerField(
+        default=SHOW_CODE_SHOW_TEXT, choices=TESTCASE_TYPES
+    )
 
     ORDER_WITH_RESPECT_TO_FIELD = "exercise"
-
 
     class Meta:
         ordering = ["exercise_id", "_ordering"]

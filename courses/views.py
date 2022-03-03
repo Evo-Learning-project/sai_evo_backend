@@ -253,19 +253,25 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
 class TagViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    # mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
     permission_classes = [policies.TagPolicy]
 
-    # TODO filter to only tags contained in the public list of at least one exercise if student
-
-    # TODO abstract this behavior
+    # TODO abstract this behavior (filtering on course)
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["course_pk"])
+        qs = qs.filter(course_id=self.kwargs["course_pk"])
+
+        if not check_privilege(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.MANAGE_EXERCISES,
+        ):
+            qs = qs.public()
+
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(

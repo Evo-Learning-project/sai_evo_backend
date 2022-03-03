@@ -94,3 +94,19 @@ class EventTemplateQuerySet(models.QuerySet):
         (i.e. that aren't a sub-slot)
         """
         return self.filter(public=True)
+
+
+class TagQuerySet(models.QuerySet):
+    def public(self):
+        """
+        A tag is public if it is in public_tags relationship with at least one public exercise
+        """
+        # TODO optimize
+        qs = self.prefetch_related("public_in_exercises")
+        pk_list = []
+
+        for tag in qs:
+            if tag.public_exercises.public().exists():
+                pk_list.append(tag.pk)
+
+        return qs.filter(id__in=pk_list)

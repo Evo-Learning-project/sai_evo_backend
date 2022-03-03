@@ -2,7 +2,20 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
-from courses.querysets import EventTemplateQuerySet, ExerciseQuerySet, SlotModelQuerySet
+from courses.querysets import (
+    EventTemplateQuerySet,
+    ExerciseQuerySet,
+    SlotModelQuerySet,
+    TagQuerySet,
+)
+
+
+class TagManager(models.Manager):
+    def get_queryset(self):
+        return TagQuerySet(self.model, using=self._db)
+
+    def public(self):
+        return self.get_queryset().public()
 
 
 class SlottedModelManager(models.Manager):
