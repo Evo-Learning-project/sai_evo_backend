@@ -3,11 +3,20 @@ from django.db import models
 from django.db.models import Q
 
 from courses.querysets import (
+    CourseQuerySet,
     EventTemplateQuerySet,
     ExerciseQuerySet,
     SlotModelQuerySet,
     TagQuerySet,
 )
+
+
+class CourseManager(models.Manager):
+    def get_queryset(self):
+        return CourseQuerySet(self.model, using=self._db)
+
+    def public(self):
+        return self.get_queryset().public()
 
 
 class TagManager(models.Manager):

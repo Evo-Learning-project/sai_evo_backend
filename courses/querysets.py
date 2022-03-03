@@ -96,6 +96,11 @@ class EventTemplateQuerySet(models.QuerySet):
         return self.filter(public=True)
 
 
+class CourseQuerySet(models.QuerySet):
+    def public(self):
+        return self.filter(hidden=False)
+
+
 class TagQuerySet(models.QuerySet):
     def public(self):
         """

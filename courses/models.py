@@ -15,6 +15,7 @@ from .abstract_models import (
     TimestampableModel,
 )
 from .managers import (
+    CourseManager,
     EventInstanceManager,
     EventInstanceSlotManager,
     EventManager,
@@ -39,10 +40,9 @@ class Course(UUIDModel, TimestampableModel):
         related_name="created_courses",
         null=True,
     )
-    # enrolled_users = models.ManyToManyField(
-    #     "users.User", blank=True
-    # )  # TODO through model
     hidden = models.BooleanField(default=False)
+
+    objects = CourseManager()
 
     class Meta:
         ordering = ["-created", "pk"]

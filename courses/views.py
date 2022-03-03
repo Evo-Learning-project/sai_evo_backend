@@ -52,6 +52,13 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     permission_classes = [policies.CoursePolicy]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not self.request.user.is_teacher:
+            qs = qs.public()
+
+        return qs
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.action == "list":
@@ -62,12 +69,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(
             creator=self.request.user,
         )
-
-    # @action(detail=True, methods=["get"])
-    # def enrolled(self, request, **kwargs):
-    #     course = self.get_object()
-    #     serializer = UserSerializer(course.enrolled_users.all(), many=True)
-    #     return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def set_permissions(self, request, **kwargs):
@@ -264,6 +265,7 @@ class TagViewSet(
         qs = super().get_queryset()
         qs = qs.filter(course_id=self.kwargs["course_pk"])
 
+        # students can only access public tags
         if not check_privilege(
             self.request.user,
             self.kwargs["course_pk"],

@@ -54,9 +54,9 @@ class CourseSerializer(HiddenFieldsModelSerializer):
             "creator",
             # "is_enrolled",
             "privileges",
+            "hidden",
         ]
         read_only_fields = ["creator"]
-        hidden_fields = ["visible"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -137,8 +137,8 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
 
     class Meta:
         model = ExerciseTestCase
-        fields = ['id', 'code', 'text', '_ordering']
-        hidden_fields = ['testcase_type']
+        fields = ["id", "code", "text", "_ordering"]
+        hidden_fields = ["testcase_type"]
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
@@ -174,9 +174,14 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
                 *args,
                 **kwargs,
             )
-        
+
         if self.context.pop("show_testcases", True):
-            self.fields["testcases"] = ExerciseTestCaseSerializer(many=True, required=False, *args, **kwargs,)
+            self.fields["testcases"] = ExerciseTestCaseSerializer(
+                many=True,
+                required=False,
+                *args,
+                **kwargs,
+            )
 
     def create(self, validated_data):
         tags = validated_data.pop("tags", [])
@@ -316,13 +321,13 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "is_first",
             "score",
             "comment",
-            "execution_results"
+            "execution_results",
         ]
         hidden_fields = [
             "seen_at",
             "answered_at",
         ]
-        read_only_fields = ['execution_results']
+        read_only_fields = ["execution_results"]
 
     def get_score(self, obj):
         if not obj.participation.is_assessment_available():
@@ -356,10 +361,10 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
             "comment",
             "sub_slots",
             "assessment_state",
-            #"execution_results"
+            # "execution_results"
         ]
 
-        #read_only_fields = ['execution_results']
+        # read_only_fields = ['execution_results']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -383,7 +388,6 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
         self.fields["execution_results"] = serializers.JSONField(
             source="submission.execution_results", read_only=True
         )
-
 
 
 class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
