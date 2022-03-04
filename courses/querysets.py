@@ -39,9 +39,7 @@ class ExerciseQuerySet(models.QuerySet):
         if rule.rule_type == EventTemplateRule.ID_BASED:
             ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])
         elif rule.rule_type == EventTemplateRule.TAG_BASED:
-            # print("-----NEW RULE--------------------------")
             for clause in rule.clauses.all():
-                # print(clause.tags.all())
                 clause_tags = clause.tags.all()
                 if not clause_tags.exists():  # empty clause
                     continue

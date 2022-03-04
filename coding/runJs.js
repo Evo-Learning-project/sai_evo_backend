@@ -25,8 +25,10 @@ and error is only present if the assertion failed
 // a sandboxed, secure virtual machine
 const { VM } = require("vm2");
 const assert = require("assert");
+const ts = require("typescript");
 const AssertionError = require("assert").AssertionError;
 const timeout = 1000;
+const tsConfig = require("./tsconfig.json");
 
 const getRandomIdentifier = (length) => {
   let result = "";
@@ -37,6 +39,14 @@ const getRandomIdentifier = (length) => {
   }
   return result;
 };
+
+function tsCompile(source, options = null) {
+  // Default options -- you could also perform a merge, or use the project tsconfig.json
+  if (null === options) {
+    options = { compilerOptions: { module: ts.ModuleKind.CommonJS } };
+  }
+  return ts.transpileModule(source, options).outputText;
+}
 
 // instantiation of the vm that'll run the user-submitted program
 const safeVm = new VM({
@@ -87,7 +97,7 @@ function prettyPrintAssertionError(e) {
 
 const escapeBackTicks = (t) => t.replace(/`/g, "\\`");
 
-const userCode = process.argv[2];
+const userCode = tsCompile(process.argv[2], tsConfig);
 
 const assertions = JSON.parse(process.argv[3]);
 
@@ -112,6 +122,7 @@ const assertionString = assertions
         } catch(e) {
             ran.passed = false
             if(e instanceof AssertionError) {
+                //ran.error = userCode
                 ran.error = prettyPrintAssertionError(e) // test case failed but cose threw no errors
             } else {
                 ran.error = prettyPrintError(e) // code threw an error during test case execution
