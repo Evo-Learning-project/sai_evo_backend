@@ -455,7 +455,9 @@ class EventParticipationViewSet(
             serializer.is_valid()
             serializer.save()
 
-        serializer = TeacherViewEventParticipationSerializer(ret, many=True)
+        serializer = TeacherViewEventParticipationSerializer(
+            ret, many=True, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"])

@@ -451,6 +451,7 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
     assign a score
     """
 
+    event = serializers.SerializerMethodField()  # to pass context to EventSerializer
     slots = ParticipationAssessmentSlotSerializer(many=True, source="assessment.slots")
     user = UserSerializer(read_only=True)
     score = serializers.DecimalField(
@@ -467,6 +468,7 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             "begin_timestamp",
             "end_timestamp",
             "score",
+            "event",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -477,6 +479,9 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
         self.fields["visibility"] = serializers.IntegerField(
             source="assessment_visibility"
         )
+
+    def get_event(self, obj):
+        return EventSerializer(obj.event, read_only=True, context=self.context).data
 
 
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
