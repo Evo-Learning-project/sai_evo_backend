@@ -111,6 +111,8 @@ class OrderableModel(TrackFieldsMixin):
     def get_ordering_position(self):
         # get all model instances that reference the same parent
         siblings = self.get_siblings()
+        if isinstance(siblings, list) and len(siblings) == 0:
+            return 0
 
         max_ordering = siblings.aggregate(max_ordering=Max("_ordering"))["max_ordering"]
         return max_ordering + 1 if max_ordering is not None else 0

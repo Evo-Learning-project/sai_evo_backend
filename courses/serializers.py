@@ -142,9 +142,9 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
-    public_tags = TagSerializer(many=True, read_only=True)
+    public_tags = TagSerializer(many=True, required=False)
     private_tags = TagSerializer(
-        many=True, read_only=True
+        many=True, required=False
     )  # TODO hide from non-teachers
 
     class Meta:
@@ -167,6 +167,9 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         # TODO you might only show this to teachers (students will always only see exercises through slots)
         self.fields["sub_exercises"] = RecursiveField(many=True, required=False)
 
+        kwargs.pop(
+            "many", False
+        )  # list serializer would pass this down to choice serializer, having parameter twice
         if self.context.pop("show_choices", True):
             self.fields["choices"] = ExerciseChoiceSerializer(
                 many=True,
@@ -184,8 +187,23 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             )
 
     def create(self, validated_data):
-        tags = validated_data.pop("tags", [])
-        return Exercise.objects.create(**validated_data)
+        public_tags = validated_data.pop("public_tags", [])
+        private_tags = validated_data.pop("private_tags", [])
+        instance = Exercise.objects.create(**validated_data)
+
+        for tag_name in public_tags:
+            tag, _ = Tag.objects.get_or_create(
+                course_id=validated_data["course_id"], name=tag_name["name"]
+            )
+            instance.public_tags.add(tag)
+
+        for tag_name in private_tags:
+            tag, _ = Tag.objects.get_or_create(
+                course_id=validated_data["course_id"], name=tag_name["name"]
+            )
+            instance.private_tags.add(tag)
+
+        return instance
 
     def update(self, instance, validated_data):
         # ignore related objects , as they must be dealt
@@ -193,6 +211,8 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         validated_data.pop("choices", [])
         validated_data.pop("testcases", [])
         validated_data.pop("sub_exercises", [])
+        validated_data.pop("private_tags", [])
+        validated_data.pop("public_tags", [])
 
         return super().update(instance, validated_data)
 
