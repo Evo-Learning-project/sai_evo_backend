@@ -26,36 +26,36 @@ class CoursePolicy(BaseAccessPolicy):
         # TODO prevent for unauthenticated
         {
             "action": ["list"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
         },
         {
             "action": ["set_permissions"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_permissions",
         },
         # {
         #     "action": ["enrolled"],
-        #     "principal": ["*"],
+        #     "principal": ["authenticated"],
         #     "effect": "allow",
         #     "condition": "has_teacher_privileges:view_enrolled",
         # },
         {
             "action": ["retrieve"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "is_visible_to",
         },
         {
             "action": ["create"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "is_teacher",
         },
         {
             "action": ["update", "partial_update"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:update_course",
         },
@@ -72,7 +72,7 @@ class CourseRolePolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["*"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_permissions",
         },
@@ -83,25 +83,25 @@ class EventPolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "is_course_visible_to",
         },
         {
             "action": ["create", "update", "partial_update"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_self_service_practice or has_teacher_privileges:manage_events",
         },
         {
             "action": ["retrieve"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "is_event_visible_to",
         },
         # {
         #     "action": ["update", "partial_update"],
-        #     "principal": ["*"],
+        #     "principal": ["authenticated"],
         #     "effect": "allow",
         #     "condition": "has_teacher_privileges:update_events",
         # },
@@ -125,7 +125,7 @@ class EventTemplatePolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["*"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_related_to_self_service_practice or has_teacher_privileges:manage_events",
         },
@@ -153,7 +153,7 @@ class TagPolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list", "retrieve"],  # "create"
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             # "condition": "has_teacher_privileges:access_exercises",
         },
@@ -164,19 +164,19 @@ class ExercisePolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list", "retrieve", "bulk_get"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:access_exercises",
         },
         {
             "action": ["create", "update", "partial_update", "destroy", "tags"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_exercises",
         },
         # {
         #     "action": ["update", "partial_update", "destroy", "tags"],
-        #     "principal": ["*"],
+        #     "principal": ["authenticated"],
         #     "effect": "allow",
         #     "condition": "has_teacher_privileges:modify_exercises",
         # },
@@ -189,13 +189,13 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list", "retrieve"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:access_exercises",
         },
         {
             "action": ["create", "update", "partial_update", "destroy"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_exercises",
         },
@@ -206,43 +206,43 @@ class EventParticipationPolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_events",  # "has_teacher_privileges:assess_participations",
         },
         {
             "action": ["retrieve"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_own_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["create"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "can_participate",
         },
         {
             "action": ["update", "partial_update", "go_forward", "go_back"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_own_participation and can_update_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["bulk_patch"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "has_teacher_privileges:assess_participations",
         },
         {
             "action": ["go_forward"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "can_go_forward",
         },
         {
             "action": ["go_back"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "can_go_back",
         },
@@ -298,19 +298,19 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
     statements = [
         {
             "action": ["list", "retrieve"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_in_own_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["update", "partial_update", "run"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["retrieve", "update", "partial_update"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "deny",
             "condition_expression": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
         },
