@@ -109,7 +109,7 @@ class TagQuerySet(models.QuerySet):
         pk_list = []
 
         for tag in qs:
-            if tag.public_exercises.public().exists():
+            if tag.public_in_exercises.public().exists():
                 pk_list.append(tag.pk)
 
         return qs.filter(id__in=pk_list)
