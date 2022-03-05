@@ -453,6 +453,14 @@ class Event(UUIDModel, TimestampableModel):
             self._event_state = Event.CLOSED
             self.save()
 
+        if (
+            self._event_state == Event.RESTRICTED
+            and self.users_allowed_past_closure.count()
+            == EventParticipation.objects.filter(event_instance__event=self).count()
+        ):
+            self._event_state = Event.OPEN
+            self.save()
+
         return self._event_state
 
     @state.setter
