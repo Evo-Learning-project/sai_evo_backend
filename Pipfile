@@ -20,6 +20,9 @@ django-cors-headers = "*"
 black = "*"
 django-stubs = "*"
 djangorestframework-stubs = "*"
+dj-database-url = "*"
+gunicorn = "*"
+whitenoise = "*"
 
 [dev-packages]
 mypy = "*"
