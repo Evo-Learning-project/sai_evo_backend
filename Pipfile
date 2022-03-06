@@ -23,6 +23,8 @@ djangorestframework-stubs = "*"
 dj-database-url = "*"
 gunicorn = "*"
 whitenoise = "*"
+psycopg2-binary = "*"
+psycopg2 = "*"
 
 [dev-packages]
 mypy = "*"
