@@ -818,6 +818,12 @@ class ParticipationSubmission(models.Model):
         return ret
 
 
+def get_attachment_path(instance, filename):
+    event = instance.submission.participation.event_instance.event
+    course = event.course
+    return f"{course.pk}/{event.pk}/{instance.slot_number}/{filename}"
+
+
 class ParticipationSubmissionSlot(SideSlotNumberedModel):
     submission = models.ForeignKey(
         ParticipationSubmission,
@@ -831,7 +837,7 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
         blank=True,
     )
     answer_text = models.TextField(blank=True)
-    attachment = models.FileField(null=True, blank=True)
+    attachment = models.FileField(null=True, blank=True, upload_to=get_attachment_path)
     execution_results = models.JSONField(blank=True, null=True)
 
     objects = ParticipationSubmissionSlotManager()

@@ -342,6 +342,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "score",
             "comment",
             "execution_results",
+            "attachment",
         ]
         hidden_fields = [
             "seen_at",

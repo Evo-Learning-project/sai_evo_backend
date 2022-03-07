@@ -6,3 +6,4 @@ htmlcov
 local
 .codegen
 .coverage
+media
