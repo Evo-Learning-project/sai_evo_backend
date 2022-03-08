@@ -929,9 +929,7 @@ class EventParticipation(models.Model):
         on_delete=models.PROTECT,
     )
     begin_timestamp = models.DateTimeField(auto_now_add=True)
-    end_timestamp = models.DateTimeField(
-        null=True, blank=True
-    )  # TODO set when state is updated to TURNED_IN
+    end_timestamp = models.DateTimeField(null=True, blank=True)
     state = models.PositiveSmallIntegerField(
         choices=PARTICIPATION_STATES,
         default=IN_PROGRESS,
@@ -1002,7 +1000,18 @@ class EventParticipation(models.Model):
         self.current_slot_cursor += (
             self.event.exercises_shown_at_a_time
         )  # ? max between this and max_slot_number?
+
         self.save()
+
+        # mark new current slot as seen
+        now = timezone.localtime(timezone.now())
+        current_submission_slot = self.submission.slots.get(
+            slot_number=self.current_slot_cursor
+        )
+        if current_submission_slot.seen_at is None:
+            current_submission_slot.seen_at = now
+            current_submission_slot.save()
+
         return self.current_slot_cursor
 
     def move_current_slot_cursor_back(self):
