@@ -27,6 +27,7 @@ class SubmissionAssessor:
         return sub_slots_score
 
     def get_no_automatic_assessment_score(self):
+        # TODO use ABC on this class and make this method abstract
         return None
 
     def assess(self):

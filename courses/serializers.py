@@ -44,8 +44,7 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
 
-class CourseSerializer(HiddenFieldsModelSerializer):
-    # is_enrolled = serializers.SerializerMethodField()
+class CourseSerializer(serializers.ModelSerializer):
     privileges = serializers.SerializerMethodField()
     creator = UserSerializer(read_only=True)
 
@@ -144,12 +143,14 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
         fields = ["id", "code", "text", "_ordering"]
         hidden_fields = ["testcase_type"]
 
+    # TODO! show code/text depending on testcase_type
+
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
     public_tags = TagSerializer(many=True, required=False)
     private_tags = TagSerializer(
         many=True, required=False
-    )  # TODO hide from non-teachers
+    )  # TODO! hide from non-teachers
 
     class Meta:
         model = Exercise
@@ -171,9 +172,9 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         # TODO you might only show this to teachers (students will always only see exercises through slots)
         self.fields["sub_exercises"] = RecursiveField(many=True, required=False)
 
-        kwargs.pop(
-            "many", False
-        )  # list serializer would pass this down to choice serializer, having parameter twice
+        # list serializer would pass this down to choice serializer, having parameter twice
+        kwargs.pop("many", False)
+
         if self.context.pop("show_choices", True):
             self.fields["choices"] = ExerciseChoiceSerializer(
                 many=True,
@@ -280,14 +281,14 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "allow_going_back",
             "exercises_shown_at_a_time",
             "template",
-            "users_allowed_past_closure",
+            "users_allowed_past_closure",  # TODO! set hidden fields for this serializer
             "participation_exists",
         ]
         hidden_fields = [
             # TODO make hidden fields work
             # "template",
             # "users_allowed_past_closure",
-            "exercises_shown_at_a_time",
+            # "exercises_shown_at_a_time",
             "access_rule",
             "access_rule_exceptions",
         ]

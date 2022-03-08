@@ -229,9 +229,10 @@ class Exercise(TimestampableModel, OrderableModel):
         ]
         constraints = [
             # models.UniqueConstraint(
-            #     # ! fields=["parent_id", "child_position"],
+            #     fields=["parent_id", "_ordering"],
             #     condition=Q(parent__isnull=False),
-            #     name="same_parent_unique_child_position",
+            #     name="same_parent_unique_ordering",
+            #     deferrable=models.Deferrable.DEFERRED,
             # )
         ]
 
@@ -281,7 +282,6 @@ class ExerciseChoice(OrderableModel):
                 deferrable=models.Deferrable.DEFERRED,
             ),
         ]
-        # TODO add constraints to other orderable models
 
     def __str__(self):
         return (
@@ -864,6 +864,8 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
         if self.pk is not None:  # can't clean as m2m field won't work without a pk
             # TODO clean the m2m field separately
             self.full_clean()
+
+        # TODO check if the slot contains an answer and set answered_at timestamp
         return super().save(*args, **kwargs)
 
     def clean(self, *args, **kwargs):

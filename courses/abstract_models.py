@@ -190,7 +190,6 @@ class SlotNumberedModel(UUIDModel):
 
 
 class SideSlotNumberedModel(SlotNumberedModel):
-    # TODO find a better name for the class
     class Meta:
         abstract = True
 

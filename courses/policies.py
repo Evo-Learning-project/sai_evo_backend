@@ -23,7 +23,6 @@ class BaseAccessPolicy(AccessPolicy):
 
 class CoursePolicy(BaseAccessPolicy):
     statements = [
-        # TODO prevent for unauthenticated
         {
             "action": ["list"],
             "principal": ["authenticated"],
@@ -35,12 +34,6 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_permissions",
         },
-        # {
-        #     "action": ["enrolled"],
-        #     "principal": ["authenticated"],
-        #     "effect": "allow",
-        #     "condition": "has_teacher_privileges:view_enrolled",
-        # },
         {
             "action": ["retrieve"],
             "principal": ["authenticated"],
@@ -99,12 +92,6 @@ class EventPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "is_event_visible_to",
         },
-        # {
-        #     "action": ["update", "partial_update"],
-        #     "principal": ["authenticated"],
-        #     "effect": "allow",
-        #     "condition": "has_teacher_privileges:update_events",
-        # },
     ]
 
     def is_self_service_practice(self, request, view, action):

@@ -21,7 +21,6 @@ class ExerciseManagerTestCase(TestCase):
         self.course = Course.objects.create(name="test_course")
         self.e1_text = "aaa"
 
-    # TODO add checks pertaining to the new `child_position` field in Exercise
     def test_multiple_choice_single_possible_exercise_creation(self):
         # supplying choices together with the exercise data creates the choices
         # related to that exercise

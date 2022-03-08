@@ -128,8 +128,6 @@ class ExerciseViewSetTestCase(BaseTestCase):
         )
 
         self.assertEqual(response.data["text"], exercise_text)
-        # ! fix this
-        # TODO self.assertListEqual(response.data["choices"], choices)
 
         exercise_pk = response.data["id"]
 
