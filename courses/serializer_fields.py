@@ -143,24 +143,10 @@ class ReadWriteSerializerMethodField(SerializerMethodField):
 
 class FileWithPreviewField(serializers.FileField):
     def to_representation(self, value):
-        print("VALUE", type(value))
-        print(value.size, value.name)
         if not value:
             return None
 
-        # use_url =  getattr(self, "use_url", api_settings.UPLOADED_FILES_USE_URL)
-        # if use_url:
-        #     try:
-        #         url = value.url
-        #     except AttributeError:
-        #         return None
-        #     request = self.context.get("request", None)
-        #     if request is not None:
-        #         return request.build_absolute_uri(url)
-        #     return url
-
-        # return value.name
         return {
-            "name": os.path.split(value.name)[1],  # value.name,
+            "name": os.path.split(value.name)[1],
             "size": value.size,
         }

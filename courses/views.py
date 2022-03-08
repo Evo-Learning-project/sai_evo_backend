@@ -1,3 +1,4 @@
+import os
 import time
 
 from django.shortcuts import get_object_or_404
@@ -559,4 +560,8 @@ class EventParticipationSlotViewSet(
         else:
             attachment = slot.attachment
 
-        return FileResponse(attachment, as_attachment=True, filename=attachment.name)
+        return FileResponse(
+            attachment,
+            as_attachment=True,
+            filename=os.path.split(attachment.name)[1],
+        )
