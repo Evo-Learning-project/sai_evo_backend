@@ -65,7 +65,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
-
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 ROOT_URLCONF = "core.urls"
 
