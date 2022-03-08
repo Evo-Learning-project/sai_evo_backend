@@ -1,8 +1,10 @@
 import importlib
 import inspect
+import os
 
 from rest_framework.fields import Field
 from rest_framework.serializers import BaseSerializer, SerializerMethodField
+from rest_framework import serializers
 
 
 def _signature_parameters(func):
@@ -137,3 +139,28 @@ class ReadWriteSerializerMethodField(SerializerMethodField):
 
     def to_internal_value(self, data):
         return {self.field_name: data}
+
+
+class FileWithPreviewField(serializers.FileField):
+    def to_representation(self, value):
+        print("VALUE", type(value))
+        print(value.size, value.name)
+        if not value:
+            return None
+
+        # use_url =  getattr(self, "use_url", api_settings.UPLOADED_FILES_USE_URL)
+        # if use_url:
+        #     try:
+        #         url = value.url
+        #     except AttributeError:
+        #         return None
+        #     request = self.context.get("request", None)
+        #     if request is not None:
+        #         return request.build_absolute_uri(url)
+        #     return url
+
+        # return value.name
+        return {
+            "name": os.path.split(value.name)[1],  # value.name,
+            "size": value.size,
+        }

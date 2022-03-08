@@ -303,7 +303,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
             "condition_expression": "is_in_own_participation or has_teacher_privileges:assess_participations",
         },
         {
-            "action": ["update", "partial_update", "run"],
+            "action": ["update", "partial_update", "run", "attachment"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",

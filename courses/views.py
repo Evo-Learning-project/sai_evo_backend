@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import User
 from users.serializers import UserSerializer
-
+from django.http import FileResponse
 from courses import policies
 from courses.logic import privileges
 from courses.logic.privileges import check_privilege
@@ -549,3 +549,14 @@ class EventParticipationSlotViewSet(
         slot.save()
         serializer = self.get_serializer_class()(slot)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def attachment(self, request, **kwargs):
+        slot = self.get_object()
+
+        if isinstance(slot, ParticipationAssessmentSlot):
+            attachment = slot.submission.attachment
+        else:
+            attachment = slot.attachment
+
+        return FileResponse(attachment, as_attachment=True, filename=attachment.name)

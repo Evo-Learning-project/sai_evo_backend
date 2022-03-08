@@ -20,7 +20,11 @@ from courses.models import (
     ParticipationSubmissionSlot,
     Tag,
 )
-from courses.serializer_fields import ReadWriteSerializerMethodField, RecursiveField
+from courses.serializer_fields import (
+    FileWithPreviewField,
+    ReadWriteSerializerMethodField,
+    RecursiveField,
+)
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -326,6 +330,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
 
     score = serializers.SerializerMethodField()
     comment = serializers.SerializerMethodField()
+    attachment = FileWithPreviewField()
 
     class Meta:
         model = ParticipationSubmissionSlot
@@ -394,7 +399,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
         self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
             many=True, source="submission.selected_choices", read_only=True
         )
-        self.fields["attachment"] = serializers.FileField(
+        self.fields["attachment"] = FileWithPreviewField(
             source="submission.attachment", read_only=True
         )
         self.fields["answer_text"] = serializers.CharField(
