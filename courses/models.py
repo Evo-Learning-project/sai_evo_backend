@@ -865,7 +865,14 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
             # TODO clean the m2m field separately
             self.full_clean()
 
-        # TODO check if the slot contains an answer and set answered_at timestamp
+        if (
+            self.selected_choices.exists()
+            or bool(self.attachment)
+            or bool(self.answer_text)
+        ) and self.answered_at is None:
+            now = timezone.localtime(timezone.now())
+            self.answered_at = now
+
         return super().save(*args, **kwargs)
 
     def clean(self, *args, **kwargs):
