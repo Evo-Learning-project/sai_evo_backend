@@ -241,9 +241,7 @@ class Exercise(TimestampableModel, OrderableModel):
 
     @property
     def max_score(self):
-        # if self.choices.count() == 0:
-        #     return None
-
+        # TODO add field to make this writable
         max_score = self.choices.all().aggregate(max_score=Max("score"))["max_score"]
         return max_score
 
@@ -865,13 +863,13 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
             # TODO clean the m2m field separately
             self.full_clean()
 
-        if (
-            self.selected_choices.exists()
-            or bool(self.attachment)
-            or bool(self.answer_text)
-        ) and self.answered_at is None:
-            now = timezone.localtime(timezone.now())
-            self.answered_at = now
+            if (
+                self.selected_choices.exists()
+                or bool(self.attachment)
+                or bool(self.answer_text)
+            ) and self.answered_at is None:
+                now = timezone.localtime(timezone.now())
+                self.answered_at = now
 
         return super().save(*args, **kwargs)
 
