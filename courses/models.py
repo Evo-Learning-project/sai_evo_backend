@@ -862,7 +862,6 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
         if self.pk is not None:  # can't clean as m2m field won't work without a pk
             # TODO clean the m2m field separately
             self.full_clean()
-
             if (
                 self.selected_choices.exists()
                 or bool(self.attachment)
