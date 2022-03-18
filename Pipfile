@@ -25,6 +25,7 @@ gunicorn = "*"
 whitenoise = "*"
 psycopg2-binary = "*"
 psycopg2 = "*"
+sentry-sdk = "*"
 
 [dev-packages]
 mypy = "*"
