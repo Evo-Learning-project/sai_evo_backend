@@ -301,6 +301,15 @@ class EventViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         return qs.filter(course_id=self.kwargs["course_pk"])
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["show_hidden_fields"] = check_privilege(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.MANAGE_EVENTS,
+        )
+        return context
+
     def perform_create(self, serializer):
         serializer.save(
             course_id=self.kwargs["course_pk"],
@@ -390,12 +399,15 @@ class EventParticipationViewSet(
     )
     permission_classes = [policies.EventParticipationPolicy]
 
-    # def get_serializer_context(self):
-    #     context = super().get_serializer_context()
-    #     if self.action == "retrieve":
-    #         participation = self.get_object()
-    #         context["show_assessment"] = participation.is_assessment_available()
-    #     return context
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "retrieve":
+            participation = self.get_object()
+            context["show_solution"] = (
+                participation.event_instance.event.event_type
+                == Event.SELF_SERVICE_PRACTICE
+            )
+        return context
 
     def get_serializer_class(self):
         force_student = "as_student" in self.request.query_params
@@ -425,7 +437,6 @@ class EventParticipationViewSet(
         )
 
     def create(self, request, *args, **kwargs):
-
         # cannot use get_or_create because the custom manager won't be called
         # participation, _ = self.get_queryset().get_or_create(user=request.user)
         try:
@@ -451,7 +462,6 @@ class EventParticipationViewSet(
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         data = request.data
-        print(request.data)
         ret = []
         for pk in id_list:
             participation = get_object_or_404(self.get_queryset(), pk=pk)

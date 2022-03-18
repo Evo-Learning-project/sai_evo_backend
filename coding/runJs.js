@@ -106,6 +106,7 @@ const outputArrIdentifier = getRandomIdentifier(20);
 // turn array of strings representing assertions to a series of try-catch blocks
 //  where those assertions are evaluated and the result is pushed to an array
 // the resulting string will be inlined into the program that the vm will run
+// TODO generate random identifier for 'ran' object!!
 const assertionString = assertions
   .map(
     (a) =>

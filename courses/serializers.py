@@ -134,6 +134,13 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
         fields = ["id", "text", "_ordering"]
         hidden_fields = ["score"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context.get("show_solution", False):
+            self.fields["score"] = serializers.DecimalField(
+                max_digits=5, decimal_places=2
+            )
+
 
 class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
     _ordering = serializers.IntegerField(required=False)
@@ -148,9 +155,6 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
     public_tags = TagSerializer(many=True, required=False)
-    private_tags = TagSerializer(
-        many=True, required=False
-    )  # TODO! hide from non-teachers
 
     class Meta:
         model = Exercise
@@ -161,7 +165,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "label",
             # "child_position",
             "public_tags",
-            "private_tags",
+            # "private_tags",
             "max_score",
         ]
         hidden_fields = ["solution", "state"]
@@ -190,6 +194,12 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
                 *args,
                 **kwargs,
             )
+
+        if self.show_hidden_fields:
+            self.fields["private_tags"] = TagSerializer(many=True, required=False)
+
+        if self.context.get("show_solution", False):
+            self.fields["solution"] = serializers.CharField()
 
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])
@@ -264,7 +274,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(HiddenFieldsModelSerializer):
-    template = EventTemplateSerializer(read_only=True)
+    template = serializers.SerializerMethodField()
     participation_exists = serializers.SerializerMethodField()
     state = ReadWriteSerializerMethodField()
 
@@ -281,17 +291,21 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "allow_going_back",
             "exercises_shown_at_a_time",
             "template",
-            "users_allowed_past_closure",  # TODO! set hidden fields for this serializer
+            # "users_allowed_past_closure",
             "participation_exists",
         ]
         hidden_fields = [
-            # TODO make hidden fields work
             # "template",
-            # "users_allowed_past_closure",
+            "users_allowed_past_closure",
             # "exercises_shown_at_a_time",
             "access_rule",
             "access_rule_exceptions",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # if self.show_hidden_fields:
+        #     self.fields["template"] = EventTemplateSerializer(read_only=True)
 
     def get_state(self, obj):
         state = obj.state
@@ -316,10 +330,15 @@ class EventSerializer(HiddenFieldsModelSerializer):
         except KeyError:
             return None
 
+    def get_template(self, obj):
+        if self.show_hidden_fields or obj.event_type == Event.SELF_SERVICE_PRACTICE:
+            return EventTemplateSerializer(obj.template).data
+        return None
+
 
 class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True)
-    exercise = ExerciseSerializer()
+    exercise = serializers.SerializerMethodField()  # ExerciseSerializer()
     is_last = serializers.BooleanField(
         read_only=True,
         source="participation.is_cursor_last_position",
@@ -372,6 +391,9 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
         return obj.assessment.comment
         # return serializers.CharField(source="assessment.comment")
 
+    def get_exercise(self, obj):
+        return ExerciseSerializer(obj.exercise, context=self.context).data
+
 
 class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True, read_only=True)
@@ -396,7 +418,6 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # TODO remove the read_only
         self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
             many=True, source="submission.selected_choices", read_only=True
         )
@@ -453,6 +474,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
             self.fields["slots"] = ParticipationSubmissionSlotSerializer(
                 many=True,
                 source="submission.current_slots",
+                context=self.context,
             )
         self.fields["assessment_available"] = serializers.SerializerMethodField()
 
@@ -552,7 +574,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 submission_fields_write = capabilities.get(
                     "submission_fields_write", False
                 )
-                # TODO find a way to make these writable
+                # find a way to make these writable
                 self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
                     many=True,
                     source="submission.selected_choices",
@@ -596,7 +618,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         if capabilities.get("assessment_fields_read", False):
             # include teacher fields
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
-            # TODO currently cannot write to this field, refactor to have score as a property on participation
+            # currently cannot write to this field, refactor to have score as a property on participation
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5,
                 decimal_places=2,
