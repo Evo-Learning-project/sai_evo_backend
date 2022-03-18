@@ -3,6 +3,8 @@ import os
 import dj_database_url
 
 from .base import *
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 DEBUG = False
 
@@ -76,14 +78,14 @@ LOGGING = {
 # import sentry_sdk
 # from sentry_sdk.integrations.django import DjangoIntegration
 
-# sentry_sdk.init(
-#     dsn="https://0097c48067734bd9bb7dbaa3b82c0fbf@o1003719.ingest.sentry.io/5964320",  # use env var
-#     integrations=[DjangoIntegration()],
-#     # Set traces_sample_rate to 1.0 to capture 100%
-#     # of transactions for performance monitoring.
-#     # We recommend adjusting this value in production.
-#     traces_sample_rate=1.0,
-#     # If you wish to associate users to errors (assuming you are using
-#     # django.contrib.auth) you may enable sending PII data.
-#     send_default_pii=True,
-# )
+sentry_sdk.init(
+    dsn="https://36f5d66ec4a44fa8965a3adfef7d289f@o1003719.ingest.sentry.io/6265953",
+    integrations=[DjangoIntegration()],
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True,
+)
