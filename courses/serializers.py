@@ -136,9 +136,10 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        print("THIS IS THE CONTEXT RECEIVED BY THE CHOICES", self.context)
         if self.context.get("show_solution", False):
             self.fields["score"] = serializers.DecimalField(
-                max_digits=5, decimal_places=2
+                max_digits=5, decimal_places=1
             )
 
 
@@ -198,7 +199,12 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         if self.show_hidden_fields:
             self.fields["private_tags"] = TagSerializer(many=True, required=False)
 
+        print("THIS IS THE CONTEXT RECEIVED BY EXERCISE", self.context)
         if self.context.get("show_solution", False):
+            print(
+                "--------__!!!! SOLUTION IS BEING SHOWN!!!!! ---------_",
+                "\n\n--------\n\n",
+            )
             self.fields["solution"] = serializers.CharField()
 
     def create(self, validated_data):
@@ -369,10 +375,11 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "execution_results",
             "attachment",
         ]
-        hidden_fields = [
-            "seen_at",
-            "answered_at",
-        ]
+        # TODO removing these shouldn't make a difference - test!
+        # hidden_fields = [
+        #     "seen_at",
+        #     "answered_at",
+        # ]
         read_only_fields = ["execution_results"]
 
     def get_score(self, obj):
@@ -380,25 +387,22 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             return None
 
         return obj.assessment.score
-        # return serializers.DecimalField(
-        #     max_digits=5, decimal_places=2, source="assessment.score"
-        # )
 
     def get_comment(self, obj):
         if not obj.participation.is_assessment_available():
             return None
 
         return obj.assessment.comment
-        # return serializers.CharField(source="assessment.comment")
 
     def get_exercise(self, obj):
+        print("THIS IS THE CONTEXT RECEIVED BY THE SLOT", self.context)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
 
 class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True, read_only=True)
     exercise = ExerciseSerializer(read_only=True)
-    score = serializers.DecimalField(max_digits=5, decimal_places=2)
+    score = serializers.DecimalField(max_digits=5, decimal_places=1)
 
     class Meta:
         model = ParticipationAssessmentSlot
@@ -451,7 +455,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     max_score = serializers.DecimalField(
         max_digits=5,
-        decimal_places=2,
+        decimal_places=1,
         source="event_instance.max_score",
     )
 
@@ -471,6 +475,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.context.pop("preview", False):
+            print("THIS IS THE CONTEXT RECEIVED BY STUDENT SERIALIZER", self.context)
             self.fields["slots"] = ParticipationSubmissionSlotSerializer(
                 many=True,
                 source="submission.current_slots",
@@ -554,7 +559,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 )
                 self.fields["score"] = serializers.DecimalField(
                     max_digits=5,
-                    decimal_places=2,
+                    decimal_places=1,
                     read_only=(not assessment_fields_write),
                 )
                 self.fields["comment"] = serializers.CharField(
@@ -593,7 +598,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
 class EventParticipationSerializer(serializers.ModelSerializer):
     max_score = serializers.DecimalField(
         max_digits=5,
-        decimal_places=2,
+        decimal_places=1,
         source="event_instance.max_score",
     )
 
@@ -621,7 +626,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             # currently cannot write to this field, refactor to have score as a property on participation
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5,
-                decimal_places=2,
+                decimal_places=1,
                 source="assessment.score",
                 read_only=(not assessment_fields_write),
             )

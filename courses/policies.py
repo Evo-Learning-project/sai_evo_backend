@@ -16,7 +16,10 @@ class BaseAccessPolicy(AccessPolicy):
             else view.kwargs.get("course_pk")  # nested view
         )
 
-        course = Course.objects.get(pk=course_pk)
+        try:
+            course = Course.objects.get(pk=course_pk)
+        except ValueError:
+            return False
 
         return check_privilege(request.user, course, privilege)
 
