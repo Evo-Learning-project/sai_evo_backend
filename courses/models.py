@@ -211,6 +211,7 @@ class Exercise(TimestampableModel, OrderableModel):
     label = models.CharField(max_length=75, blank=True)
     text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
+    initial_code = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=PUBLIC)
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
     skip_if_timeout = models.BooleanField(default=False)

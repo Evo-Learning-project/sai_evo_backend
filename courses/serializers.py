@@ -213,6 +213,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "label",
             "public_tags",
             "max_score",
+            "initial_code",
         ]
         # hidden_fields = ["solution", "state"]
 
@@ -419,7 +420,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
             "exercise",
             "sub_slots",
             "selected_choices",
-            "answer_text",
+            "answer_text",  # ? remove trim_whitespace?
             "attachment",
             "is_last",
             "is_first",
