@@ -410,7 +410,7 @@ class EventParticipationViewSet(
                 participation.event_instance.event.event_type
                 == Event.SELF_SERVICE_PRACTICE
             )
-        print("THIS IS THE CONTEXT PASSED TO SERIALIZERS", context)
+        # print("THIS IS THE CONTEXT PASSED TO SERIALIZERS", context)
         return context
 
     def get_serializer_class(self):

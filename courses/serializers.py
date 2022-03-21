@@ -136,7 +136,7 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print("THIS IS THE CONTEXT RECEIVED BY THE CHOICES", self.context)
+        # print("THIS IS THE CONTEXT RECEIVED BY THE CHOICES", self.context)
         if self.context.get("show_solution", False):
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5, decimal_places=1
@@ -199,12 +199,12 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         if self.show_hidden_fields:
             self.fields["private_tags"] = TagSerializer(many=True, required=False)
 
-        print("THIS IS THE CONTEXT RECEIVED BY EXERCISE", self.context)
+        # print("THIS IS THE CONTEXT RECEIVED BY EXERCISE", self.context)
         if self.context.get("show_solution", False):
-            print(
-                "--------__!!!! SOLUTION IS BEING SHOWN!!!!! ---------_",
-                "\n\n--------\n\n",
-            )
+            # print(
+            #     "--------__!!!! SOLUTION IS BEING SHOWN!!!!! ---------_",
+            #     "\n\n--------\n\n",
+            # )
             self.fields["solution"] = serializers.CharField()
 
     def create(self, validated_data):
@@ -395,7 +395,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
         return obj.assessment.comment
 
     def get_exercise(self, obj):
-        print("THIS IS THE CONTEXT RECEIVED BY THE SLOT", self.context)
+        # print("THIS IS THE CONTEXT RECEIVED BY THE SLOT", self.context)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
 
@@ -475,7 +475,7 @@ class StudentViewEventParticipationSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.context.pop("preview", False):
-            print("THIS IS THE CONTEXT RECEIVED BY STUDENT SERIALIZER", self.context)
+            # print("THIS IS THE CONTEXT RECEIVED BY STUDENT SERIALIZER", self.context)
             self.fields["slots"] = ParticipationSubmissionSlotSerializer(
                 many=True,
                 source="submission.current_slots",
