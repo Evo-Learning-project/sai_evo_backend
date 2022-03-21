@@ -415,6 +415,27 @@ class EventParticipationViewSet(
 
     def get_serializer_class(self):
         force_student = "as_student" in self.request.query_params
+        print(
+            "RETURNING"
+            + (
+                "teacher"
+                if not force_student
+                and (
+                    check_privilege(
+                        self.request.user,
+                        self.kwargs["course_pk"],
+                        privileges.ASSESS_PARTICIPATIONS,
+                    )
+                    or check_privilege(
+                        self.request.user,
+                        self.kwargs["course_pk"],
+                        privileges.MANAGE_EVENTS,
+                    )
+                )
+                else "student"
+            )
+            + "serializer"
+        )
         return (
             TeacherViewEventParticipationSerializer
             if not force_student

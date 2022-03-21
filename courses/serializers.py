@@ -136,6 +136,7 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        print("SCORE", self.show_hidden_fields)
         print("THIS IS THE CONTEXT RECEIVED BY THE CHOICES", self.context)
         if self.context.get("show_solution", False):
             self.fields["score"] = serializers.DecimalField(
