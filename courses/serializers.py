@@ -174,9 +174,31 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseTestCase
         fields = ["id", "code", "text", "_ordering"]
-        hidden_fields = ["testcase_type"]
+        # hidden_fields = ["testcase_type"]
 
-    # TODO! show code/text depending on testcase_type
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context("show_hidden_fields", False):
+            self.fields["testcase_type"] = serializers.IntegerField()
+        else:
+            # for unauthorized users, overwrite code and text fields to enforce visibility rule
+            self.fields["code"] = serializers.SerializerMethodField()
+            self.fields["text"] = serializers.SerializerMethodField()
+
+    def get_code(self, obj):
+        return (
+            obj.code
+            if obj.testcase_type == ExerciseTestCase.SHOW_CODE_SHOW_TEXT
+            else None
+        )
+
+    def get_text(self, obj):
+        return (
+            obj.text
+            if obj.testcase_type == ExerciseTestCase.SHOW_CODE_SHOW_TEXT
+            or obj.testcase_type == ExerciseTestCase.SHOW_TEXT_ONLY
+            else None
+        )
 
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
