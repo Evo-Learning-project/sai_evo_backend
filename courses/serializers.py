@@ -178,7 +178,7 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context("show_hidden_fields", False):
+        if self.context.get("show_hidden_fields", False):
             self.fields["testcase_type"] = serializers.IntegerField()
         else:
             # for unauthorized users, overwrite code and text fields to enforce visibility rule
