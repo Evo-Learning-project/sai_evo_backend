@@ -136,7 +136,7 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # print("THIS IS THE CONTEXT RECEIVED BY THE CHOICES", self.context)
+        print("THIS IS THE CONTEXT RECEIVED BY THE CHOICES", self.context)
         if self.context.get("show_solution", False):
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5, decimal_places=1
@@ -395,7 +395,7 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
         return obj.assessment.comment
 
     def get_exercise(self, obj):
-        # print("THIS IS THE CONTEXT RECEIVED BY THE SLOT", self.context)
+        print("THIS IS THE CONTEXT RECEIVED BY THE SLOT", self.context)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
 
