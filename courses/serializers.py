@@ -227,7 +227,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         if self.context.get("show_hidden_fields", False) or self.context.get(
             "show_solution", False
         ):
-            self.fields["solution"] = serializers.CharField()
+            self.fields["solution"] = serializers.CharField(allow_blank=True)
             self.fields["state"] = serializers.IntegerField()
 
     def create(self, validated_data):
