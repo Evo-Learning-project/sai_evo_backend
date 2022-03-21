@@ -214,6 +214,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "public_tags",
             "max_score",
             "initial_code",
+            "state",
         ]
         # hidden_fields = ["solution", "state"]
 
@@ -234,7 +235,6 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
                 # *args,
                 # **kwargs,
             )
-
         if self.context.pop("show_testcases", True):
             self.fields["testcases"] = ExerciseTestCaseSerializer(
                 many=True,
@@ -246,12 +246,13 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
 
         if self.context.get("show_hidden_fields", False):
             self.fields["private_tags"] = TagSerializer(many=True, required=False)
+        else:  # TODO find a more elegant way
+            self.fields.pop("state", None)
 
         if self.context.get("show_hidden_fields", False) or self.context.get(
             "show_solution", False
         ):
             self.fields["solution"] = serializers.CharField(allow_blank=True)
-            self.fields["state"] = serializers.IntegerField()
 
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])
