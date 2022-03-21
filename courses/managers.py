@@ -146,7 +146,7 @@ class ExerciseManager(models.Manager):
                     course=exercise.course,
                     exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
                     choices=choice_group,
-                    child_position=child_position,
+                    # child_position=child_position,
                 )
                 child_position += 1
         elif exercise.exercise_type == Exercise.JS:
@@ -160,7 +160,7 @@ class ExerciseManager(models.Manager):
                 Exercise.objects.create(
                     parent=exercise,
                     course=exercise.course,
-                    child_position=child_position,
+                    # child_position=child_position,
                     **sub_exercise,
                 )
                 child_position += 1

@@ -5,10 +5,11 @@ from courses.models import (
     EventInstance,
     EventTemplate,
     EventTemplateRule,
+    EventTemplateRuleClause,
     Exercise,
+    Tag,
 )
 from django.test import TestCase
-from tags.models import Tag
 
 
 class GetExercisesFromTemplateTestCase(TestCase):
@@ -107,17 +108,27 @@ class GetExercisesFromTemplateTestCase(TestCase):
             },
         ]
 
-        self.template = EventTemplate.objects.create(course=self.course, rules=rules)
+        self.template = (
+            self.event.template
+        )  # EventTemplate.objects.create(course=self.course)
+        for rule in rules:
+            exercises = rule.pop("exercises", [])
+            tags = rule.pop("tags", [])
+            r = EventTemplateRule.objects.create(**rule, template=self.template)
+            r.exercises.set(exercises)
+            for tag_group in tags:
+                c = EventTemplateRuleClause.objects.create(rule=r)
+                c.tags.set(tag_group)
 
-        self.e1.tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
-        self.e2.tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
-        self.e3.tags.set(
+        self.e1.public_tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
+        self.e2.public_tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
+        self.e3.public_tags.set(
             [self.tag7, self.tag4, self.tag5, self.tag6]
         )  # satisfies rule 3
-        self.e4.tags.set(
+        self.e4.public_tags.set(
             [self.tag7, self.tag4, self.tag5, self.tag8]  # satisfies rule 3
         )
-        self.e5.tags.set(
+        self.e5.public_tags.set(
             [
                 self.tag7,
                 self.tag4,
@@ -125,7 +136,7 @@ class GetExercisesFromTemplateTestCase(TestCase):
                 self.tag1,
             ]  # satisfies rule 2 and rule 3
         )
-        self.e6.tags.set([self.tag9, self.tag8])  # satisfies rule 4
+        self.e6.public_tags.set([self.tag9, self.tag8])  # satisfies rule 4
 
     def test_get_exercises_from_template(self):
         # show the function get_exercises_from(template) correctly applies the rules
@@ -148,7 +159,7 @@ class GetExercisesFromTemplateTestCase(TestCase):
             self.event.template = self.template
             self.event.save()
 
-            instance = EventInstance.objects.create(event=self.event)
+            instance = EventInstance.objects.create(event_id=self.event.pk)
             self.assertIn(
                 instance.slots.base_slots().get(slot_number=0).exercise.pk,
                 [self.e1.pk, self.e2.pk],

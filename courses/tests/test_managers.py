@@ -9,10 +9,10 @@ from courses.models import (
     Exercise,
     ParticipationAssessment,
     ParticipationSubmission,
+    Tag,
 )
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from tags.models import Tag
 from users.models import User
 
 
@@ -539,15 +539,25 @@ class EventTemplateManagerTestCase(TestCase):
             },
         ]
 
-        template = EventTemplate.objects.create(course=self.course, rules=rules)
+        template = EventTemplate.objects.create(course=self.course)  # rules=rules)
+        for rule in rules:
+            exercises = rule.pop("exercises", [])
+            tags = rule.pop("tags", [])
+            r = EventTemplateRule.objects.create(**rule, template=template)
+            r.exercises.set(exercises)
+            for tag_group in tags:
+                c = EventTemplateRuleClause.objects.create(rule=r)
+                c.tags.set(tag_group)
+            rule["exercises"] = exercises
+            rule["tags"] = tags
 
         i = 0
         for rule in template.rules.all():
             self.assertEqual(rule.rule_type, rules[i]["rule_type"])
             if rule.rule_type == EventTemplateRule.ID_BASED:
-                self.assertListEqual(
-                    [e.pk for e in rule.exercises.all()],
-                    [e.pk for e in rules[i]["exercises"]],
+                self.assertSetEqual(
+                    set([e.pk for e in rule.exercises.all()]),
+                    set([e.pk for e in rules[i]["exercises"]]),
                 )
             else:
                 # show that a clause has been created for each group of tags supplied
@@ -685,17 +695,19 @@ class EventParticipationManagerTestCase(TestCase):
             },
         ]
 
-        self.template = EventTemplate.objects.create(course=self.course, rules=rules)
+        self.template = (
+            self.event.template
+        )  # EventTemplate.objects.create(course=self.course, rules=rules)
 
-        self.e1.tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
-        self.e2.tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
-        self.e3.tags.set(
+        self.e1.public_tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
+        self.e2.public_tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
+        self.e3.public_tags.set(
             [self.tag7, self.tag4, self.tag5, self.tag6]
         )  # satisfies rule 3
-        self.e4.tags.set(
+        self.e4.public_tags.set(
             [self.tag7, self.tag4, self.tag5, self.tag8]  # satisfies rule 3
         )
-        self.e5.tags.set(
+        self.e5.public_tags.set(
             [
                 self.tag7,
                 self.tag4,
@@ -703,7 +715,7 @@ class EventParticipationManagerTestCase(TestCase):
                 self.tag1,
             ]  # satisfies rule 2 and rule 3
         )
-        self.e6.tags.set([self.tag9, self.tag8])  # satisfies rule 4
+        self.e6.public_tags.set([self.tag9, self.tag8])  # satisfies rule 4
 
     def rec_validate_sub_slots(self, parent, assessment_slot, submission_slot):
         for sub_slot in parent.sub_slots.all():
