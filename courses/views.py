@@ -410,7 +410,6 @@ class EventParticipationViewSet(
                 participation.event_instance.event.event_type
                 == Event.SELF_SERVICE_PRACTICE
             )
-        print("THIS IS THE CONTEXT PASSED TO SERIALIZERS", context)
         return context
 
     def get_serializer_class(self):
@@ -441,7 +440,6 @@ class EventParticipationViewSet(
         )
 
     def create(self, request, *args, **kwargs):
-        print("--------create")
         # cannot use get_or_create because the custom manager won't be called
         # participation, _ = self.get_queryset().get_or_create(user=request.user)
         try:

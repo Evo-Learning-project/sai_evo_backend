@@ -1,5 +1,6 @@
 from django.db.models import Exists, OuterRef
 from rest_framework import serializers
+from users.models import User
 from users.serializers import UserSerializer
 
 from courses.logic.privileges import MANAGE_EVENTS, check_privilege, get_user_privileges
@@ -33,16 +34,37 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
     is provided and contains key `show_hidden_fields` with a truthy value
     """
 
-    def __init__(self, *args, **kwargs):
-        context = kwargs.get("context")
-        self.show_hidden_fields = context is not None and context.get(
-            "show_hidden_fields", False
-        )
+    # note: using this serializer the way shown below has proven to be incorrect, as the methods
+    # init and get_field_names may be called only once and affect all future accesses to the serializer
+    # for now, the best thing seems to be checking the context manually in each serializer.
+    # try and find another abstraction for this behavior (maybe even generalizable, such as having a dict of
+    # {string: string[]ƒ}, where the key of a record if a property that must be in the context in order to have
+    # the fields in the value included)
 
-        if self.show_hidden_fields:
-            print("????????????SHOWING HIDDEN FIELDS???????????")
-            self.Meta.fields.extend(self.Meta.hidden_fields)
-        super().__init__(*args, **kwargs)
+    pass
+
+    # def __init__(self, *args, **kwargs):
+    #     print("____________________-INITING______________________")
+    #     context = kwargs.get("context")
+    #     self.show_hidden_fields = context is not None and context.get(
+    #         "show_hidden_fields", False
+    #     )
+
+    #     if self.show_hidden_fields:
+    #         print("????????????SHOWING HIDDEN FIELDS???????????")
+    #         # self.Meta.fields.extend(self.Meta.hidden_fields)
+    #     super().__init__(*args, **kwargs)
+
+    # def get_field_names(self, declared_fields, info):
+    #     show_hidden_fields = self.context is not None and self.context.get(
+    #         "show_hidden_fields", False
+    #     )
+    #     self.show_hidden_fields = False
+    #     fields = super().get_field_names(declared_fields, info)
+    #     if show_hidden_fields:
+    #         fields.extend(self.Meta.hidden_fields)
+    #     print("fields:", fields)
+    #     return fields
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -133,12 +155,14 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseChoice
         fields = ["id", "text", "_ordering"]
-        hidden_fields = ["score"]
+        # hidden_fields = ["score"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context.get("show_solution", False):
-            print("!!!!!!!!!SCORE IS BEING SHOWN!!!!!!!!!!!!!")
+        if self.context.get(
+            "show_solution",
+            False,
+        ) or self.context.get("show_hidden_fields", False):
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5, decimal_places=1
             )
@@ -168,7 +192,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "public_tags",
             "max_score",
         ]
-        hidden_fields = ["solution", "state"]
+        # hidden_fields = ["solution", "state"]
 
     def __init__(self, *args, **kwargs):
         kwargs.pop("required", None)  # TODO remove this
@@ -197,13 +221,14 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
                 # **kwargs,
             )
 
-        if self.show_hidden_fields:
+        if self.context.get("show_hidden_fields", False):
             self.fields["private_tags"] = TagSerializer(many=True, required=False)
 
-        # #print("THIS IS THE CONTEXT RECEIVED BY EXERCISE", self.context)
-        if self.context.get("show_solution", False):
-            print("!!!!!!!!!!!SOLUTION BEING SHOWN!!!!!!!!!!!")
+        if self.context.get("show_hidden_fields", False) or self.context.get(
+            "show_solution", False
+        ):
             self.fields["solution"] = serializers.CharField()
+            self.fields["state"] = serializers.IntegerField()
 
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])
@@ -295,21 +320,26 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "allow_going_back",
             "exercises_shown_at_a_time",
             "template",
-            # "users_allowed_past_closure",
+            "users_allowed_past_closure",
             "participation_exists",
         ]
         hidden_fields = [
             # "template",
-            "users_allowed_past_closure",
-            # "exercises_shown_at_a_time",
-            "access_rule",
-            "access_rule_exceptions",
+            # "users_allowed_past_closure",
+            # # "exercises_shown_at_a_time",
+            # "access_rule", #!
+            # "access_rule_exceptions", #!
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # if self.show_hidden_fields:
-        #     self.fields["template"] = EventTemplateSerializer(read_only=True)
+        if self.context.get("show_hidden_fields", False):
+            self.fields["users_allowed_past_closure"] = serializers.ManyRelatedField(
+                child_relation=serializers.PrimaryKeyRelatedField(
+                    queryset=User.objects.all(), required=False
+                ),
+                required=False,
+            )
 
     def get_state(self, obj):
         state = obj.state
@@ -335,7 +365,10 @@ class EventSerializer(HiddenFieldsModelSerializer):
             return None
 
     def get_template(self, obj):
-        if self.show_hidden_fields or obj.event_type == Event.SELF_SERVICE_PRACTICE:
+        if (
+            self.context.get("show_hidden_fields", False)
+            or obj.event_type == Event.SELF_SERVICE_PRACTICE
+        ):
             return EventTemplateSerializer(obj.template).data
         return None
 
