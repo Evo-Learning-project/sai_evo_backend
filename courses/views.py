@@ -568,6 +568,9 @@ class EventParticipationSlotViewSet(
         else:
             attachment = slot.attachment
 
+        if not bool(attachment):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         return FileResponse(
             attachment,
             as_attachment=True,
