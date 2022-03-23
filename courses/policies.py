@@ -132,7 +132,10 @@ class EventTemplatePolicy(BaseAccessPolicy):
         if isinstance(view, EventTemplateRuleViewSet) or isinstance(
             view, EventTemplateRuleClauseViewSet
         ):
-            template = EventTemplate.objects.get(pk=view.kwargs["template_pk"])
+            try:
+                template = EventTemplate.objects.get(pk=view.kwargs["template_pk"])
+            except ValueError:
+                return False
         else:
             template = view.get_object()
 
@@ -249,6 +252,8 @@ class EventParticipationPolicy(BaseAccessPolicy):
             event = Event.objects.get(pk=view.kwargs["event_pk"])
         except Event.DoesNotExist:
             return True
+        except ValueError:
+            return False
 
         if event.state != Event.OPEN:
             return False
@@ -265,7 +270,11 @@ class EventParticipationPolicy(BaseAccessPolicy):
         if participation.state == EventParticipation.TURNED_IN:
             return False
 
-        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        try:
+            event = Event.objects.get(pk=view.kwargs["event_pk"])
+        except ValueError:
+            return False
+
         return event.state == Event.OPEN or (
             event.state == Event.RESTRICTED
             and request.user in event.users_allowed_past_closure
@@ -279,7 +288,10 @@ class EventParticipationPolicy(BaseAccessPolicy):
         from courses.models import Event
 
         participation = view.get_object()
-        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        try:
+            event = Event.objects.get(pk=view.kwargs["event_pk"])
+        except ValueError:
+            return False
 
         return not participation.is_cursor_first_position and event.allow_going_back
 
@@ -318,7 +330,11 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
         if participation.state == EventParticipation.TURNED_IN:
             return False
 
-        event = Event.objects.get(pk=view.kwargs["event_pk"])
+        try:
+            event = Event.objects.get(pk=view.kwargs["event_pk"])
+        except ValueError:
+            return False
+
         return event.state == Event.OPEN or (
             event.state == Event.RESTRICTED
             and request.user in event.users_allowed_past_closure.all()
