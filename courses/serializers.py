@@ -590,6 +590,18 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             source="assessment_visibility"
         )
 
+    def update(self, instance, validated_data):
+        # nested writing
+        assessment = validated_data.pop("assessment", None)
+        if assessment is not None:
+            score = assessment.pop("score", None)
+            if score is not None:
+                instance_assessment = instance.assessment
+                instance_assessment.score = score
+                instance_assessment.save()
+
+        return super().update(instance, validated_data)
+
     def get_event(self, obj):
         return EventSerializer(obj.event, read_only=True, context=self.context).data
 
