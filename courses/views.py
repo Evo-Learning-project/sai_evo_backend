@@ -236,6 +236,13 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
     queryset = ExerciseChoice.objects.all()
     permission_classes = [policies.ExerciseRelatedObjectsPolicy]
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # this viewset is meant to be accessed by privileged users, therefore
+        # they need to be able to access the hidden serializer fields
+        context["show_hidden_fields"] = True
+        return context
+
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(exercise_id=self.kwargs["exercise_pk"])
@@ -250,6 +257,13 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseTestCaseSerializer
     queryset = ExerciseTestCase.objects.all()
     permission_classes = [policies.ExerciseRelatedObjectsPolicy]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # this viewset is meant to be accessed by privileged users, therefore
+        # they need to be able to access the hidden serializer fields
+        context["show_hidden_fields"] = True
+        return context
 
     def get_queryset(self):
         qs = super().get_queryset()
