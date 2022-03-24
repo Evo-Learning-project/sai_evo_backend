@@ -32,9 +32,9 @@ class ExerciseQuerySet(models.QuerySet):
         """
         Returns the exercises that satisfy an EventTemplateRule
         """
-        from courses.models import EventTemplateRule
+        from courses.models import EventTemplateRule, Exercise
 
-        ret_qs = self
+        ret_qs = self.exclude(state=Exercise.DRAFT)
 
         if rule.rule_type == EventTemplateRule.ID_BASED:
             ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])

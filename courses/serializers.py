@@ -313,7 +313,11 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
 
         return {
             "count": qs.count(),
-            "example": ExerciseSerializer(qs.first()).data if qs.count() > 0 else None,
+            "example": ExerciseSerializer(
+                qs.first(), context={"show_hidden_fields": True}
+            ).data
+            if qs.count() > 0
+            else None,
         }
 
 
