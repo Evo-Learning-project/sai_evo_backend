@@ -252,7 +252,9 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         if self.context.get("show_hidden_fields", False) or self.context.get(
             "show_solution", False
         ):
-            self.fields["solution"] = serializers.CharField(allow_blank=True)
+            self.fields["solution"] = serializers.CharField(
+                required=False, allow_blank=True
+            )
 
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])

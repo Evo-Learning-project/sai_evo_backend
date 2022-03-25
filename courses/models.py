@@ -932,7 +932,7 @@ class EventParticipation(models.Model):
     )
     user = models.ForeignKey(
         User,
-        related_name="events",
+        related_name="participations",
         on_delete=models.PROTECT,
     )
     begin_timestamp = models.DateTimeField(auto_now_add=True)

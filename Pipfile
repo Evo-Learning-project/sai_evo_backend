@@ -26,6 +26,7 @@ whitenoise = "*"
 psycopg2-binary = "*"
 psycopg2 = "*"
 sentry-sdk = "*"
+django-filter = "*"
 
 [dev-packages]
 mypy = "*"

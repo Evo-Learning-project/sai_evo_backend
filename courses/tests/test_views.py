@@ -229,7 +229,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/",
             {
                 "text": "not gonna happen either",
-                "score": "1.00",
+                "score": "1.0",
             },
         )
         self.assertEquals(response.status_code, 403)
@@ -243,7 +243,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/",
             {
                 "text": "not gonna happen either",
-                "score": "1.00",
+                "score": "1.0",
             },
         )
         self.assertEquals(response.status_code, 403)
@@ -252,7 +252,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/",
             {
                 "text": "not gonna happen either",
-                "score": "1.00",
+                "score": "1.0",
             },
         )
         self.assertEquals(response.status_code, 403)
@@ -367,7 +367,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/",
             {
                 "text": "new choice",
-                "score": "1.00",
+                "score": "1.0",
             },
         )
         self.assertEquals(response.status_code, 201)
@@ -377,7 +377,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/",
             {
                 "text": "new choice text",
-                "score": "21.00",
+                "score": "21.0",
             },
         )
         self.assertEquals(response.status_code, 200)

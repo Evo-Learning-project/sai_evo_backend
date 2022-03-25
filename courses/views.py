@@ -1,6 +1,7 @@
 import os
 import time
 
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from coding.helpers import get_code_execution_results
 from rest_framework import filters, mixins, status, viewsets
@@ -311,6 +312,8 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     # TODO disallow list view for non-teachers (only allow students to retrieve an exam if they know the id)
     permission_classes = [policies.EventPolicy]
+    filter_backends = [DjangoFilterBackend]
+    filter_fields = ["event_type"]
 
     def get_queryset(self):
         qs = super().get_queryset()

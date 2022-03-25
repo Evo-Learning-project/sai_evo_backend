@@ -1,10 +1,14 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from users.managers import UserManager
+
 
 class User(AbstractUser):
     is_teacher = models.BooleanField(default=False)
     roles = models.ManyToManyField("courses.CourseRole", blank=True)
+
+    objects = UserManager()
 
     def save(self, *args, **kwargs):
         creating = self.pk is None
