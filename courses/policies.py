@@ -55,6 +55,12 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "has_teacher_privileges:update_course",
         },
+        {
+            "action": ["active_users"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:__some__",
+        },
     ]
 
     def is_visible_to(self, request, view, action):
@@ -252,7 +258,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             event = Event.objects.get(pk=view.kwargs["event_pk"])
         except Event.DoesNotExist:
             return True
-        except ValueError:
+        except (ValueError, KeyError):
             return False
 
         if event.state != Event.OPEN:

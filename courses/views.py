@@ -93,6 +93,12 @@ class CourseViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
+    @action(detail=True, methods=["get"])
+    def active_users(self, request, **kwargs):
+        active_users = User.objects.all().active_in_course(self.kwargs["pk"])
+        serializer = UserSerializer(active_users, many=True)
+        return Response(serializer.data)
+
 
 class CourseRoleViewSet(viewsets.ModelViewSet):
     serializer_class = CourseRoleSerializer
@@ -451,10 +457,22 @@ class EventParticipationViewSet(
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(
-            event_instance__isnull=False,
-            event_instance__event_id=self.kwargs["event_pk"],
-        )
+        if self.kwargs.get("event_pk") is not None:
+            # accessing as a nested view of event viewset
+            return qs.filter(
+                event_instance__isnull=False,
+                event_instance__event_id=self.kwargs["event_pk"],
+            )
+        else:  # TODO add viewset to urls
+            # accessing as a nested view of course viewset
+            qs = qs.filter(
+                event_instance__isnull=False,
+                event_instance__event__course_id=self.kwargs["course_pk"],
+            )
+            if self.request.query_params.get("user_id") is not None:
+                # only get participations of a specific user to a course
+                qs = qs.filter(user_id=self.request.query_params["user_id"])
+            return qs
 
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called

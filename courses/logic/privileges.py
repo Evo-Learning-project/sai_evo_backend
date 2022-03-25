@@ -90,6 +90,9 @@ def check_privilege(user, course, privilege):
     except UserCoursePrivilege.DoesNotExist:
         deny_privileges = []
 
+    if privilege == "__some__":
+        return len(allow_privileges) > 0
+
     return "__all__" in allow_privileges or (
         privilege not in deny_privileges and privilege in allow_privileges
     )

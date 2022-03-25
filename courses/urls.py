@@ -31,7 +31,7 @@ course_router.register(
     basename="course-tags",
 )
 
-# `/courses/<pk>/exercies` entry point
+# `/courses/<pk>/exercises` entry point
 course_router.register(
     r"exercises",
     views.ExerciseViewSet,
@@ -54,6 +54,14 @@ course_router.register(
     views.EventTemplateViewSet,
     basename="course-templates",
 )
+
+# `/courses/<pk>/participations` entry point
+course_router.register(
+    r"participations",
+    views.EventParticipationViewSet,
+    basename="event-participations",
+)
+
 
 template_router = routers.NestedSimpleRouter(
     course_router, r"templates", lookup="template"
