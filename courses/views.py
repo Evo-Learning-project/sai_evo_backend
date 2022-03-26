@@ -166,7 +166,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         if self.kwargs.get("exercise_pk") is not None:
             # using the viewset for sub-exercises
             qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
-        else:
+        elif self.action == "list":
             qs = qs.base_exercises()
 
         return qs

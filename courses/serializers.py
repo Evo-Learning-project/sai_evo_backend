@@ -226,7 +226,11 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         kwargs.pop("required", None)  # TODO remove this
         super().__init__(*args, **kwargs)
         # TODO you might only show this to teachers (students will always only see exercises through slots)
-        self.fields["sub_exercises"] = RecursiveField(many=True, required=False)
+        self.fields["sub_exercises"] = RecursiveField(
+            many=True,
+            required=False,
+            context=self.context,
+        )
 
         # list serializer would pass this down to choice serializer, having parameter twice
         kwargs.pop("many", False)

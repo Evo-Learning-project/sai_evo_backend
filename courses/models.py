@@ -814,6 +814,7 @@ class ParticipationSubmission(models.Model):
                     + self.event.exercises_shown_at_a_time
                 ),
             )
+        print("--current slots", ret)
         return ret
 
 
