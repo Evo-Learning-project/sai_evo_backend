@@ -91,9 +91,13 @@ class CourseSerializer(serializers.ModelSerializer):
             self.fields[
                 "unstarted_practice_events"
             ] = serializers.SerializerMethodField()
+            self.fields["public_exercises_exist"] = serializers.SerializerMethodField()
 
     def get_privileges(self, obj):
         return get_user_privileges(self.context["request"].user, obj)
+
+    def get_public_exercises_exist(self, obj):
+        return obj.exercises.public().exists()
 
     def get_participations(self, obj):
         try:
