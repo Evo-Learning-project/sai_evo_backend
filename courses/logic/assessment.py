@@ -22,7 +22,13 @@ class SubmissionAssessor:
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. COMPLETION, AGGREGATED)
         # the score is the sum of the scores of the sub-exercises
-        sub_slots_score = sum([s.score for s in self.assessment_slot.sub_slots.all()])
+        sub_slots_score = sum(
+            [
+                s.score
+                for s in self.assessment_slot.sub_slots.all()
+                if s.score is not None
+            ]
+        )
 
         return sub_slots_score
 

@@ -719,9 +719,7 @@ class ParticipationAssessment(models.Model):
     def score(self):
         if self._score is None:
             # TODO review this (sum base slots only?)
-            return sum(
-                [s.score if s.score is not None else 0 for s in self.slots.all()]
-            )
+            return sum([s.score if s.score is not None else 0 for s in self.base_slots])
         return self._score
 
     @score.setter
@@ -1016,7 +1014,7 @@ class EventParticipation(models.Model):
 
         # mark new current slot as seen
         now = timezone.localtime(timezone.now())
-        current_submission_slot = self.submission.slots.get(
+        current_submission_slot = self.submission.slots.base_slots().get(
             slot_number=self.current_slot_cursor
         )
         if current_submission_slot.seen_at is None:
