@@ -22,15 +22,12 @@ class SubmissionAssessor:
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. COMPLETION, AGGREGATED)
         # the score is the sum of the scores of the sub-exercises
-        sub_slots_score = sum(
-            [
-                s.score
-                for s in self.assessment_slot.sub_slots.all()
-                if s.score is not None
-            ]
-        )
+        sub_slots_scores = [s.score for s in self.assessment_slot.sub_slots.all()]
 
-        return sub_slots_score
+        if any([s is None for s in sub_slots_scores]):
+            return None
+
+        return sum(sub_slots_scores)
 
     def get_no_automatic_assessment_score(self):
         # TODO use ABC on this class and make this method abstract

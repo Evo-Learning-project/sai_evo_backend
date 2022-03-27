@@ -691,7 +691,7 @@ class ParticipationAssessment(models.Model):
 
     @property
     def assessment_progress(self):
-        slot_states = [s.assessment_state for s in self.slots.all()]
+        slot_states = [s.assessment_state for s in self.slots.base_slots()]
         state = self.NOT_ASSESSED
         for slot_state in slot_states:
             if slot_state == ParticipationAssessmentSlot.ASSESSED:
@@ -774,6 +774,10 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
     @score.setter
     def score(self, value):
         self._score = value
+
+    @property
+    def score_edited(self):
+        return self._score is not None
 
     @property
     def assessment_state(self):
