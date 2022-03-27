@@ -576,7 +576,9 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
     """
 
     event = serializers.SerializerMethodField()  # to pass context to EventSerializer
-    slots = ParticipationAssessmentSlotSerializer(many=True, source="assessment.slots")
+    slots = ParticipationAssessmentSlotSerializer(
+        many=True, source="assessment.base_slots"
+    )
     user = UserSerializer(read_only=True)
     score = serializers.DecimalField(
         max_digits=5, decimal_places=2, source="assessment.score"

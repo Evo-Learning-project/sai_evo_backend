@@ -82,7 +82,6 @@ class SlotModelQuerySet(models.QuerySet):
         Returns the slots that don't have a parent foreign key
         (i.e. that aren't a sub-slot)
         """
-        print("BASE", self.filter(parent__isnull=True))
         return self.filter(parent__isnull=True)
 
 

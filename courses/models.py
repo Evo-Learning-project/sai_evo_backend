@@ -686,6 +686,10 @@ class ParticipationAssessment(models.Model):
         return self.participation.event
 
     @property
+    def base_slots(self):
+        return self.slots.base_slots()
+
+    @property
     def assessment_progress(self):
         slot_states = [s.assessment_state for s in self.slots.all()]
         state = self.NOT_ASSESSED
@@ -814,7 +818,6 @@ class ParticipationSubmission(models.Model):
                     + self.event.exercises_shown_at_a_time
                 ),
             )
-        print("--current slots", ret)
         return ret
 
 
