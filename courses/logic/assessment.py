@@ -23,8 +23,14 @@ class SubmissionAssessor:
         )
 
     def assess_js(self):
-        # TODO implement
-        pass
+        if self.submission_slot.execution_results is None:
+            return None
+
+        try:
+            tests = self.submission_slot.execution_results["tests"]
+            return len([t for t in tests if t["passed"]])
+        except KeyError:
+            return 0
 
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. COMPLETION, AGGREGATED)
