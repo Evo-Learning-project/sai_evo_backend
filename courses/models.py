@@ -243,17 +243,59 @@ class Exercise(TimestampableModel, OrderableModel):
     @property
     def max_score(self):
         # TODO add field to make this writable
-        max_score = self.choices.all().aggregate(max_score=Max("score"))["max_score"]
-        return max_score
+        if self.choices.count() == 0:
+            return 0
+
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
+            return sum(
+                [max(c.score_selected, c.score_unselected) for c in self.choices.all()]
+            )
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+            return max([p for (_, p) in self.get_choices_score_projection().items()])
+
+        return 0
 
     def clean(self):
         pass
 
-    # def get_next_child_position(self):
-    #     max_child_position = self.sub_exercises.all().aggregate(
-    #         max_child_position=Max("child_position")
-    #     )["max_child_position"]
-    #     return max_child_position + 1 if max_child_position is not None else 0
+    def get_correct_choices(self):
+        """
+        Returns the correct choices - the definition depends on the type of exercise.
+        For single selection, the correct choices are those with the maximum score projection
+        For multiple selection, they are the choices with score_selected greater than
+        or equal to score_unselected
+        """
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
+            # return all choices whose score_selected is greater than or equal
+            # to their score_unselected
+            return self.choices.filter(score_selected__gte=F("score_unselected"))
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+            # return all choices that maximize the obtained score
+            # when chosen as a single selection
+            return [
+                c
+                for (c, p) in self.get_choices_score_projection().items()
+                if p == self.max_score
+            ]
+
+        return []
+
+    def get_choices_score_projection(self):
+        """
+        Returns a dictionary in which, to each choice for this exercise, corresponds
+        the score obtained by selecting only that choice, i.e. the score_selected attribute
+        of that choice plus the sum of the score_unselected attributes for the other choices
+        """
+        ret = {}
+        choices = self.choices.all()
+        for c in choices:
+            ret[c] = c.score_selected + sum(
+                [
+                    d.score_unselected
+                    for d in [e for e in choices if e.pk != c.pk]  # all other choices
+                ]
+            )
+        return ret
 
 
 class ExerciseChoice(OrderableModel):
@@ -263,7 +305,12 @@ class ExerciseChoice(OrderableModel):
         on_delete=models.CASCADE,
     )
     text = models.TextField(blank=True)
-    score = models.DecimalField(
+    score_selected = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+    )
+    score_unselected = models.DecimalField(
         decimal_places=2,
         max_digits=5,
         default=0,

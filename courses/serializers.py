@@ -167,7 +167,10 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
             "show_solution",
             False,
         ) or self.context.get("show_hidden_fields", False):
-            self.fields["score"] = serializers.DecimalField(
+            self.fields["score_selected"] = serializers.DecimalField(
+                max_digits=5, decimal_places=1
+            )
+            self.fields["score_unselected"] = serializers.DecimalField(
                 max_digits=5, decimal_places=1
             )
 
@@ -263,6 +266,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             self.fields["solution"] = serializers.CharField(
                 required=False, allow_blank=True
             )
+            self.fields["correct_choices"] = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])
@@ -293,6 +297,9 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         validated_data.pop("public_tags", [])
 
         return super().update(instance, validated_data)
+
+    def get_correct_choices(self, obj):
+        return [c.pk for c in obj.get_correct_choices()]
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):

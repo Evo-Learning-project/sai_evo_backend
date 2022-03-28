@@ -13,7 +13,14 @@ class SubmissionAssessor:
         self.assessment_slot = assessment_slot
 
     def assess_multiple_choice(self):
-        return sum([c.score for c in self.submission_slot.selected_choices.all()])
+        return sum(
+            [
+                c.score_selected
+                if c in self.submission_slot.selected_choices.all()
+                else c.score_unselected
+                for c in self.submission_slot.exercise.choices.all()
+            ]
+        )
 
     def assess_js(self):
         # TODO implement
