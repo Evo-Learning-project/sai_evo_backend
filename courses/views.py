@@ -143,8 +143,9 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     )
     permission_classes = [policies.ExercisePolicy]
     pagination_class = ExercisePagination
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["label", "text"]
+    filter_fields = ["exercise_type", "state"]
 
     def get_permissions(self):
         if self.kwargs.get("exercise_pk"):
