@@ -1,4 +1,4 @@
-from core.models import UUIDModel
+from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
@@ -31,7 +31,7 @@ from .managers import (
 )
 
 
-class Course(UUIDModel, TimestampableModel):
+class Course(TimestampableModel):
     name = models.TextField(unique=True)
     description = models.TextField(blank=True)
     creator = models.ForeignKey(
@@ -378,7 +378,7 @@ class ExerciseTestCase(OrderableModel):
         return str(self.exercise) + " - " + self.code
 
 
-class Event(UUIDModel, TimestampableModel):
+class Event(HashIdModel, TimestampableModel):
     SELF_SERVICE_PRACTICE = 0
     IN_CLASS_PRACTICE = 1
     EXAM = 2

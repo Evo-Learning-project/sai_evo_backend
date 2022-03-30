@@ -2,6 +2,7 @@ from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from users.models import User
 from users.serializers import UserSerializer
+from hashid_field.rest import HashidSerializerCharField
 
 from courses.logic.privileges import MANAGE_EVENTS, check_privilege, get_user_privileges
 from courses.models import (
@@ -348,6 +349,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(HiddenFieldsModelSerializer):
+    id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
     template = serializers.SerializerMethodField()
     participation_exists = serializers.SerializerMethodField()
     state = ReadWriteSerializerMethodField()

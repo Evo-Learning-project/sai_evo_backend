@@ -133,6 +133,9 @@ REST_FRAMEWORK = {
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
 }
 
+HASHID_FIELD_SALT = os.environ.get("HASHID_FIELD_SALT")
+
+
 AUTHENTICATION_BACKENDS = (
     # Google OAuth2
     "social_core.backends.google.GoogleOAuth2",

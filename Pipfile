@@ -27,6 +27,7 @@ psycopg2-binary = "*"
 psycopg2 = "*"
 sentry-sdk = "*"
 django-filter = "*"
+django-hashid-field = "*"
 
 [dev-packages]
 mypy = "*"

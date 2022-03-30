@@ -1,4 +1,4 @@
-from core.models import UUIDModel
+from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Max
@@ -126,7 +126,7 @@ class TimestampableModel(models.Model):
         abstract = True
 
 
-class SlotNumberedModel(UUIDModel):
+class SlotNumberedModel(models.Model):
     parent = models.ForeignKey(
         "self",
         null=True,
