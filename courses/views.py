@@ -1,7 +1,9 @@
 import os
 import time
+from django.db.models import Q
 
-from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django.shortcuts import get_object_or_404
 from coding.helpers import get_code_execution_results
 from rest_framework import filters, mixins, status, viewsets
@@ -132,6 +134,22 @@ class CourseRoleViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_200_OK)
 
 
+class ExerciseFilter(FilterSet):
+    tags = django_filters.ModelMultipleChoiceFilter(
+        queryset=Tag.objects.all(), method="tags_filter"
+    )
+
+    class Meta:
+        model = Exercise
+        fields = ["tags", "exercise_type", "state"]
+
+    def tags_filter(self, queryset, name, value):
+        for tag in value:
+            filter_cond = Q(public_tags__in=[tag]) | Q(private_tags__in=[tag])
+            queryset = queryset.filter(filter_cond)
+        return queryset
+
+
 class ExerciseViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().prefetch_related(
@@ -143,9 +161,13 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     )
     permission_classes = [policies.ExercisePolicy]
     pagination_class = ExercisePagination
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    filter_backends = [
+        filters.SearchFilter,
+        DjangoFilterBackend,
+    ]
+    filterset_class = ExerciseFilter
     search_fields = ["label", "text"]
-    filter_fields = ["exercise_type", "state"]
+    # filter_fields = ["exercise_type", "state"]
 
     def get_permissions(self):
         if self.kwargs.get("exercise_pk"):
