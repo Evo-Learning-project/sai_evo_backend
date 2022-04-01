@@ -218,6 +218,11 @@ class LockableModel(models.Model):
         related_name="locked_%(class)ss",
     )
     last_lock_update = models.DateTimeField(null=True, blank=True)
+    awaiting_users = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="awaiting_on_%(class)ss",
+    )
 
     class Meta:
         abstract = True
@@ -230,12 +235,21 @@ class LockableModel(models.Model):
             self.save(update_fields=["locked_by", "last_lock_update"])
             return True
 
+        if self.locked_by != user:
+            self.awaiting_users.add(user)
+
         return self.locked_by == user
 
     def unlock(self, user):
         if self.locked_by == user:
             now = timezone.localtime(timezone.now())
-            self.locked_by = None
+            if self.awaiting_users.exists():
+                first_in_line = self.awaiting_users.first()
+                self.locked_by = first_in_line
+                self.awaiting_users.remove(first_in_line)
+            else:
+                self.locked_by = None
+
             self.last_lock_update = now
             self.save(update_fields=["locked_by", "last_lock_update"])
             return True

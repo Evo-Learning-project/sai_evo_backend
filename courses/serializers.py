@@ -381,6 +381,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.context.get("show_hidden_fields", False):
+            self.fields["locked_by"] = UserSerializer(read_only=True)
             self.fields["users_allowed_past_closure"] = serializers.ManyRelatedField(
                 child_relation=serializers.PrimaryKeyRelatedField(
                     queryset=User.objects.all(), required=False
