@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "drf_social_oauth2",
     "corsheaders",
     "django_filters",
+    "channels",
 ]
 
 MIDDLEWARE = [
@@ -89,6 +90,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "core.wsgi.application"
+
+# Channels
+ASGI_APPLICATION = "core.asgi.application"
 
 
 # Database

@@ -28,6 +28,7 @@ psycopg2 = "*"
 sentry-sdk = "*"
 django-filter = "*"
 django-hashid-field = "*"
+channels = "~=3.0"
 
 [dev-packages]
 mypy = "*"
