@@ -9,6 +9,7 @@ from courses.logic import privileges
 from courses.logic.assessment import get_assessor_class
 
 from .abstract_models import (
+    LockableModel,
     OrderableModel,
     SideSlotNumberedModel,
     SlotNumberedModel,
@@ -155,7 +156,7 @@ class Tag(models.Model):
         ]
 
 
-class Exercise(TimestampableModel, OrderableModel):
+class Exercise(TimestampableModel, OrderableModel, LockableModel):
     MULTIPLE_CHOICE_SINGLE_POSSIBLE = 0
     MULTIPLE_CHOICE_MULTIPLE_POSSIBLE = 1
     OPEN_ANSWER = 2
@@ -378,7 +379,7 @@ class ExerciseTestCase(OrderableModel):
         return str(self.exercise) + " - " + self.code
 
 
-class Event(HashIdModel, TimestampableModel):
+class Event(HashIdModel, TimestampableModel, LockableModel):
     SELF_SERVICE_PRACTICE = 0
     IN_CLASS_PRACTICE = 1
     EXAM = 2

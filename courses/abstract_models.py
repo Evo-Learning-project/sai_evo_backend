@@ -2,6 +2,10 @@ from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Max
+from django.utils import timezone
+
+
+from users.models import User
 
 
 class TrackFieldsMixin(models.Model):
@@ -196,3 +200,44 @@ class SideSlotNumberedModel(SlotNumberedModel):
     @property
     def exercise(self):
         return self.get_sibling_slot("event_instance").exercise
+
+
+class LockableModel(models.Model):
+    """
+    A model that is subject to concurrent editing requests in the application, and therefore
+    needs to be accessed in mutual exclusion when writing to it. This class only contains
+    bookkeeping variables regarding the ownership of the lock - it's up to the RESt API and WS
+    to enforce the constraints
+    """
+
+    locked_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="locked_%(class)ss",
+    )
+    last_lock_update = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+    def lock(self, user):
+        if self.locked_by is None:
+            now = timezone.localtime(timezone.now())
+            self.locked_by = user
+            self.last_lock_update = now
+            self.save(update_fields=["locked_by", "last_lock_update"])
+            return True
+
+        return self.locked_by == user
+
+    def unlock(self, user):
+        if self.locked_by == user:
+            now = timezone.localtime(timezone.now())
+            self.locked_by = None
+            self.last_lock_update = now
+            self.save(update_fields=["locked_by", "last_lock_update"])
+            return True
+
+        return self.locked_by is None
