@@ -29,6 +29,7 @@ sentry-sdk = "*"
 django-filter = "*"
 django-hashid-field = "*"
 channels = "~=3.0"
+djangochannelsrestframework = "*"
 
 [dev-packages]
 mypy = "*"
