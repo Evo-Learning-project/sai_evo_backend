@@ -9,10 +9,15 @@ from djangochannelsrestframework.observer.generics import (
 from djangochannelsrestframework.decorators import action
 from channels.db import database_sync_to_async
 
+from rest_framework.exceptions import PermissionDenied
+
+
+from django.db.models import Model
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from courses import serializers
+from courses.logic.privileges import MANAGE_EVENTS, UPDATE_COURSE, check_privilege
 from courses.models import Event, Exercise
 
 # class ExtendedAsyncJsonWsConsumer(AsyncJsonWebsocketConsumer):
@@ -34,20 +39,27 @@ class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
         self.subscribed_instances = []
         super().__init__(*args, **kwargs)
 
+    async def check_permissions(self, action, **kwargs):
+        if action == "subscribe_instance":
+            try:
+                obj = await database_sync_to_async(
+                    self.queryset.select_related("course").get
+                )(pk=kwargs["pk"])
+            except Model.DoesNotExist:
+                return False
+            if not await database_sync_to_async(check_privilege)(
+                self.scope["user"], obj.course.pk, MANAGE_EVENTS
+            ):
+                raise PermissionDenied()
+        return await super().check_permissions(action, **kwargs)
+
     def lock_instance(self, pk):
-        if self.check_object_permissions(pk):
-            return self.queryset.get(pk=pk).lock(self.scope["user"])
-        else:
-            print("lock permission check failed")
+        return self.queryset.get(pk=pk).lock(self.scope["user"])
 
-    def unlock_instance(self, pk):
-        if self.check_object_permissions(pk):
-            return self.queryset.get(pk=pk).unlock(self.scope["user"])
-        else:
-            print("unlock permission check failed")
-
-    def check_object_permissions(self, instance_pk):
-        raise NotImplemented
+    def unlock_instance_or_give_up(self, pk):
+        # unlocks an instance that the user has a lock on or removes the user
+        # from its waiting queue if the lock hadn't been acquired yet
+        return self.queryset.get(pk=pk).unlock(self.scope["user"])
 
     @action()
     async def subscribe_instance(self, request_id=None, **kwargs):
@@ -79,23 +91,20 @@ class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
     async def encode_json(cls, content):
         return json.dumps(content, cls=DecimalEncoder)
 
-    async def connect(self):
-        # print("connect")
-        return await super().connect()
-
     async def websocket_disconnect(self, message):
-        # print("disconnect")
         for pk in self.subscribed_instances:
-            await database_sync_to_async(self.unlock_instance)(pk)
+            await database_sync_to_async(self.unlock_instance_or_give_up)(pk)
 
         return await super().websocket_disconnect(message)
 
 
 class EventConsumer(BaseObserverConsumer):
     queryset = Event.objects.all()
-    model = Event
     serializer_class = serializers.EventSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def check_object_permissions(self, instance_pk):
-        return True
+
+class ExerciseConsumer(BaseObserverConsumer):
+    queryset = Exercise.objects.all()
+    serializer_class = serializers.ExerciseSerializer
+    permission_classes = (permissions.IsAuthenticated,)

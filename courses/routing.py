@@ -8,6 +8,11 @@ websocket_patterns = [
         consumers.EventConsumer.as_asgi(),
         name="event_consumer",
     ),
+    re_path(
+        r"ws/exercises/$",  # (?P<event_id>\w+)/
+        consumers.ExerciseConsumer.as_asgi(),
+        name="event_consumer",
+    ),
     #     re_path(
     #         r"ws/exam_list/$",
     #         consumers.ExamListConsumer.as_asgi(),

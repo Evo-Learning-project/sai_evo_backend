@@ -254,4 +254,6 @@ class LockableModel(models.Model):
             self.save(update_fields=["locked_by", "last_lock_update"])
             return True
 
+        self.awaiting_users.remove(user)
+
         return self.locked_by is None
