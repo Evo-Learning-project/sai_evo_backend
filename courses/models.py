@@ -213,7 +213,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
     initial_code = models.TextField(blank=True)
-    state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=PUBLIC)
+    state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
     skip_if_timeout = models.BooleanField(default=False)
 
@@ -277,6 +277,12 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
                 c
                 for (c, p) in self.get_choices_score_projection().items()
                 if p == self.max_score
+            ]
+        if self.exercise_type == Exercise.COMPLETION:
+            return [
+                c
+                for c in [s.get_correct_choices() for s in self.sub_exercises.all()]
+                for c in c
             ]
 
         return []
