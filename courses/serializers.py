@@ -257,6 +257,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             )
 
         if self.context.get("show_hidden_fields", False):
+            self.fields["locked_by"] = UserSerializer(read_only=True)
             self.fields["private_tags"] = TagSerializer(many=True, required=False)
         else:  # TODO find a more elegant way
             self.fields.pop("state", None)

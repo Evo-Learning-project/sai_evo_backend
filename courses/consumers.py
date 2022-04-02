@@ -17,14 +17,13 @@ from django.db.models import Model
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from courses import serializers
-from courses.logic.privileges import MANAGE_EVENTS, UPDATE_COURSE, check_privilege
+from courses.logic.privileges import (
+    MANAGE_EVENTS,
+    MANAGE_EXERCISES,
+    UPDATE_COURSE,
+    check_privilege,
+)
 from courses.models import Event, Exercise
-
-# class ExtendedAsyncJsonWsConsumer(AsyncJsonWebsocketConsumer):
-#     @classmethod
-#     async def encode_json(cls, content):
-#         print("-----------overrIDINGGGG-----------_!!!!!!!!", content)
-#         return json.dumps(content)
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -38,20 +37,6 @@ class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
     def __init__(self, *args, **kwargs):
         self.subscribed_instances = []
         super().__init__(*args, **kwargs)
-
-    async def check_permissions(self, action, **kwargs):
-        if action == "subscribe_instance":
-            try:
-                obj = await database_sync_to_async(
-                    self.queryset.select_related("course").get
-                )(pk=kwargs["pk"])
-            except Model.DoesNotExist:
-                return False
-            if not await database_sync_to_async(check_privilege)(
-                self.scope["user"], obj.course.pk, MANAGE_EVENTS
-            ):
-                raise PermissionDenied()
-        return await super().check_permissions(action, **kwargs)
 
     def lock_instance(self, pk):
         return self.queryset.get(pk=pk).lock(self.scope["user"])
@@ -103,8 +88,36 @@ class EventConsumer(BaseObserverConsumer):
     serializer_class = serializers.EventSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
+    async def check_permissions(self, action, **kwargs):
+        if action == "subscribe_instance":
+            try:
+                obj = await database_sync_to_async(
+                    self.queryset.select_related("course").get
+                )(pk=kwargs["pk"])
+            except Model.DoesNotExist:
+                return False
+            if not await database_sync_to_async(check_privilege)(
+                self.scope["user"], obj.course.pk, MANAGE_EVENTS
+            ):
+                raise PermissionDenied()
+        return await super().check_permissions(action, **kwargs)
+
 
 class ExerciseConsumer(BaseObserverConsumer):
     queryset = Exercise.objects.all()
     serializer_class = serializers.ExerciseSerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+    async def check_permissions(self, action, **kwargs):
+        if action == "subscribe_instance":
+            try:
+                obj = await database_sync_to_async(
+                    self.queryset.select_related("course").get
+                )(pk=kwargs["pk"])
+            except Model.DoesNotExist:
+                return False
+            if not await database_sync_to_async(check_privilege)(
+                self.scope["user"], obj.course.pk, MANAGE_EXERCISES
+            ):
+                raise PermissionDenied()
+        return await super().check_permissions(action, **kwargs)
