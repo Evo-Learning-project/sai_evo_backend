@@ -30,6 +30,8 @@ django-filter = "*"
 django-hashid-field = "*"
 channels = "~=3.0"
 djangochannelsrestframework = "*"
+celery = "~=5.2"
+django-celery-results = "==2.2.0"
 
 [dev-packages]
 mypy = "*"

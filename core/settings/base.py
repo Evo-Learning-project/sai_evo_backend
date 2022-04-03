@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "channels",
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -184,3 +185,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 MEDIA_ROOT = os.environ.get("MEDIA_ROOT", os.path.join(BASE_DIR, "media"))
 MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
+
+
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "amqp://localhost:5672")
