@@ -9,6 +9,7 @@ from coding.helpers import get_code_execution_results
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from courses.tasks import run_js_code
 from users.models import User
 from users.serializers import UserSerializer
 from django.http import FileResponse
@@ -612,10 +613,12 @@ class EventParticipationSlotViewSet(
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
-        slot.execution_results = get_code_execution_results(slot)
-        slot.save()
-        serializer = self.get_serializer_class()(slot)
-        return Response(serializer.data)
+        run_js_code.delay(slot.pk)  # .get()
+        return Response(status=status.HTTP_202_ACCEPTED)
+        # slot.execution_results = get_code_execution_results(slot)
+        # slot.save()
+        # serializer = self.get_serializer_class()(slot)
+        # return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     def attachment(self, request, **kwargs):
