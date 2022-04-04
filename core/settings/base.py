@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "django_filters",
     "channels",
     "django_celery_results",
+    "channels_redis",
 ]
 
 MIDDLEWARE = [
@@ -101,7 +102,7 @@ ASGI_APPLICATION = "core.asgi.application"
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "BACKEND": "courses.consumers.ChannelLayer",
         "CONFIG": {"hosts": [("127.0.0.1", 6379)]},
     },
 }

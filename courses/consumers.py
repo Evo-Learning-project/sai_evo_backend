@@ -1,5 +1,6 @@
 from decimal import Decimal
 import json
+import random
 from django.http import HttpRequest
 from djangochannelsrestframework import permissions
 from djangochannelsrestframework.observer.generics import (
@@ -10,6 +11,7 @@ from djangochannelsrestframework.decorators import action
 from channels.db import database_sync_to_async
 
 from rest_framework.exceptions import PermissionDenied
+import msgpack
 
 
 from django.db.models import Model
@@ -28,12 +30,32 @@ from courses.logic.privileges import (
 )
 from courses.models import Event, Exercise, ParticipationSubmissionSlot
 
+from hashid_field import Hashid
 
-class DecimalEncoder(json.JSONEncoder):
+from channels_redis.core import RedisChannelLayer
+
+
+class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
+        if isinstance(obj, Hashid):
+            return str(obj)
         return json.JSONEncoder.default(self, obj)
+
+
+class ChannelLayer(RedisChannelLayer):
+    def serialize(self, message):
+        value = msgpack.packb(
+            message, default=CustomEncoder().default, use_bin_type=True
+        )
+        if self.crypter:
+            value = self.crypter.encrypt(value)
+
+        # As we use an sorted set to expire messages
+        # we need to guarantee uniqueness, with 12 bytes.
+        random_prefix = random.getrandbits(8 * 12).to_bytes(12, "big")
+        return random_prefix + value
 
 
 class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
@@ -51,10 +73,6 @@ class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
         # unlocks an instance that the user has a lock on or removes the user
         # from its waiting queue if the lock hadn't been acquired yet
         return self.queryset.get(pk=pk).unlock(self.scope["user"])
-
-    async def handle_observed_action(self, action, group=None, **kwargs):
-        print("HANDLE")
-        return await super().handle_observed_action(action, group, **kwargs)
 
     @action()
     async def subscribe_instance(self, request_id=None, **kwargs):
@@ -85,7 +103,7 @@ class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
     @classmethod
     async def encode_json(cls, content):
-        return json.dumps(content, cls=DecimalEncoder)
+        return json.dumps(content, cls=CustomEncoder)
 
     async def websocket_disconnect(self, message):
         for pk in self.locked_instances:
@@ -154,25 +172,56 @@ class SubmissionSlotConsumer(
         else:
             print("unknown message", text_data)
 
-    async def task_message(self, event):
-        print("TASK MESSAGE-------------", event)
+    async def task_message(self, payload):
+        if payload["action"] == "execution_complete":
+            slot = await database_sync_to_async(self.queryset.get)(pk=payload["pk"])
+            print(
+                "--ABOUT TO SEND--",
+                json.dumps(
+                    {
+                        "type": "execution.results",
+                        "payload": slot.execution_results,
+                    },
+                ),
+            )
+            await self.channel_layer.group_send(
+                "submission_slot_" + str(payload["pk"]),
+                {
+                    "type": "execution.results",
+                    "payload": slot.execution_results,
+                },
+            )
+        else:
+            print("unknown action", payload)
 
     async def subscribe_instance(self, pk):
-        if pk is not None:
+        print("SUBSCRIBE", pk)
+        if pk is not None and await self.check_permissions(pk=pk):
             await self.channel_layer.group_add(
                 "submission_slot_" + str(pk), self.channel_name
             )
             print("subscribed", "submission_slot_" + str(pk))
 
-    # async def check_permissions(self, action, **kwargs):
-    #     if action == "subscribe_instance":
-    #         try:
-    #             obj = await database_sync_to_async(
-    #                 self.queryset.select_related("submission__participation__user").get
-    #             )(pk=kwargs["pk"])
-    #         except Model.DoesNotExist:
-    #             return False
-    #         print("USER", obj.submission.participation.user)
-    #         if obj.submission.participation.user != self.scope["user"]:
-    #             raise PermissionDenied()
-    #     return await super().check_permissions(action, **kwargs)
+    async def check_permissions(self, **kwargs):
+        try:
+            obj = await database_sync_to_async(
+                self.queryset.select_related("submission__participation__user").get
+            )(pk=kwargs["pk"])
+        except Model.DoesNotExist:
+            return False
+        print("USER", obj.submission.participation.user)
+        if obj.submission.participation.user != self.scope["user"]:
+            return False
+
+        return True
+
+    async def execution_results(self, event):
+        print("--in handler--", event)
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "action": "execution_results",
+                    "data": event["payload"],
+                }
+            )
+        )
