@@ -25,7 +25,7 @@ const safeVm = new VM({
   },
 });
 
-const compileFromTs = JSON.parse(process.argv[4] ?? "true");
+const compileFromTs = JSON.parse(process.argv[4] ?? "false");
 
 let userCode;
 
