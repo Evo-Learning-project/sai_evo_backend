@@ -9,8 +9,10 @@ function createTsSourceFile(filename, source) {
 }
 
 function deleteTmpFiles(filename) {
-  fs.unlinkSync(getAbsoluteTmpFilePath(filename) + ".ts");
-  fs.unlinkSync(getAbsoluteTmpFilePath(filename) + ".js");
+  try {
+    fs.unlinkSync(getAbsoluteTmpFilePath(filename) + ".ts");
+    fs.unlinkSync(getAbsoluteTmpFilePath(filename) + ".js");
+  } catch {}
 }
 
 function getAbsoluteTmpFilePath(filename) {

@@ -2,13 +2,13 @@
     "compilerOptions": {
         "target": "ESNEXT",
         "module": "ESNext",
-        "noEmit": true,
+        "noEmit": false,
         "strict": true,
-        "moduleResolution": "node", 
+        "moduleResolution": "node",
         "typeRoots": [
             "./node_modules/@types"
-        ], 
-        "esModuleInterop": true, 
+        ],
+        "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true
     },
