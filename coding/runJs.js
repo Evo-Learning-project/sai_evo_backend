@@ -6,10 +6,6 @@ const AssertionError = require("assert").AssertionError;
 const compileTsToJs = require("./tsCompilation").tsToJs;
 const utils = require("./utils");
 
-if (Math.random() > 0.1) {
-  throw new Error();
-}
-
 // rename assert and AssertionError inside generated program to make them inaccessible to user
 const assertIdentifier = utils.getRandomIdentifier(20);
 const assertionErrorIdentifier = utils.getRandomIdentifier(20);
