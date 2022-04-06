@@ -61,19 +61,16 @@ class SubmissionAssessor:
 
         exercise_type = self.submission_slot.exercise.exercise_type
 
-        if (
-            exercise_type == Exercise.OPEN_ANSWER
-            or exercise_type == Exercise.ATTACHMENT
-        ):
+        if exercise_type in [Exercise.OPEN_ANSWER, Exercise.ATTACHMENT]:
             return self.get_no_automatic_assessment_score()
 
-        if (
-            exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
-            or exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE
-        ):
+        if exercise_type in [
+            Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+        ]:
             return self.assess_multiple_choice()
 
-        if self.submission_slot.exercise.exercise_type == Exercise.JS:
+        if self.submission_slot.exercise.exercise_type in [Exercise.JS, Exercise.C]:
             return self.assess_programming_exercise()
 
         return self.assess_composite_exercise()
