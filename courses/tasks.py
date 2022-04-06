@@ -18,9 +18,9 @@ channel_layer = get_channel_layer()
 
 
 @app.task(bind=True, retry_backoff=True, max_retries=5)
-def run_js_code(self, slot_id):
+def run_user_code_task(self, slot_id):
     """
-    Takes in the id of a submission slot, runs the js code in it, then
+    Takes in the id of a submission slot, runs the code in it, then
     saves the results to its execution_results field
     """
     from courses.consumers import SubmissionSlotConsumer
@@ -32,7 +32,7 @@ def run_js_code(self, slot_id):
         slot.execution_results = results
         slot.save(update_fields=["execution_results"])
     except Exception as e:
-        logger.critical("RUN JS CODE TASK EXCEPTION: %s", e, exc_info=1)
+        logger.critical("RUN CODE TASK EXCEPTION: %s", e, exc_info=1)
         try:
             self.retry(countdown=1)
         except MaxRetriesExceededError:

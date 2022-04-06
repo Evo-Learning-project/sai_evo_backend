@@ -22,7 +22,7 @@ class SubmissionAssessor:
             ]
         )
 
-    def assess_js(self):
+    def assess_programming_exercise(self):
         if self.submission_slot.execution_results is None:
             return None
 
@@ -74,7 +74,7 @@ class SubmissionAssessor:
             return self.assess_multiple_choice()
 
         if self.submission_slot.exercise.exercise_type == Exercise.JS:
-            return self.assess_js()
+            return self.assess_programming_exercise()
 
         return self.assess_composite_exercise()
 

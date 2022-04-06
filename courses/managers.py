@@ -122,11 +122,12 @@ class ExerciseManager(models.Manager):
         if (
             exercise.exercise_type == Exercise.OPEN_ANSWER
             or exercise.exercise_type == Exercise.JS
+            or exercise.exercise_type == Exercise.C
             or exercise.exercise_type == Exercise.AGGREGATED
             or exercise.exercise_type == Exercise.ATTACHMENT
         ) and len(choices) > 0:
             raise ValidationError(
-                "Open answer, attachment, aggregated, and JS exercises cannot have choices"
+                "Open answer, attachment, aggregated, and coding exercises cannot have choices"
             )
 
         if (
@@ -149,7 +150,10 @@ class ExerciseManager(models.Manager):
                     # child_position=child_position,
                 )
                 child_position += 1
-        elif exercise.exercise_type == Exercise.JS:
+        elif (
+            exercise.exercise_type == Exercise.JS
+            or exercise.exercise_type == Exercise.C
+        ):
             # create ExerciseTestcase objects related to this exercise
             for testcase in testcases:
                 ExerciseTestCase.objects.create(exercise=exercise, **testcase)

@@ -164,6 +164,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     AGGREGATED = 4
     JS = 5
     ATTACHMENT = 6
+    C = 7
     # ATTACHMENT_WITH_OPEN_ANSWER
 
     EXERCISE_TYPES = (
@@ -174,6 +175,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         (AGGREGATED, "Aggregated"),
         (JS, "JavaScript"),
         (ATTACHMENT, "Attachment"),
+        (C, "C"),
     )
 
     DRAFT = 0
@@ -364,7 +366,9 @@ class ExerciseTestCase(OrderableModel):
         related_name="testcases",
         on_delete=models.CASCADE,
     )
-    code = models.TextField(blank=True)
+    code = models.TextField(blank=True)  # for js exercises
+    stdin = models.TextField(blank=True)  # for c exercises
+    expected_stdout = models.TextField(blank=True)  # for c exercises
     text = models.TextField(blank=True)
     testcase_type = models.PositiveIntegerField(
         default=SHOW_CODE_SHOW_TEXT, choices=TESTCASE_TYPES

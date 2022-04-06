@@ -5,11 +5,10 @@ from django.db.models import Q
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django.shortcuts import get_object_or_404
-from coding.helpers import get_code_execution_results
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from courses.tasks import run_js_code
+from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
 from django.http import FileResponse
@@ -614,7 +613,7 @@ class EventParticipationSlotViewSet(
     def run(self, request, **kwargs):
         slot = self.get_object()
         # schedule code execution
-        run_js_code.delay(slot.pk)
+        run_user_code_task.delay(slot.pk)
         # mark slot as running
         slot.execution_results = {
             **(slot.execution_results or {}),

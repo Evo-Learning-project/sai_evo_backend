@@ -181,7 +181,7 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
 
     class Meta:
         model = ExerciseTestCase
-        fields = ["id", "code", "text", "_ordering"]
+        fields = ["id", "code", "text", "_ordering", "stdin", "expected_stdout"]
         # hidden_fields = ["testcase_type"]
 
     def __init__(self, *args, **kwargs):
