@@ -7,7 +7,7 @@ from courses.models import Exercise, ParticipationSubmissionSlot
 from courses.serializers import ExerciseTestCaseSerializer
 
 
-def run_code_in_vm(code, testcases):
+def run_code_in_vm(code, testcases, use_ts):
     """
     Takes in a string containing JS code and a list of testcases; runs the code in a JS
     virtual machine and returns the outputs given by the code in JSON format
@@ -24,6 +24,7 @@ def run_code_in_vm(code, testcases):
             node_vm_path,
             code,
             json.dumps(testcases_json),
+            json.dumps(use_ts),
         ]
     )
     return {**json.loads(res), "state": "completed"}
@@ -35,4 +36,6 @@ def get_code_execution_results(slot: ParticipationSubmissionSlot):
 
     testcases = slot.exercise.testcases.all()
 
-    return run_code_in_vm(slot.answer_text, testcases)
+    return run_code_in_vm(
+        slot.answer_text, testcases, slot.exercise.requires_typescript
+    )

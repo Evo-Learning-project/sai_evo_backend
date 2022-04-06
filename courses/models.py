@@ -216,6 +216,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
     skip_if_timeout = models.BooleanField(default=False)
+    requires_typescript = models.BooleanField(default=False)
 
     objects = ExerciseManager()
 

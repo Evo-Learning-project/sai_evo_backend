@@ -223,6 +223,7 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "max_score",
             "initial_code",
             "state",
+            "requires_typescript",
         ]
         # hidden_fields = ["solution", "state"]
 
