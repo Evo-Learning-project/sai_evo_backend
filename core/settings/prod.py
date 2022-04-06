@@ -102,3 +102,5 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CSRF_TRUSTED_ORIGINS = ["https://*.di.unipi.it"]
