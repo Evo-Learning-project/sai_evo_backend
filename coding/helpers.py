@@ -44,9 +44,12 @@ def run_c_code_in_vm(code, testcases):
         response_body = response.json()
         outcome_code = response_body["outcome"]
         if outcome_code == 11:
-            return {"compilation_errors": response_body["cmpinfo"]}
+            return {
+                "compilation_errors": response_body["cmpinfo"],
+                "state": "completed",
+            }
         if "tests" not in ret:
-            # initialize
+            # initialize test case list
             ret["tests"] = []
         if outcome_code == 15:
             ret["tests"].append(
@@ -63,7 +66,7 @@ def run_c_code_in_vm(code, testcases):
             ret["tests"].append(
                 {"id": testcase.id, "error": outcomes[outcome_code], "passed": False}
             )
-    return ret
+    return {**ret, "state": "completed"}
 
 
 def run_js_code_in_vm(code, testcases, use_ts):
