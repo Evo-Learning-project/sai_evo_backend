@@ -89,3 +89,16 @@ sentry_sdk.init(
     # django.contrib.auth) you may enable sending PII data.
     send_default_pii=True,
 )
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "courses.consumers.ChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                os.environ.get("REDIS_URL")
+                # {"address": os.environ.get("REDIS_URL")},
+            ]
+        },
+    },
+}

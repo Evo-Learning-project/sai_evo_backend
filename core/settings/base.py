@@ -195,4 +195,4 @@ MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
 
 
 CELERY_RESULT_BACKEND = "django-db"
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "amqp://localhost:5672")
+CELERY_BROKER_URL = os.environ.get("RABBITMQ_URL", "amqp://localhost:5672")
