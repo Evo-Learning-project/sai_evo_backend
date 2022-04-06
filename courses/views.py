@@ -613,12 +613,16 @@ class EventParticipationSlotViewSet(
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
-        run_js_code.delay(slot.pk)  # .get()
-        return Response(status=status.HTTP_202_ACCEPTED)
-        # slot.execution_results = get_code_execution_results(slot)
-        # slot.save()
-        # serializer = self.get_serializer_class()(slot)
-        # return Response(serializer.data)
+        # schedule code execution
+        run_js_code.delay(slot.pk)
+        # mark slot as running
+        slot.execution_results = {
+            **(slot.execution_results or {}),
+            "state": "running",
+        }
+        slot.save(update_fields=["execution_results"])
+        serializer = self.get_serializer_class()(slot)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["get"])
     def attachment(self, request, **kwargs):

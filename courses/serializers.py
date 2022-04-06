@@ -592,6 +592,7 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
         many=True, source="assessment.base_slots"
     )
     user = UserSerializer(read_only=True)
+    # TODO use string instead
     score = serializers.DecimalField(
         max_digits=5, decimal_places=2, source="assessment.score"
     )

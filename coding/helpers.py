@@ -15,10 +15,6 @@ def run_code_in_vm(code, testcases):
 
     node_vm_path = os.environ.get("NODE_VM_PATH", "coding/runJs.js")
 
-    # TODO fix
-    # testcases_json = list(ExerciseTestCaseSerializer(testcases, many=True).data)
-    # print(testcases_json)
-
     testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
 
     # call node subprocess and run user code against test cases
@@ -30,7 +26,7 @@ def run_code_in_vm(code, testcases):
             json.dumps(testcases_json),
         ]
     )
-    return json.loads(res)
+    return {**json.loads(res), "state": "completed"}
 
 
 def get_code_execution_results(slot: ParticipationSubmissionSlot):

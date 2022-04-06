@@ -20,23 +20,16 @@ def run_js_code(self, slot_id):
     """
     from courses.consumers import SubmissionSlotConsumer
 
-    # # TODO set up retry with backoff
-    # print("running js code for slot", slot_id)
+    # TODO set up retry with backoff
     slot = ParticipationSubmissionSlot.objects.get(id=slot_id)
 
-    # # TODO change status to "running", if an exception is raised retry, if everything else fails
-    # # set status to "internal error". After the execution, set it to "ran"
-
+    # run code and save outcome to slot
     results = get_code_execution_results(slot)
-    print("slot", slot_id, "results", results)
-
     slot.execution_results = results
     slot.save(update_fields=["execution_results"])
-    # print("slot", slot_id, "saved")
 
+    # send completion message to consumer
     async_to_sync(channel_layer.group_send)(
         "submission_slot_" + str(slot_id),
         {"type": "task_message", "action": "execution_complete", "pk": slot_id},
     )
-
-    print("sent to", "submission_slot_" + str(slot_id))

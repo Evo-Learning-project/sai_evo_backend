@@ -144,7 +144,7 @@ class ExerciseConsumer(BaseObserverConsumer):
                     self.queryset.select_related("course").get
                 )(pk=kwargs["pk"])
             except Model.DoesNotExist:
-                return False
+                raise PermissionDenied()
             if not await database_sync_to_async(check_privilege)(
                 self.scope["user"], obj.course.pk, MANAGE_EXERCISES
             ):
@@ -152,18 +152,8 @@ class ExerciseConsumer(BaseObserverConsumer):
         return await super().check_permissions(action, **kwargs)
 
 
-class SubmissionSlotConsumer(
-    AsyncWebsocketConsumer
-    # BaseObserverConsumer
-):
-    LOCK_BY_DEFAULT = False
+class SubmissionSlotConsumer(AsyncWebsocketConsumer):
     queryset = ParticipationSubmissionSlot.objects.all()
-    serializer_class = serializers.ParticipationSubmissionSlotSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-    # async def connect(self):
-    #     await self.channel_layer.group_add("submission_slot", self.channel_name)
-    #     await self.accept()
 
     async def receive(self, text_data=None, bytes_data=None):
         payload = json.loads(text_data)
@@ -175,15 +165,6 @@ class SubmissionSlotConsumer(
     async def task_message(self, payload):
         if payload["action"] == "execution_complete":
             slot = await database_sync_to_async(self.queryset.get)(pk=payload["pk"])
-            print(
-                "--ABOUT TO SEND--",
-                json.dumps(
-                    {
-                        "type": "execution.results",
-                        "payload": slot.execution_results,
-                    },
-                ),
-            )
             await self.channel_layer.group_send(
                 "submission_slot_" + str(payload["pk"]),
                 {
@@ -195,7 +176,6 @@ class SubmissionSlotConsumer(
             print("unknown action", payload)
 
     async def subscribe_instance(self, pk):
-        print("SUBSCRIBE", pk)
         if pk is not None and await self.check_permissions(pk=pk):
             await self.channel_layer.group_add(
                 "submission_slot_" + str(pk), self.channel_name
@@ -209,14 +189,11 @@ class SubmissionSlotConsumer(
             )(pk=kwargs["pk"])
         except Model.DoesNotExist:
             return False
-        print("USER", obj.submission.participation.user)
         if obj.submission.participation.user != self.scope["user"]:
             return False
-
         return True
 
     async def execution_results(self, event):
-        print("--in handler--", event)
         await self.send(
             text_data=json.dumps(
                 {

@@ -716,7 +716,7 @@ class ParticipationAssessment(models.Model):
         default=DRAFT,
         db_column="state",
     )
-    _score = models.DecimalField(
+    _score = models.DecimalField(  # TODO make string
         max_digits=5,
         decimal_places=2,
         null=True,
@@ -772,7 +772,7 @@ class ParticipationAssessment(models.Model):
     @property
     def score(self):
         if self._score is None:
-            # TODO review this (sum base slots only?)
+            # TODO wrap in string?
             return sum([s.score if s.score is not None else 0 for s in self.base_slots])
         return self._score
 
