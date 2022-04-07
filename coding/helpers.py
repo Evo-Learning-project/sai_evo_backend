@@ -92,15 +92,18 @@ def run_js_code_in_vm(code, testcases, use_ts):
     return {**json.loads(res), "state": "completed"}
 
 
-def get_code_execution_results(slot: ParticipationSubmissionSlot):
-    testcases = slot.exercise.testcases.all()
+def get_code_execution_results(slot=None, **kwargs):
+    exercise = (
+        slot.exercise if kwargs.get("exercise") is None else kwargs.get("exercise")
+    )
+    code = slot.answer_text if kwargs.get("code") is None else kwargs.get("code")
 
-    if slot.exercise.exercise_type == Exercise.JS:
-        return run_js_code_in_vm(
-            slot.answer_text, testcases, slot.exercise.requires_typescript
-        )
+    testcases = exercise.testcases.all()
 
-    if slot.exercise.exercise_type == Exercise.C:
-        return run_c_code_in_vm(slot.answer_text, testcases)
+    if exercise.exercise_type == Exercise.JS:
+        return run_js_code_in_vm(code, testcases, exercise.requires_typescript)
 
-    raise ValidationError("Non-coding exercise " + slot.exercise.pk)
+    if exercise.exercise_type == Exercise.C:
+        return run_c_code_in_vm(code, testcases)
+
+    raise ValidationError("Non-coding exercise " + exercise.pk)

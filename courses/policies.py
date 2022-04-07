@@ -168,7 +168,14 @@ class ExercisePolicy(BaseAccessPolicy):
             "condition": "has_teacher_privileges:access_exercises",
         },
         {
-            "action": ["create", "update", "partial_update", "destroy", "tags"],
+            "action": [
+                "create",
+                "update",
+                "partial_update",
+                "destroy",
+                "tags",
+                "solution_execution_results",
+            ],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_exercises",

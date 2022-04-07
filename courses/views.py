@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from coding.helpers import get_code_execution_results
 from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
@@ -259,6 +260,15 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             assert False
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"])
+    def solution_execution_results(self, request, **kwargs):
+        exercise = self.get_object()
+        results = get_code_execution_results(
+            exercise=exercise,
+            code=exercise.solution,
+        )
+        return Response(results)
 
 
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
