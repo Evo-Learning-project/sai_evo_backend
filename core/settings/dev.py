@@ -12,3 +12,5 @@ REST_FRAMEWORK = {
     ),
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
 }
+
+CSRF_TRUSTED_ORIGINS = ["http://*"]
