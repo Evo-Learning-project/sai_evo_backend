@@ -721,9 +721,9 @@ class ParticipationAssessment(models.Model):
         default=DRAFT,
         db_column="state",
     )
-    _score = models.DecimalField(  # TODO make string
-        max_digits=5,
-        decimal_places=2,
+    _score = models.TextField(  # TODO make string
+        # max_digits=5,
+        # decimal_places=2,
         null=True,
         blank=True,
     )
@@ -778,7 +778,9 @@ class ParticipationAssessment(models.Model):
     def score(self):
         if self._score is None:
             # TODO wrap in string?
-            return sum([s.score if s.score is not None else 0 for s in self.base_slots])
+            return str(
+                sum([s.score if s.score is not None else 0 for s in self.base_slots])
+            )
         return self._score
 
     @score.setter
@@ -1046,6 +1048,10 @@ class EventParticipation(models.Model):
     def assessment_visibility(self, value):
         self.assessment.state = value
         self.assessment.save()
+
+    @property
+    def score_edited(self):
+        return self.assessment._score is not None
 
     def __str__(self):
         return str(self.event_instance) + " - " + str(self.user)

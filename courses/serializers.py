@@ -594,8 +594,10 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
     )
     user = UserSerializer(read_only=True)
     # TODO use string instead
-    score = serializers.DecimalField(
-        max_digits=5, decimal_places=2, source="assessment.score"
+    score = serializers.CharField(
+        # max_digits=5, decimal_places=2,
+        source="assessment.score",
+        allow_null=True,
     )
 
     class Meta:
@@ -609,6 +611,7 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
             "end_timestamp",
             "score",
             "event",
+            "score_edited",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -624,11 +627,13 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
         # nested writing
         assessment = validated_data.pop("assessment", None)
         if assessment is not None:
-            score = assessment.pop("score", None)
-            if score is not None:
+            try:
+                score = assessment.pop("score")
                 instance_assessment = instance.assessment
                 instance_assessment.score = score
                 instance_assessment.save()
+            except KeyError:
+                pass
 
         return super().update(instance, validated_data)
 
