@@ -28,7 +28,7 @@ def run_user_code_task(self, slot_id):
     slot = ParticipationSubmissionSlot.objects.get(id=slot_id)
     try:
         # run code and save outcome to slot
-        results = get_code_execution_results(slot)
+        results = get_code_execution_results(slot=slot)
         slot.execution_results = results
         slot.save(update_fields=["execution_results"])
     except Exception as e:

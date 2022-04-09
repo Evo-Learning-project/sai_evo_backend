@@ -42,6 +42,7 @@ def run_c_code_in_vm(code, testcases):
         )
         # print("RESPONSE", response, response.json())
         response_body = response.json()
+        print("res body", response_body)
         outcome_code = response_body["outcome"]
         if outcome_code == 11:
             return {
@@ -51,21 +52,20 @@ def run_c_code_in_vm(code, testcases):
         if "tests" not in ret:
             # initialize test case list
             ret["tests"] = []
-        if outcome_code == 15:
-            ret["tests"].append(
-                {
-                    "id": testcase.id,
-                    "passed": "stdout" in response_body
-                    and program_stdout_matches_expected(
-                        response_body["stdout"], testcase.expected_stdout
-                    ),
-                    "stdout": response_body["stdout"],
-                }
-            )
-        else:  # some error happened; append test case info
-            ret["tests"].append(
-                {"id": testcase.id, "error": outcomes[outcome_code], "passed": False}
-            )
+
+        ret["tests"].append(
+            {
+                "id": testcase.id,
+                "passed": outcome_code == 15
+                and program_stdout_matches_expected(
+                    response_body.get("stdout"), testcase.expected_stdout
+                ),
+                "stdout": response_body.get("stdout"),
+                "stderr": response_body.get("stderr"),
+                "error": outcomes[outcome_code] if outcome_code != 15 else None,
+            }
+        )
+
     return {**ret, "state": "completed"}
 
 
