@@ -43,7 +43,7 @@ function compile(source, options) {
         diagnostic.messageText,
         "\n"
       );
-      return `(${line + 1},${character + 1}): ${message}`;
+      return `(on line ${line + 1}, at position ${character + 1}): ${message}`;
     } else {
       return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
     }

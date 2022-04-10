@@ -34,15 +34,13 @@ def run_c_code_in_vm(code, testcases):
                     "run_spec": {
                         "language_id": "c",
                         "input": testcase.stdin,
-                        "sourcecode": code,  #'\n#include <stdio.h>\n\nint main() {\n    printf("Hello world\\n");\n}\n',
+                        "sourcecode": code,
                     }
                 }
             ),
             headers={"content-type": "application/json"},
         )
-        # print("RESPONSE", response, response.json())
         response_body = response.json()
-        print("res body", response_body)
         outcome_code = response_body["outcome"]
         if outcome_code == 11:
             return {
