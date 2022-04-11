@@ -7,12 +7,18 @@ class UserPolicy(AccessPolicy):
     statements = [
         {
             "action": ["me"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
         },
         {
+            "action": ["partial_update"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition": "is_personal_account",
+        },
+        {
             "action": ["list", "privileges"],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             "condition": "can_update_course",
         },
@@ -26,3 +32,9 @@ class UserPolicy(AccessPolicy):
 
         course = Course.objects.get(pk=course_pk)
         return check_privilege(request.user, course, UPDATE_COURSE)
+
+    def is_personal_account(self, request, view, action):
+        print("inside")
+        user = view.get_object()
+        print(user)
+        return user == request.user

@@ -13,6 +13,7 @@ from .serializers import UserSerializer
 
 class UserViewSet(
     mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
     serializer_class = UserSerializer
