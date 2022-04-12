@@ -147,7 +147,7 @@ class ExerciseFilter(FilterSet):
     def tags_filter(self, queryset, name, value):
         for tag in value:
             filter_cond = Q(public_tags__in=[tag]) | Q(private_tags__in=[tag])
-            queryset = queryset.filter(filter_cond)
+            queryset = queryset.filter(filter_cond).distinct()
         return queryset
 
 
