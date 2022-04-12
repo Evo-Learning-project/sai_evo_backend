@@ -466,7 +466,16 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     objects = EventManager()
 
     def __str__(self):
-        return self.name + " -"
+        return (
+            "("
+            + str(self.course)
+            + ") "
+            + (
+                (self.name or "_UNNAMED_")
+                if self.event_type != self.SELF_SERVICE_PRACTICE
+                else "_PRACTICE_"
+            )
+        )
 
     class Meta:
         ordering = [
@@ -562,18 +571,11 @@ class EventTemplate(models.Model):
     class Meta:
         ordering = ["course_id", "pk"]
 
-    # def __str__(self):
-    #     return (
-    #         (self.event.name + " template")
-    #         if self.event is not None
-    #         else "--- template"
-    #     )
-
-    # def get_next_rule_target_slot_number(self):
-    #     max_rule_target_slot = self.rules.all().aggregate(
-    #         max_target_slot=Max("target_slot_number")
-    #     )["max_target_slot"]
-    #     return max_rule_target_slot + 1 if max_rule_target_slot is not None else 0
+    def __str__(self):
+        try:
+            return str(self.event)
+        except Exception:
+            return "-"
 
 
 class EventTemplateRule(OrderableModel):
@@ -653,7 +655,7 @@ class EventInstance(models.Model):
         ordering = ["event_id", "pk"]
 
     def __str__(self):
-        return self.event.name
+        return str(self.event) + " " + str(self.pk)
 
     @property
     def max_score(self):

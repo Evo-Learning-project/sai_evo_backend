@@ -211,6 +211,7 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
 
 class ExerciseSerializer(HiddenFieldsModelSerializer):
     public_tags = TagSerializer(many=True, required=False)
+    text = serializers.CharField(trim_whitespace=False, allow_blank=True)
 
     class Meta:
         model = Exercise
