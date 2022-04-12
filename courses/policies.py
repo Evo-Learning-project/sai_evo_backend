@@ -226,7 +226,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["create"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "can_participate",
+            "condition_expression": "can_participate or has_teacher_privileges:manage_events",
         },
         {
             "action": ["update", "partial_update", "go_forward", "go_back"],
