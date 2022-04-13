@@ -55,7 +55,7 @@ class SlottedModelManager(models.Manager):
         from django.apps import apps
 
         obj = super().create(*args, **kwargs)
-
+        # !!! specialize this behavior for EventParticipation
         # name of the argument containing foreign key to parent and its value
         related_object_kwarg = {self.model._meta.verbose_name.split(" ")[1]: obj}
 
@@ -189,11 +189,13 @@ class EventParticipationManager(models.Manager):
             raise ValueError("Either provide an Event or an EventInstance")
 
         if event_instance is None:
+            # !!! here you would need to get a list of exercises from the event template
             event_instance = EventInstance.objects.create(event_id=event_id)
 
         kwargs["event_instance_id"] = event_instance.pk
         participation = super().create(*args, **kwargs)
 
+        # !!! no more of these; create slots directly
         ParticipationSubmission.objects.create(participation=participation)
         ParticipationAssessment.objects.create(participation=participation)
 
@@ -225,6 +227,7 @@ class EventInstanceManager(models.Manager):
 
         slot_number = 0
         for exercise in exercises:
+            # !!! specialize this behavior for EventParticipation
             EventInstanceSlot.objects.create(
                 event_instance=instance,
                 exercise=exercise,
@@ -235,6 +238,7 @@ class EventInstanceManager(models.Manager):
         return instance
 
 
+# !!! use this behavior for EventParticipationSlot too
 class EventInstanceSlotManager(models.Manager):
     def get_queryset(self):
         return SlotModelQuerySet(self.model, using=self._db)

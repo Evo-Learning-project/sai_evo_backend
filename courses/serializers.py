@@ -654,9 +654,12 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
         ).data
 
 
+# !!! make new EventParticipationSerializer
+
+
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ParticipationSubmissionSlot
+        model = ParticipationSubmissionSlot  # !!! use new EventParticipationSlot model
         fields = [
             "id",
             "slot_number",
@@ -681,7 +684,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 self.fields["comment"] = serializers.CharField(
                     read_only=(not assessment_fields_write),
                 )
-
+                # TODO probably move these to the default fields
                 self.fields["seen_at"] = serializers.DateTimeField(
                     source="submission.seen_at",
                     read_only=True,
@@ -698,17 +701,18 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 # find a way to make these writable
                 self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
                     many=True,
-                    source="submission.selected_choices",
                     read_only=(not submission_fields_write),
                 )
+                # TODO use your file field with preview
                 self.fields["attachment"] = serializers.FileField(
-                    source="submission.attachment",
                     read_only=(not submission_fields_write),
                 )
+                # TODO add other params like allow_blank
                 self.fields["answer_text"] = serializers.CharField(
-                    source="submission.answer_text",
                     read_only=(not submission_fields_write),
                 )
+
+                # TODO add execution results and other fields
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):

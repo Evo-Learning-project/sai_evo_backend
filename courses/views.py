@@ -511,6 +511,7 @@ class EventParticipationViewSet(
         return context
 
     def get_serializer_class(self):
+        # !!! this will return the new EventParticipationSerializer no matter what
         force_student = "as_student" in self.request.query_params
         return (
             TeacherViewEventParticipationSerializer
@@ -532,6 +533,7 @@ class EventParticipationViewSet(
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # !!! this will filter by event not event instance
         try:
             if self.kwargs.get("event_pk") is not None:
                 # accessing as a nested view of event viewset
@@ -565,6 +567,7 @@ class EventParticipationViewSet(
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
+        # !!! this will use the new serializer
         serializer = StudentViewEventParticipationSerializer(
             participation, context=self.get_serializer_context()
         )
@@ -583,12 +586,14 @@ class EventParticipationViewSet(
             participation = get_object_or_404(self.get_queryset(), pk=pk)
             ret.append(participation)
 
+            # !!! this will use the new serializer
             serializer = TeacherViewEventParticipationSerializer(
                 participation, data=data, partial=True
             )
             serializer.is_valid()
             serializer.save()
 
+        # !!! this will use the new serializer
         serializer = TeacherViewEventParticipationSerializer(
             ret, many=True, context=self.get_serializer_context()
         )
@@ -596,6 +601,7 @@ class EventParticipationViewSet(
 
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
+        # TODO make this idempotent (e.g. include the target slot number in request)
         participation = self.get_object()
         participation.move_current_slot_cursor_forward()
 
@@ -605,6 +611,7 @@ class EventParticipationViewSet(
 
     @action(detail=True, methods=["post"])
     def go_back(self, request, **kwargs):
+        # TODO make this idempotent (e.g. include the target slot number in request)
         participation = self.get_object()
         participation.move_current_slot_cursor_back()
 
@@ -633,6 +640,8 @@ class EventParticipationSlotViewSet(
     permission_classes = [policies.EventParticipationSlotPolicy]
 
     def get_serializer_class(self):
+        # !!! this will return the new EventParticipationSlotSerializer
+        # !!! will need to pass context to the serializer to know which fields to render and which to make writable
         force_student = "as_student" in self.request.query_params
         return (
             ParticipationAssessmentSlotSerializer
@@ -646,6 +655,7 @@ class EventParticipationSlotViewSet(
         )
 
     def get_queryset(self):
+        # !!! won't distinguish between the two models anymore
         force_student = "as_student" in self.request.query_params
         if not force_student and check_privilege(
             self.request.user,
@@ -682,6 +692,7 @@ class EventParticipationSlotViewSet(
     def attachment(self, request, **kwargs):
         slot = self.get_object()
 
+        # !!! won't make the distinction anymore
         if isinstance(slot, ParticipationAssessmentSlot):
             attachment = slot.submission.attachment
         else:
