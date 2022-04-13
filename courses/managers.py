@@ -265,6 +265,10 @@ class EventInstanceSlotManager(models.Manager):
         return slot
 
 
+class EventParticipationSlotManager(models.Manager):
+    pass
+
+
 class ParticipationSubmissionSlotManager(models.Manager):
     def get_queryset(self):
         return SlotModelQuerySet(self.model, using=self._db)

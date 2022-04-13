@@ -979,34 +979,60 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
 class EventParticipation(models.Model):
     IN_PROGRESS = 0
     TURNED_IN = 1
-
     PARTICIPATION_STATES = (
         (IN_PROGRESS, "In progress"),
         (TURNED_IN, "Turned in"),
     )
 
-    event_instance = models.ForeignKey(
-        EventInstance,
-        related_name="participations",
-        on_delete=models.PROTECT,
+    NOT_ASSESSED = 0
+    PARTIALLY_ASSESSED = 1
+    FULLY_ASSESSED = 2
+    ASSESSMENT_PROGRESS_STEPS = (
+        (NOT_ASSESSED, "Not assessed"),
+        (PARTIALLY_ASSESSED, "Partially assessed"),
+        (FULLY_ASSESSED, "Fully assessed"),
     )
-    assessment = models.OneToOneField(
-        ParticipationAssessment,
-        on_delete=models.CASCADE,
-        related_name="participation",
-        null=True,
+
+    DRAFT = 0
+    FOR_REVIEW = 1
+    PUBLISHED = 2
+    ASSESSMENT_STATES = (
+        (DRAFT, "Draft"),
+        (FOR_REVIEW, "For review"),
+        (PUBLISHED, "Published"),
     )
-    submission = models.OneToOneField(
-        ParticipationSubmission,
-        on_delete=models.CASCADE,
-        related_name="participation",
-        null=True,
-    )
+
+    # event_instance = models.ForeignKey(
+    #     EventInstance,
+    #     related_name="participations",
+    #     on_delete=models.PROTECT,
+    # )
+    # assessment = models.OneToOneField(
+    #     ParticipationAssessment,
+    #     on_delete=models.CASCADE,
+    #     related_name="participation",
+    #     null=True,
+    # )
+    # submission = models.OneToOneField(
+    #     ParticipationSubmission,
+    #     on_delete=models.CASCADE,
+    #     related_name="participation",
+    #     null=True,
+    # )
+
+    # relations
     user = models.ForeignKey(
         User,
         related_name="participations",
         on_delete=models.PROTECT,
     )
+    event = models.ForeignKey(
+        Event,
+        related_name="participations",
+        on_delete=models.PROTECT,
+    )
+
+    # bookeeping fields
     begin_timestamp = models.DateTimeField(auto_now_add=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
     state = models.PositiveSmallIntegerField(
@@ -1015,15 +1041,21 @@ class EventParticipation(models.Model):
     )
     current_slot_cursor = models.PositiveIntegerField(default=0)
 
+    # assessment fields
+    _assessment_state = models.PositiveIntegerField(
+        choices=ASSESSMENT_STATES,
+        default=DRAFT,
+        db_column="state",
+    )
+    _score = models.TextField(blank=True, null=True)
+
     objects = EventParticipationManager()
 
     class Meta:
-        ordering = ["begin_timestamp", "pk"]
+        ordering = ["event_pk", "-begin_timestamp", "pk"]
 
-    @property
-    def event(self):
-        # shortcut to access the participation's event
-        return self.event_instance.event
+    def __str__(self):
+        return str(self.event) + " - " + str(self.user)
 
     @property
     def is_cursor_first_position(self):
@@ -1041,25 +1073,62 @@ class EventParticipation(models.Model):
 
     @property
     def last_slot_number(self):
-        return self.submission.slots.base_slots().aggregate(
-            max_slot_number=Max("slot_number")
-        )["max_slot_number"]
+        return self.slots.base_slots().aggregate(max_slot_number=Max("slot_number"))[
+            "max_slot_number"
+        ]
 
     @property
     def assessment_visibility(self):
-        return self.assessment.state
+        if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
+            return (
+                self.PUBLISHED
+                if self.participation.state == EventParticipation.TURNED_IN
+                else self.NOT_ASSESSED
+            )
+        return self._assessment_state
 
     @assessment_visibility.setter
     def assessment_visibility(self, value):
-        self.assessment.state = value
-        self.assessment.save()
+        self._assessment_state = value
+
+    @property
+    def score(self):
+        if self._score is None:
+            return str(
+                sum(
+                    [
+                        s.score if s.score is not None else 0
+                        for s in self.slots.base_slots()
+                    ]
+                )
+            )
+        return self._score
+
+    @score.setter
+    def score(self, value):
+        self._score = value
 
     @property
     def score_edited(self):
-        return self.assessment._score is not None
+        return self._score is not None and len(self._score) > 0
 
-    def __str__(self):
-        return str(self.event_instance) + " - " + str(self.user)
+    @property
+    def current_slots(self):
+        ret = self.slots.base_slots()
+        if (
+            self.event.exercises_shown_at_a_time is not None
+            # if the participation has been turned in, show all slots to allow reviewing answers
+            and self.state != EventParticipation.TURNED_IN
+        ):
+            # slots are among the "current" ones iff their number is between the `current_slot_cursor`
+            # of the EventParticipation and the next `exercises_shown_at_a_time` slots
+            ret = ret.filter(
+                slot_number__gte=self.current_slot_cursor,
+                slot_number__lt=(
+                    self.current_slot_cursor + self.event.exercises_shown_at_a_time
+                ),
+            )
+        return ret
 
     def validate_unique(self, *args, **kwargs):
         super().validate_unique(*args, **kwargs)
@@ -1083,17 +1152,14 @@ class EventParticipation(models.Model):
         self.current_slot_cursor += (
             self.event.exercises_shown_at_a_time
         )  # ? max between this and max_slot_number?
-
-        self.save()
+        self.save(update_fields=["current_slot_cursor"])
 
         # mark new current slot as seen
         now = timezone.localtime(timezone.now())
-        current_submission_slot = self.submission.slots.base_slots().get(
-            slot_number=self.current_slot_cursor
-        )
-        if current_submission_slot.seen_at is None:
-            current_submission_slot.seen_at = now
-            current_submission_slot.save()
+        current_slot = self.slots.base_slots().get(slot_number=self.current_slot_cursor)
+        if current_slot.seen_at is None:
+            current_slot.seen_at = now
+            current_slot.save(update_fields=["seen_at"])
 
         return self.current_slot_cursor
 
@@ -1104,8 +1170,121 @@ class EventParticipation(models.Model):
         self.current_slot_cursor = max(
             self.current_slot_cursor - self.event.exercises_shown_at_a_time, 0
         )
-        self.save()
+        self.save(update_fields=["current_slot_cursor"])
         return self.current_slot_cursor
 
     def is_assessment_available(self):
-        return self.assessment.state == ParticipationAssessment.PUBLISHED
+        return self.assessment_state == EventParticipation.PUBLISHED
+
+
+class EventParticipationSlot(models.Model):
+    NOT_ASSESSED = 0
+    ASSESSED = 1
+    ASSESSMENT_STATES = (
+        (NOT_ASSESSED, "Not assessed"),
+        (ASSESSED, "Assessed"),
+    )
+
+    # relations
+    participation = models.ForeignKey(
+        EventParticipation,
+        related_name="slots",
+        on_delete=models.CASCADE,
+    )
+    exercise = models.ForeignKey(
+        Exercise,
+        related_name="in_slots",
+        on_delete=models.CASCADE,
+    )
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        related_name="sub_slots",
+        on_delete=models.CASCADE,
+    )
+
+    # bookkeeping fields
+    slot_number = models.PositiveIntegerField()
+    seen_at = models.DateTimeField(null=True, blank=True)
+    answered_at = models.DateTimeField(null=True, blank=True)
+
+    # submission fields
+    selected_choices = models.ManyToManyField(
+        ExerciseChoice,
+        blank=True,
+    )
+    answer_text = models.TextField(blank=True)
+    attachment = models.FileField(
+        null=True,
+        blank=True,
+        upload_to=get_attachment_path,
+    )
+    execution_results = models.JSONField(blank=True, null=True)
+
+    # assessment fields
+    comment = models.TextField(blank=True)
+    _score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["participation_id", "parent_id", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["participation_id", "parent_id", "slot_number"],
+                name="participation_submission_unique_slot_number",
+            )
+        ]
+
+    def __str__(self):
+        return str(self.participation) + " " + str(self.slot_number)
+
+    @property
+    def score(self):
+        if self._score is None:
+            return get_assessor_class(self.participation.event)(self).assess()
+        return self._score
+
+    @score.setter
+    def score(self, value):
+        self._score = value
+
+    @property
+    def score_edited(self):
+        return self._score is not None
+
+    @property
+    def assessment_state(self):
+        return self.ASSESSED if self.score is not None else self.NOT_ASSESSED
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:  # can't clean as m2m field won't work without a pk
+            # TODO clean the m2m field separately
+            self.full_clean()
+            if (
+                self.selected_choices.exists()
+                or bool(self.attachment)
+                or bool(self.answer_text)
+            ) and self.answered_at is None:
+                now = timezone.localtime(timezone.now())
+                self.answered_at = now
+
+        return super().save(*args, **kwargs)
+
+    # TODO clean
+
+    def is_in_scope(self):
+        """
+        Returns True if the slot is accessible by the user in the corresponding
+        EventParticipation, i.e. it contains one of the exercises currently being
+        shown to the user; False otherwise
+        """
+        return (
+            self in self.participation.current_slots
+            or self.parent is not None
+            and self.parent.is_in_scope()
+        )

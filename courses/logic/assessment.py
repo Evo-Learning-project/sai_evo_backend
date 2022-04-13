@@ -9,6 +9,7 @@ def get_assessor_class(event):
 
 class SubmissionAssessor:
     def __init__(self, assessment_slot):
+        # !!! use new participation slot
         self.submission_slot = assessment_slot.submission
         self.assessment_slot = assessment_slot
 
