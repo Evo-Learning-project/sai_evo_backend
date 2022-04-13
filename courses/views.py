@@ -450,9 +450,18 @@ class EventParticipationViewSet(
     relevant events and update the statuses relative to the assessments
     """
 
-    queryset = EventParticipation.objects.all().select_related(
-        "assessment",
-        "submission",
+    queryset = (
+        EventParticipation.objects.all()
+        .select_related("assessment", "submission", "event_instance")
+        .prefetch_related(
+            "assessment__slots",
+            "submission__slots",
+            "event_instance__slots",
+            "event_instance__slots__exercise",
+            "event_instance__slots__exercise__choices",
+            "event_instance__slots__exercise__testcases",
+            "event_instance__slots__exercise__sub_exercises",
+        )
     )
     permission_classes = [policies.EventParticipationPolicy]
 
