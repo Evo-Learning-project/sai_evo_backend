@@ -45,7 +45,6 @@ class ExerciseTestCaseAdmin(admin.ModelAdmin):
     pass
 
 
-
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     pass
@@ -94,6 +93,10 @@ class ParticipationAssessmentAdmin(admin.ModelAdmin):
 
 class ParticipationSubmissionSlotInline(admin.TabularInline):
     model = ParticipationSubmissionSlot
+    readonly_fields = (
+        "exercise",
+        "selected_choices",
+    )
 
 
 @admin.register(ParticipationSubmission)
