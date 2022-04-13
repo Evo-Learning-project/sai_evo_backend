@@ -55,7 +55,14 @@ from .serializers import (
 
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
-    queryset = Course.objects.all()
+    queryset = (
+        Course.objects.all()
+        .select_related("creator")
+        .prefetch_related(
+            # "privileged_users",
+            # "roles"
+        )
+    )
     permission_classes = [policies.CoursePolicy]
 
     def get_queryset(self):
@@ -349,7 +356,18 @@ class TagViewSet(
 
 class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
-    queryset = Event.objects.all()
+    queryset = (
+        Event.objects.all()
+        .select_related("template", "creator")
+        .prefetch_related(
+            # "instances",
+            # "instances__participations",
+            "template__rules",
+            "template__rules__exercises",
+            "template__rules__clauses",
+            "template__rules__clauses__tags",
+        )
+    )
     # TODO disallow list view for non-teachers (only allow students to retrieve an exam if they know the id)
     permission_classes = [policies.EventPolicy]
     filter_backends = [DjangoFilterBackend]
@@ -453,7 +471,13 @@ class EventParticipationViewSet(
 
     queryset = (
         EventParticipation.objects.all()
-        .select_related("assessment", "submission", "event_instance")
+        .select_related(
+            "assessment",
+            "submission",
+            "event_instance",
+            "user",
+            "event_instance__event",
+        )
         .prefetch_related(
             "assessment__slots",
             "submission__slots",

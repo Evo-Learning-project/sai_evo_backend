@@ -55,9 +55,11 @@ INSTALLED_APPS = [
     "channels",
     "django_celery_results",
     "channels_redis",
+    "silk",
 ]
 
 MIDDLEWARE = [
+    "silk.middleware.SilkyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.security.SecurityMiddleware",
