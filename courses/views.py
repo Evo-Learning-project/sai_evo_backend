@@ -475,6 +475,8 @@ class EventParticipationViewSet(
                 participation.event_instance.event.event_type
                 == Event.SELF_SERVICE_PRACTICE
             )
+        elif self.action == "list":
+            context["preview"] = True
         return context
 
     def get_serializer_class(self):

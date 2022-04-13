@@ -508,12 +508,15 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
         self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
             many=True, source="submission.selected_choices", read_only=True
         )
-        self.fields["attachment"] = FileWithPreviewField(
-            source="submission.attachment", read_only=True
-        )
-        self.fields["answer_text"] = serializers.CharField(
-            source="submission.answer_text", read_only=True
-        )
+
+        if not self.context.get("preview", False):
+            self.fields["attachment"] = FileWithPreviewField(
+                source="submission.attachment", read_only=True
+            )
+            self.fields["answer_text"] = serializers.CharField(
+                source="submission.answer_text", read_only=True
+            )
+
         self.fields["seen_at"] = serializers.DateTimeField(
             source="submission.seen_at", read_only=True
         )
@@ -589,10 +592,8 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
     assign a score
     """
 
-    event = serializers.SerializerMethodField()  # to pass context to EventSerializer
-    slots = ParticipationAssessmentSlotSerializer(
-        many=True, source="assessment.base_slots"
-    )
+    event = serializers.SerializerMethodField()  # to pass context
+    slots = serializers.SerializerMethodField()  # to pass context
     user = UserSerializer(read_only=True)
     # TODO use string instead
     score = serializers.CharField(
@@ -640,6 +641,13 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
 
     def get_event(self, obj):
         return EventSerializer(obj.event, read_only=True, context=self.context).data
+
+    def get_slots(self, obj):
+        return ParticipationAssessmentSlotSerializer(
+            obj.assessment.base_slots,
+            many=True,
+            context=self.context,
+        ).data
 
 
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
