@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from django.db.models import Q
@@ -475,8 +476,12 @@ class EventParticipationViewSet(
                 participation.event_instance.event.event_type
                 == Event.SELF_SERVICE_PRACTICE
             )
-        elif self.action == "list":
-            context["preview"] = True
+        elif self.request.query_params.get("preview") is not None:
+            try:
+                preview = json.loads(self.request.query_params["preview"])
+                context["preview"] = preview
+            except Exception:
+                pass
         return context
 
     def get_serializer_class(self):
