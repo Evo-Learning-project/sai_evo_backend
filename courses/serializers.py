@@ -483,7 +483,6 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
 
 class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
     sub_slots = RecursiveField(many=True, read_only=True)
-    exercise = ExerciseSerializer(read_only=True)
     score = serializers.DecimalField(max_digits=5, decimal_places=1, allow_null=True)
 
     class Meta:
@@ -491,7 +490,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "slot_number",
-            "exercise",
+            # "exercise",
             "score",
             "comment",
             "sub_slots",
@@ -516,6 +515,7 @@ class ParticipationAssessmentSlotSerializer(serializers.ModelSerializer):
             self.fields["answer_text"] = serializers.CharField(
                 source="submission.answer_text", read_only=True
             )
+            self.fields["exercise"] = ExerciseSerializer(read_only=True)
 
         self.fields["seen_at"] = serializers.DateTimeField(
             source="submission.seen_at", read_only=True
