@@ -130,6 +130,10 @@ class TimestampableModel(models.Model):
         abstract = True
 
 
+def get_default_sibling_cache():
+    return {}
+
+
 class SlotNumberedModel(models.Model):
     parent = models.ForeignKey(
         "self",
@@ -171,7 +175,7 @@ class SlotNumberedModel(models.Model):
             if field.remote_field is not None and field.remote_field.name == "slots":
                 return field.name
 
-    def get_sibling_slot(self, sibling_entity, participation_pk=None):
+    def get_sibling_slot(self, sibling_entity, participation_pk=None, slot_model=None):
         container = getattr(self, self.get_container_attribute())
         participation = (
             container.participation

@@ -113,6 +113,11 @@ class EventInstanceAdmin(admin.ModelAdmin):
     inlines = [EventInstanceSlotInline]
 
 
+@admin.register(ParticipationAssessmentSlot)
+class ParticipationAssessmentSlotAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(EventParticipation)
 class EventParticipationAdmin(admin.ModelAdmin):
     pass

@@ -470,23 +470,25 @@ class EventParticipationViewSet(
     """
 
     queryset = (
-        EventParticipation.objects.all()
-        .select_related(
-            "assessment",
-            "submission",
-            "event_instance",
-            "user",
-            "event_instance__event",
+        EventParticipation.objects.all().select_related(
+            # "assessment",
+            # "submission",
+            # "event_instance",
+            # "user",
+            # "event_instance__event",
+            # "event_instance__event__template",
+            # "event_instance__event__template__rules",
         )
-        .prefetch_related(
-            "assessment__slots",
-            "submission__slots",
-            "event_instance__slots",
-            "event_instance__slots__exercise",
-            "event_instance__slots__exercise__choices",
-            "event_instance__slots__exercise__testcases",
-            "event_instance__slots__exercise__sub_exercises",
-        )
+        # .prefetch_related(
+        #     "assessment__slots",
+        #     "submission__slots",
+        #     "submission__slots__selected_choices",
+        #     "event_instance__slots",
+        #     "event_instance__slots__exercise",
+        #     "event_instance__slots__exercise__choices",
+        #     "event_instance__slots__exercise__testcases",
+        #     "event_instance__slots__exercise__sub_exercises",
+        # )
     )
     permission_classes = [policies.EventParticipationPolicy]
 
@@ -530,21 +532,24 @@ class EventParticipationViewSet(
 
     def get_queryset(self):
         qs = super().get_queryset()
-        if self.kwargs.get("event_pk") is not None:
-            # accessing as a nested view of event viewset
-            return qs.filter(
-                event_instance__isnull=False,
-                event_instance__event_id=self.kwargs["event_pk"],
-            )
-        else:  # TODO add viewset to urls
-            # accessing as a nested view of course viewset
-            qs = qs.filter(
-                event_instance__isnull=False,
-                event_instance__event__course_id=self.kwargs["course_pk"],
-            )
-            if self.request.query_params.get("user_id") is not None:
-                # only get participations of a specific user to a course
-                qs = qs.filter(user_id=self.request.query_params["user_id"])
+        try:
+            if self.kwargs.get("event_pk") is not None:
+                # accessing as a nested view of event viewset
+                return qs.filter(
+                    event_instance__isnull=False,
+                    event_instance__event_id=self.kwargs["event_pk"],
+                )
+            else:  # TODO add viewset to urls
+                # accessing as a nested view of course viewset
+                qs = qs.filter(
+                    event_instance__isnull=False,
+                    event_instance__event__course_id=self.kwargs["course_pk"],
+                )
+                if self.request.query_params.get("user_id") is not None:
+                    # only get participations of a specific user to a course
+                    qs = qs.filter(user_id=self.request.query_params["user_id"])
+                return qs
+        except ValueError:
             return qs
 
     def create(self, request, *args, **kwargs):

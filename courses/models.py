@@ -822,6 +822,9 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
             )
         ]
 
+    def __str__(self):
+        return str(self.assessment) + " " + str(self.slot_number)
+
     @property
     def submission(self):
         return self.get_sibling_slot("submission")
