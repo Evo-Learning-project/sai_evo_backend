@@ -681,54 +681,47 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "seen_at", "answered_at"]
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-            capabilities = self.context.get("capabilities", {})
+        capabilities = self.context.get("capabilities", {})
 
-            if capabilities.get("assessment_fields_read", False):
-                assessment_fields_write = capabilities.get(
-                    "assessment_fields_write", False
-                )
-                self.fields["score"] = serializers.DecimalField(
-                    max_digits=5,
-                    decimal_places=1,
-                    allow_null=True,
-                    read_only=(not assessment_fields_write),
-                )
-                self.fields["comment"] = serializers.CharField(
-                    read_only=(not assessment_fields_write),
-                )
-
-            if capabilities.get(
-                "submission_fields_read",
-                False,
-            ) and not self.context.get(
-                "preview",
-                False,
-            ):
-                submission_fields_write = capabilities.get(
-                    "submission_fields_write", False
-                )
-                self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
-                    many=True,
-                    read_only=(not submission_fields_write),
-                )
-                self.fields["attachment"] = FileWithPreviewField(
-                    read_only=(not submission_fields_write),
-                )
-                self.fields["answer_text"] = serializers.CharField(
-                    read_only=(not submission_fields_write),
-                    allow_blank=True,
-                )
-                self.fields["execution_results"] = serializers.JSONField(read_only=True)
-
-        def get_exercise(self, obj):
-            return (
-                ExerciseSerializer(obj.exercise, context=self.context).data
-                if not self.context.get("preview", False)
-                else None
+        if capabilities.get("assessment_fields_read", False):
+            assessment_fields_write = capabilities.get("assessment_fields_write", False)
+            self.fields["score"] = serializers.DecimalField(
+                max_digits=5,
+                decimal_places=1,
+                allow_null=True,
+                read_only=(not assessment_fields_write),
             )
+            self.fields["comment"] = serializers.CharField(
+                read_only=(not assessment_fields_write),
+            )
+
+        if capabilities.get("submission_fields_read", False,) and not self.context.get(
+            "preview",
+            False,
+        ):
+            submission_fields_write = capabilities.get("submission_fields_write", False)
+            self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
+                many=True,
+                read_only=(not submission_fields_write),
+            )
+            self.fields["attachment"] = FileWithPreviewField(
+                read_only=(not submission_fields_write),
+            )
+            self.fields["answer_text"] = serializers.CharField(
+                read_only=(not submission_fields_write),
+                allow_blank=True,
+            )
+            self.fields["execution_results"] = serializers.JSONField(read_only=True)
+
+    def get_exercise(self, obj):
+        return (
+            ExerciseSerializer(obj.exercise, context=self.context).data
+            if not self.context.get("preview", False)
+            else None
+        )
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
@@ -785,7 +778,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
 
     def get_slots(self, obj):
         return EventParticipationSlotSerializer(
-            obj.slots.base_slots(),
+            obj.slots.all(),  # !!!! base_slots()
             many=True,
             context=self.context,
         ).data

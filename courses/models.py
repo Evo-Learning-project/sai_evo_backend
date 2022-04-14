@@ -1081,6 +1081,13 @@ class EventParticipation(models.Model):
         ]
 
     @property
+    def max_score(self):
+        return 0
+        # TODO re-implement
+        # exercises = self.exercises.all()
+        # return sum([e.max_score for e in exercises if e.max_score is not None])
+
+    @property
     def assessment_progress(self):
         slot_states = [s.assessment_state for s in self.slots.base_slots()]
         state = self.NOT_ASSESSED
@@ -1107,7 +1114,7 @@ class EventParticipation(models.Model):
 
     @property
     def is_assessment_available(self):
-        return self.assessment_state == EventParticipation.PUBLISHED
+        return self.assessment_visibility == EventParticipation.PUBLISHED
 
     @property
     def score(self):

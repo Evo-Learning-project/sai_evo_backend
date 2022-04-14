@@ -524,9 +524,9 @@ class EventParticipationViewSet(
         ret = {
             # assessment fields are displayed to teachers at all times and to students
             # if the assessments have been published
-            "assessment_fields_read": self.get_object().is_assessment_available  # acessing as student after the assessments are published
-            or not force_student
-            and (has_assess_privilege or has_manage_events_privilege),
+            "assessment_fields_read": not force_student
+            and (has_assess_privilege or has_manage_events_privilege)
+            or self.get_object().is_assessment_available,  # acessing as student after the assessments are published
             # assessment fields are writable by teachers at all times
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
@@ -665,7 +665,7 @@ class EventParticipationSlotViewSet(
         ret = {
             # assessment fields are displayed to teachers at all times and to students
             # if the assessments have been published
-            "assessment_fields_read": self.get_object().is_assessment_available  # acessing as student after the assessments are published
+            "assessment_fields_read": self.get_object().participation.is_assessment_available  # acessing as student after the assessments are published
             or not force_student
             and (has_assess_privilege or has_manage_events_privilege),
             # assessment fields are writable by teachers at all times
