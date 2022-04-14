@@ -11,6 +11,9 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    def __str__(self):
+        return self.username + " - " + self.full_name
+
     def save(self, *args, **kwargs):
         creating = self.pk is None
         super(User, self).save(*args, **kwargs)
