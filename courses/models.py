@@ -17,17 +17,17 @@ from .abstract_models import (
 )
 from .managers import (
     CourseManager,
-    EventInstanceManager,
-    EventInstanceSlotManager,
+    # EventInstanceManager,
+    # EventInstanceSlotManager,
     EventManager,
     EventParticipationManager,
-    EventTemplateManager,
+    # EventTemplateManager,
     EventTemplateRuleManager,
     ExerciseManager,
-    ParticipationAssessmentManager,
-    ParticipationAssessmentSlotManager,
-    ParticipationSubmissionManager,
-    ParticipationSubmissionSlotManager,
+    # ParticipationAssessmentManager,
+    # ParticipationAssessmentSlotManager,
+    # ParticipationSubmissionManager,
+    # ParticipationSubmissionSlotManager,
     TagManager,
 )
 
@@ -566,7 +566,7 @@ class EventTemplate(models.Model):
         blank=True,
     )
 
-    objects = EventTemplateManager()
+    # objects = EventTemplateManager()
 
     class Meta:
         ordering = ["course_id", "pk"]
@@ -649,7 +649,7 @@ class EventInstance(models.Model):
         blank=True,
     )
 
-    objects = EventInstanceManager()
+    # objects = EventInstanceManager()
 
     class Meta:
         ordering = ["event_id", "pk"]
@@ -674,7 +674,7 @@ class EventInstanceSlot(SlotNumberedModel):
         on_delete=models.CASCADE,
     )
 
-    objects = EventInstanceSlotManager()
+    # objects = EventInstanceSlotManager()
 
     class Meta:
         ordering = ["event_instance_id", "slot_number"]
@@ -730,7 +730,7 @@ class ParticipationAssessment(models.Model):
         blank=True,
     )
 
-    objects = ParticipationAssessmentManager()
+    # objects = ParticipationAssessmentManager()
 
     class Meta:
         ordering = ["pk"]
@@ -811,7 +811,7 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
         blank=True,
     )
 
-    objects = ParticipationAssessmentSlotManager()
+    # objects = ParticipationAssessmentSlotManager()
 
     class Meta:
         ordering = ["assessment_id", "slot_number"]
@@ -851,7 +851,7 @@ class ParticipationAssessmentSlot(SideSlotNumberedModel):
 
 
 class ParticipationSubmission(models.Model):
-    objects = ParticipationSubmissionManager()
+    # objects = ParticipationSubmissionManager()
     # TODO (for events like assignments) have a way to close submissions and possibly re-open them
 
     class Meta:
@@ -911,7 +911,7 @@ class ParticipationSubmissionSlot(SideSlotNumberedModel):
     attachment = models.FileField(null=True, blank=True, upload_to=get_attachment_path)
     execution_results = models.JSONField(blank=True, null=True)
 
-    objects = ParticipationSubmissionSlotManager()
+    # objects = ParticipationSubmissionSlotManager()
 
     class Meta:
         ordering = ["submission_id", "slot_number"]
@@ -1008,7 +1008,7 @@ class EventParticipation(models.Model):
         related_name="participations",
         on_delete=models.PROTECT,
     )
-    event = models.ForeignKey(
+    event = models.ForeignKey(  # TODO use a default for compatibility with old participations
         Event,
         related_name="participations",
         on_delete=models.PROTECT,
@@ -1027,14 +1027,13 @@ class EventParticipation(models.Model):
     _assessment_state = models.PositiveIntegerField(
         choices=ASSESSMENT_STATES,
         default=DRAFT,
-        db_column="state",
     )
     _score = models.TextField(blank=True, null=True)
 
     objects = EventParticipationManager()
 
     class Meta:
-        ordering = ["event_pk", "-begin_timestamp", "pk"]
+        ordering = ["event_id", "-begin_timestamp", "pk"]
 
     def __str__(self):
         return str(self.event) + " - " + str(self.user)
@@ -1083,7 +1082,7 @@ class EventParticipation(models.Model):
     @assessment_visibility.setter
     def assessment_visibility(self, value):
         self._assessment_state = value
-        
+
     @property
     def is_assessment_available(self):
         return self.assessment_state == EventParticipation.PUBLISHED
@@ -1171,8 +1170,6 @@ class EventParticipation(models.Model):
         return self.current_slot_cursor
 
 
-
-
 class EventParticipationSlot(models.Model):
     NOT_ASSESSED = 0
     ASSESSED = 1
@@ -1232,7 +1229,7 @@ class EventParticipationSlot(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["participation_id", "parent_id", "slot_number"],
-                name="participation_submission_unique_slot_number",
+                name="event_participation_unique_slot_number",
             )
         ]
 

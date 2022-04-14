@@ -4,7 +4,6 @@ from django.db.models import Q
 
 from courses.querysets import (
     CourseQuerySet,
-    EventTemplateQuerySet,
     ExerciseQuerySet,
     SlotModelQuerySet,
     TagQuerySet,
