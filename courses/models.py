@@ -1016,6 +1016,11 @@ class EventParticipation(models.Model):
     )
 
     # !! temporary
+    event_instance = models.ForeignKey(
+        EventInstance,
+        related_name="participations",
+        on_delete=models.PROTECT,
+    )
     assessment = models.OneToOneField(
         ParticipationAssessment,
         on_delete=models.CASCADE,
