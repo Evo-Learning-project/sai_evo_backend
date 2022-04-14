@@ -1015,6 +1015,21 @@ class EventParticipation(models.Model):
         on_delete=models.PROTECT,
     )
 
+    # !! temporary
+    assessment = models.OneToOneField(
+        ParticipationAssessment,
+        on_delete=models.CASCADE,
+        related_name="participation",
+        null=True,
+    )
+    submission = models.OneToOneField(
+        ParticipationSubmission,
+        on_delete=models.CASCADE,
+        related_name="participation",
+        null=True,
+    )
+    #!!
+
     # bookkeeping fields
     begin_timestamp = models.DateTimeField(auto_now_add=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
