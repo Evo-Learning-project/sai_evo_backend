@@ -8,27 +8,25 @@ def get_assessor_class(event):
 
 
 class SubmissionAssessor:
-    def __init__(self, assessment_slot):
-        # !!! use new participation slot
-        self.submission_slot = assessment_slot.submission
-        self.assessment_slot = assessment_slot
+    def __init__(self, participation_slot):
+        self.participation_slot = participation_slot
 
     def assess_multiple_choice(self):
         return sum(
             [
                 c.score_selected
-                if c in self.submission_slot.selected_choices.all()
+                if c in self.participation_slot.selected_choices.all()
                 else c.score_unselected
-                for c in self.submission_slot.exercise.choices.all()
+                for c in self.participation_slot.exercise.choices.all()
             ]
         )
 
     def assess_programming_exercise(self):
-        if self.submission_slot.execution_results is None:
+        if self.participation_slot.execution_results is None:
             return None
 
         try:
-            tests = self.submission_slot.execution_results["tests"]
+            tests = self.participation_slot.execution_results["tests"]
             return len([t for t in tests if t["passed"]])
         except KeyError:
             return 0
@@ -36,7 +34,7 @@ class SubmissionAssessor:
     def assess_composite_exercise(self):
         # for comosite exercises (i.e. COMPLETION, AGGREGATED)
         # the score is the sum of the scores of the sub-exercises
-        sub_slots_scores = [s.score for s in self.assessment_slot.sub_slots.all()]
+        sub_slots_scores = [s.score for s in self.participation_slot.sub_slots.all()]
 
         if any([s is None for s in sub_slots_scores]):
             return None
@@ -49,7 +47,7 @@ class SubmissionAssessor:
 
     def assess(self):
         """
-        Takes in a ParticipationSubmissionSlot object (representing an exercise assigned to a user
+        Takes in an EventParticipationSlot object (representing an exercise assigned to a user
         and the answer given to that exercise).
 
         Returns the score that results in applying the given rule with the given answer(s), or
@@ -57,10 +55,7 @@ class SubmissionAssessor:
         """
         from courses.models import Exercise
 
-        # if self.rule.require_manual_assessment:
-        #     return None
-
-        exercise_type = self.submission_slot.exercise.exercise_type
+        exercise_type = self.participation_slot.exercise.exercise_type
 
         if exercise_type in [Exercise.OPEN_ANSWER, Exercise.ATTACHMENT]:
             return self.get_no_automatic_assessment_score()
@@ -71,7 +66,7 @@ class SubmissionAssessor:
         ]:
             return self.assess_multiple_choice()
 
-        if self.submission_slot.exercise.exercise_type in [Exercise.JS, Exercise.C]:
+        if exercise_type in [Exercise.JS, Exercise.C]:
             return self.assess_programming_exercise()
 
         return self.assess_composite_exercise()

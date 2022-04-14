@@ -1002,24 +1002,6 @@ class EventParticipation(models.Model):
         (PUBLISHED, "Published"),
     )
 
-    # event_instance = models.ForeignKey(
-    #     EventInstance,
-    #     related_name="participations",
-    #     on_delete=models.PROTECT,
-    # )
-    # assessment = models.OneToOneField(
-    #     ParticipationAssessment,
-    #     on_delete=models.CASCADE,
-    #     related_name="participation",
-    #     null=True,
-    # )
-    # submission = models.OneToOneField(
-    #     ParticipationSubmission,
-    #     on_delete=models.CASCADE,
-    #     related_name="participation",
-    #     null=True,
-    # )
-
     # relations
     user = models.ForeignKey(
         User,
@@ -1032,7 +1014,7 @@ class EventParticipation(models.Model):
         on_delete=models.PROTECT,
     )
 
-    # bookeeping fields
+    # bookkeeping fields
     begin_timestamp = models.DateTimeField(auto_now_add=True)
     end_timestamp = models.DateTimeField(null=True, blank=True)
     state = models.PositiveSmallIntegerField(
@@ -1078,6 +1060,17 @@ class EventParticipation(models.Model):
         ]
 
     @property
+    def assessment_progress(self):
+        slot_states = [s.assessment_state for s in self.slots.base_slots()]
+        state = self.NOT_ASSESSED
+        for slot_state in slot_states:
+            if slot_state == ParticipationAssessmentSlot.ASSESSED:
+                state = self.FULLY_ASSESSED
+            else:
+                return self.PARTIALLY_ASSESSED
+        return state
+
+    @property
     def assessment_visibility(self):
         if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
             return (
@@ -1090,6 +1083,10 @@ class EventParticipation(models.Model):
     @assessment_visibility.setter
     def assessment_visibility(self, value):
         self._assessment_state = value
+        
+    @property
+    def is_assessment_available(self):
+        return self.assessment_state == EventParticipation.PUBLISHED
 
     @property
     def score(self):
@@ -1173,8 +1170,7 @@ class EventParticipation(models.Model):
         self.save(update_fields=["current_slot_cursor"])
         return self.current_slot_cursor
 
-    def is_assessment_available(self):
-        return self.assessment_state == EventParticipation.PUBLISHED
+
 
 
 class EventParticipationSlot(models.Model):
