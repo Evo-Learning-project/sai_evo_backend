@@ -22,6 +22,7 @@ from courses.models import (
     CourseRole,
     Event,
     EventParticipation,
+    EventParticipationSlot,
     EventTemplate,
     EventTemplateRule,
     EventTemplateRuleClause,
@@ -38,6 +39,8 @@ from courses.pagination import ExercisePagination
 from .serializers import (
     CourseRoleSerializer,
     CourseSerializer,
+    EventParticipationSerializer,
+    EventParticipationSlotSerializer,
     EventSerializer,
     EventTemplateRuleClauseSerializer,
     EventTemplateRuleSerializer,
@@ -470,32 +473,21 @@ class EventParticipationViewSet(
     """
 
     queryset = (
-        EventParticipation.objects.all().select_related(
-            # "assessment",
-            # "submission",
-            # "event_instance",
-            # "user",
-            # "event_instance__event",
-            # "event_instance__event__template",
-            # "event_instance__event__template__rules",
+        EventParticipation.objects.all()
+        .select_related(
+            "user",
+            "event",
         )
-        # .prefetch_related(
-        #     "assessment__slots",
-        #     "submission__slots",
-        #     "submission__slots__selected_choices",
-        #     "event_instance__slots",
-        #     "event_instance__slots__exercise",
-        #     "event_instance__slots__exercise__choices",
-        #     "event_instance__slots__exercise__testcases",
-        #     "event_instance__slots__exercise__sub_exercises",
-        # )
+        .prefetch_related(
+            "slots",
+        )
     )
     permission_classes = [policies.EventParticipationPolicy]
+    serializer_class = EventParticipationSerializer
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.action == "retrieve":
-            # TODO review all cases: during an exam, after an exam, during/after practice, with or without being a teacher
             participation = self.get_object()
             # show solutions and scores when participation to a practice event is reviewed
             context["show_solution"] = (
@@ -508,44 +500,52 @@ class EventParticipationViewSet(
                 context["preview"] = preview
             except Exception:
                 pass
+
+        context["capabilities"] = self.get_capabilities()
         return context
 
-    def get_serializer_class(self):
-        # !!! this will return the new EventParticipationSerializer no matter what
+    def get_capabilities(self):
+        """
+        Returns a dict for usage inside serializers' context in order to decide whether
+        to display some fields ans whether to make them writable
+        """
         force_student = "as_student" in self.request.query_params
-        return (
-            TeacherViewEventParticipationSerializer
-            if not force_student
-            and (
-                check_privilege(
-                    self.request.user,
-                    self.kwargs["course_pk"],
-                    privileges.ASSESS_PARTICIPATIONS,
-                )
-                or check_privilege(
-                    self.request.user,
-                    self.kwargs["course_pk"],
-                    privileges.MANAGE_EVENTS,
-                )
-            )
-            else StudentViewEventParticipationSerializer
+        has_assess_privilege = check_privilege(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.ASSESS_PARTICIPATIONS,
         )
+        has_manage_events_privilege = check_privilege(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.MANAGE_EVENTS,
+        )
+
+        ret = {
+            # assessment fields are displayed to teachers at all times and to students
+            # if the assessments have been published
+            "assessment_fields_read": self.get_object().is_assessment_available  # acessing as student after the assessments are published
+            or not force_student
+            and (has_assess_privilege or has_manage_events_privilege),
+            # assessment fields are writable by teachers at all times
+            "assessment_fields_write": has_assess_privilege,
+            "submission_fields_read": True,
+        }
+
+        return ret
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # !!! this will filter by event not event instance
         try:
             if self.kwargs.get("event_pk") is not None:
                 # accessing as a nested view of event viewset
                 return qs.filter(
-                    event_instance__isnull=False,
-                    event_instance__event_id=self.kwargs["event_pk"],
+                    event_id=self.kwargs["event_pk"],
                 )
-            else:  # TODO add viewset to urls
+            else:
                 # accessing as a nested view of course viewset
                 qs = qs.filter(
-                    event_instance__isnull=False,
-                    event_instance__event__course_id=self.kwargs["course_pk"],
+                    event_id=self.kwargs["course_pk"],
                 )
                 if self.request.query_params.get("user_id") is not None:
                     # only get participations of a specific user to a course
@@ -556,7 +556,6 @@ class EventParticipationViewSet(
 
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
-        # participation, _ = self.get_queryset().get_or_create(user=request.user)
         try:
             participation = self.get_queryset().get(user=request.user)
         except EventParticipation.DoesNotExist:
@@ -567,8 +566,7 @@ class EventParticipationViewSet(
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # !!! this will use the new serializer
-        serializer = StudentViewEventParticipationSerializer(
+        serializer = self.get_serializer_class()(
             participation, context=self.get_serializer_context()
         )
         return Response(serializer.data)
@@ -586,16 +584,18 @@ class EventParticipationViewSet(
             participation = get_object_or_404(self.get_queryset(), pk=pk)
             ret.append(participation)
 
-            # !!! this will use the new serializer
-            serializer = TeacherViewEventParticipationSerializer(
-                participation, data=data, partial=True
+            serializer = self.get_serializer_class()(
+                participation,
+                data=data,
+                partial=True,
             )
             serializer.is_valid()
             serializer.save()
 
-        # !!! this will use the new serializer
-        serializer = TeacherViewEventParticipationSerializer(
-            ret, many=True, context=self.get_serializer_context()
+        serializer = self.get_serializer_class()(
+            ret,
+            many=True,
+            context=self.get_serializer_context(),
         )
         return Response(serializer.data)
 
@@ -637,42 +637,55 @@ class EventParticipationSlotViewSet(
     score to a slot or to add comments to the assessment slot
     """
 
+    serializer_class = EventParticipationSlotSerializer
     permission_classes = [policies.EventParticipationSlotPolicy]
+    queryset = (
+        EventParticipationSlot.objects.all()
+        .select_related("exercise")
+        .prefetch_related("sub_slots", "selected_choices")
+    )
 
-    def get_serializer_class(self):
-        # !!! this will return the new EventParticipationSlotSerializer
-        # !!! will need to pass context to the serializer to know which fields to render and which to make writable
+    def get_capabilities(self):
+        """
+        Returns a dict for usage inside serializers' context in order to decide whether
+        to display some fields ans whether to make them writable
+        """
         force_student = "as_student" in self.request.query_params
-        return (
-            ParticipationAssessmentSlotSerializer
-            if not force_student
-            and check_privilege(
-                self.request.user,
-                self.kwargs["course_pk"],
-                privileges.ASSESS_PARTICIPATIONS,
-            )
-            else ParticipationSubmissionSlotSerializer
-        )
-
-    def get_queryset(self):
-        # !!! won't distinguish between the two models anymore
-        force_student = "as_student" in self.request.query_params
-        if not force_student and check_privilege(
+        has_assess_privilege = check_privilege(
             self.request.user,
             self.kwargs["course_pk"],
             privileges.ASSESS_PARTICIPATIONS,
-        ):
-            qs = ParticipationAssessmentSlot.objects.all()
-            related_kwarg = {
-                "assessment__participation": self.kwargs["participation_pk"]
-            }
-        else:
-            qs = ParticipationSubmissionSlot.objects.all()
-            related_kwarg = {
-                "submission__participation": self.kwargs["participation_pk"]
-            }
+        )
+        has_manage_events_privilege = check_privilege(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.MANAGE_EVENTS,
+        )
 
-        return qs.filter(**related_kwarg).prefetch_related("sub_slots")
+        ret = {
+            # assessment fields are displayed to teachers at all times and to students
+            # if the assessments have been published
+            "assessment_fields_read": self.get_object().is_assessment_available  # acessing as student after the assessments are published
+            or not force_student
+            and (has_assess_privilege or has_manage_events_privilege),
+            # assessment fields are writable by teachers at all times
+            "assessment_fields_write": has_assess_privilege,
+            "submission_fields_read": True,
+            # students can access the submission fields with write privileges
+            "submission_fields_write": not has_assess_privilege
+            and not has_manage_events_privilege,
+        }
+
+        return ret
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["capabilities"] = self.get_capabilities()
+        return context
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(participation=self.kwargs["participation_pk"])
 
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
@@ -690,13 +703,7 @@ class EventParticipationSlotViewSet(
 
     @action(detail=True, methods=["get"])
     def attachment(self, request, **kwargs):
-        slot = self.get_object()
-
-        # !!! won't make the distinction anymore
-        if isinstance(slot, ParticipationAssessmentSlot):
-            attachment = slot.submission.attachment
-        else:
-            attachment = slot.attachment
+        attachment = self.get_object().attachment
 
         if not bool(attachment):
             return Response(status=status.HTTP_204_NO_CONTENT)
