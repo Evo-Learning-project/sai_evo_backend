@@ -480,6 +480,8 @@ class EventParticipationViewSet(
         )
         .prefetch_related(
             "slots",
+            "slots__exercise",
+            "slots__exercise__choices",
         )
     )
     permission_classes = [policies.EventParticipationPolicy]
@@ -491,8 +493,7 @@ class EventParticipationViewSet(
             participation = self.get_object()
             # show solutions and scores when participation to a practice event is reviewed
             context["show_solution"] = (
-                participation.event_instance.event.event_type
-                == Event.SELF_SERVICE_PRACTICE
+                participation.event.event_type == Event.SELF_SERVICE_PRACTICE
             )
         elif self.request.query_params.get("preview") is not None:
             try:
