@@ -1008,8 +1008,9 @@ class EventParticipation(models.Model):
         related_name="participations",
         on_delete=models.PROTECT,
     )
-    event = models.ForeignKey(  # TODO use a default for compatibility with old participations
+    event = models.ForeignKey(  # TODO make non nullable when you complete migration
         Event,
+        null=True,
         related_name="participations",
         on_delete=models.PROTECT,
     )
@@ -1034,6 +1035,7 @@ class EventParticipation(models.Model):
 
     class Meta:
         ordering = ["event_id", "-begin_timestamp", "pk"]
+        # TODO enforce user_id, event_id pair uniqueness
 
     def __str__(self):
         return str(self.event) + " - " + str(self.user)

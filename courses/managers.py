@@ -133,6 +133,10 @@ class EventParticipationManager(models.Manager):
         from .logic.event_instances import get_exercises_from
         from .models import EventParticipationSlot, Event
 
+        assert (
+            kwargs["event_id"] is not None
+        )  # TODO eventually remove this when you make event field non-nullable
+
         participation = super().create(*args, **kwargs)
 
         if (exercises := kwargs.pop("exercises", None)) is None:
