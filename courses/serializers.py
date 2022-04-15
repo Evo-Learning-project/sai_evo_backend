@@ -747,6 +747,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
         # TODO put this in separate module
         text = obj.answer_text
         text = re.sub(r'src="([^"]+)"', "", text)
+        text = re.sub(r"</?p( style=('|\")[^\"']*('|\"))?>", "", text)
         return text
 
 
