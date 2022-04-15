@@ -751,7 +751,6 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         if capabilities.get("assessment_fields_read", False):
             # include teacher fields
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
-            # currently cannot write to this field, refactor to have score as a property on participation
             self.fields["score"] = serializers.CharField(
                 allow_null=True,
                 read_only=(not assessment_fields_write),
