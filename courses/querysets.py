@@ -86,7 +86,15 @@ class EventParticipationQuerySet(models.QuerySet):
                 "slots",
                 queryset=EventParticipationSlot.objects.base_slots()
                 .select_related("exercise")
-                .prefetch_related("sub_slots"),
+                .prefetch_related(
+                    "sub_slots",
+                    "selected_choices",
+                    "exercise__choices",
+                    "exercise__testcases",
+                    "exercise__sub_exercises",
+                    "exercise__public_tags",
+                    "exercise__private_tags",
+                ),
                 to_attr="prefetched_base_slots",
             )
         )

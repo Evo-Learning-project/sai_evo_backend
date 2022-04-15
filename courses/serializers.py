@@ -772,7 +772,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
     def get_event(self, obj):
         return (
             EventSerializer(obj.event, read_only=True, context=self.context).data
-            if not self.context.get("preview", False)
+            if False and not self.context.get("preview", False)  # !!!
             else None
         )
 
