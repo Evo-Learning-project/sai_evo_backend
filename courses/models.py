@@ -1144,7 +1144,12 @@ class EventParticipation(models.Model):
 
     @property
     def current_slots(self):
-        ret = self.prefetched_base_slots
+        # !!!! double check
+        ret = (
+            self.prefetched_base_slots
+            if hasattr(self, "prefetched_base_slots")
+            else self.slots.base_slots()
+        )
         if (
             self.event.exercises_shown_at_a_time is not None
             # if the participation has been turned in, show all slots to allow reviewing answers
@@ -1152,12 +1157,23 @@ class EventParticipation(models.Model):
         ):
             # slots are among the "current" ones iff their number is between the `current_slot_cursor`
             # of the EventParticipation and the next `exercises_shown_at_a_time` slots
-            ret = ret.filter(
-                slot_number__gte=self.current_slot_cursor,
-                slot_number__lt=(
-                    self.current_slot_cursor + self.event.exercises_shown_at_a_time
-                ),
+            ret = (
+                ret.filter(
+                    slot_number__gte=self.current_slot_cursor,
+                    slot_number__lt=(
+                        self.current_slot_cursor + self.event.exercises_shown_at_a_time
+                    ),
+                )
+                if not isinstance(ret, list)
+                else [
+                    s
+                    for s in ret
+                    if s.slot_number >= self.current_slot_cursor
+                    and s.slot_number
+                    < self.current_slot_cursor + self.event.exercises_shown_at_a_time
+                ]
             )
+        print("CURRENTS", ret)
         return ret
 
     def validate_unique(self, *args, **kwargs):
@@ -1186,9 +1202,11 @@ class EventParticipation(models.Model):
 
         # mark new current slot as seen
         now = timezone.localtime(timezone.now())
-        current_slot = self.slots.prefetched_base_slots.get(
-            slot_number=self.current_slot_cursor
-        )
+        current_slot = [
+            s
+            for s in self.prefetched_base_slots
+            if s.slot_number == self.current_slot_cursor
+        ][0]
         if current_slot.seen_at is None:
             current_slot.seen_at = now
             current_slot.save(update_fields=["seen_at"])

@@ -28,6 +28,7 @@ from courses.serializer_fields import (
     ReadWriteSerializerMethodField,
     RecursiveField,
 )
+import re
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
@@ -107,13 +108,22 @@ class CourseSerializer(serializers.ModelSerializer):
         except KeyError:
             return None
 
-        participations = EventParticipation.objects.filter(
-            user=user, event_instance__event__course=obj
+        participations = (
+            EventParticipation.objects.all()
+            .with_prefetched_base_slots()
+            .filter(user=user, event__course=obj)
         )
-        return StudentViewEventParticipationSerializer(
+        return EventParticipationSerializer(
             participations,
             many=True,
-            context={"preview": True, **self.context},
+            context={
+                # "include_slots": False,
+                "capabilities": {
+                    "assessment_fields_read": True,
+                    "submission_fields_read": True,
+                },
+                **self.context,
+            },
         ).data
 
     def get_unstarted_practice_events(self, obj):
@@ -127,8 +137,10 @@ class CourseSerializer(serializers.ModelSerializer):
             return None
 
         # sub-query that retrieves a user's participation to events
-        exists_user_participation = EventParticipation.objects.filter(
-            user=user, event_instance__event=OuterRef("pk")
+        exists_user_participation = (
+            EventParticipation.objects.all()
+            .with_prefetched_base_slots()
+            .filter(user=user, event=OuterRef("pk"))
         )
 
         practice_events = Event.objects.annotate(
@@ -703,17 +715,22 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
             False,
         ):
             submission_fields_write = capabilities.get("submission_fields_write", False)
+            selected_choices_kwargs = {"read_only": (not submission_fields_write)}
+            if not selected_choices_kwargs["read_only"]:
+                selected_choices_kwargs["queryset"] = ExerciseChoice.objects.all()
             self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
-                many=True,
-                read_only=(not submission_fields_write),
+                many=True, **selected_choices_kwargs
             )
             self.fields["attachment"] = FileWithPreviewField(
                 read_only=(not submission_fields_write),
             )
-            self.fields["answer_text"] = serializers.CharField(
-                read_only=(not submission_fields_write),
-                allow_blank=True,
-            )
+            if self.context.get("trim_images_in_text", False):
+                self.fields["answer_text"] = serializers.SerializerMethodField()
+            else:
+                self.fields["answer_text"] = serializers.CharField(
+                    read_only=(not submission_fields_write),
+                    allow_blank=True,
+                )
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
 
     def get_exercise(self, obj):
@@ -722,6 +739,15 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
             if not self.context.get("preview", False)
             else None
         )
+
+    def get_answer_text(self, obj):
+        """
+        Does some processing on the answer text value
+        """
+        # TODO put this in separate module
+        text = obj.answer_text
+        text = re.sub(r'src="([^"]+)"', "", text)
+        return text
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
@@ -766,22 +792,31 @@ class EventParticipationSerializer(serializers.ModelSerializer):
 
         if capabilities.get("submission_fields_read", False):  # student fields
             self.fields["assessment_available"] = serializers.BooleanField(
-                read_only=True
+                source="is_assessment_available", read_only=True
             )
 
     def get_event(self, obj):
         return (
             EventSerializer(obj.event, read_only=True, context=self.context).data
-            if False and not self.context.get("preview", False)  # !!!
+            if not self.context.get("preview", False)
             else None
         )
 
     def get_slots(self, obj):
-        return EventParticipationSlotSerializer(
-            obj.prefetched_base_slots,
-            many=True,
-            context=self.context,
-        ).data
+        if self.context.get("capabilities").get("assessment_fields_read", False):
+            slots = obj.prefetched_base_slots
+        else:
+            slots = obj.current_slots
+        ret = (
+            EventParticipationSlotSerializer(
+                slots,
+                many=True,
+                context=self.context,
+            ).data
+            if self.context.get("include_slots", True)
+            else None
+        )
+        return ret
 
 
 class EventInstanceSlotSerializer(serializers.ModelSerializer):

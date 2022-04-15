@@ -495,6 +495,10 @@ class EventParticipationViewSet(
             try:
                 preview = json.loads(self.request.query_params["preview"])
                 context["preview"] = preview
+                # downloading for csv
+                # TODO use more explicit conditions (e.g. a "for_csv" query param)
+                if not preview and self.action == "list":
+                    context["trim_images_in_text"] = True
             except Exception:
                 pass
 
@@ -523,7 +527,8 @@ class EventParticipationViewSet(
             # if the assessments have been published
             "assessment_fields_read": not force_student
             and (has_assess_privilege or has_manage_events_privilege)
-            or self.get_object().is_assessment_available,  # accessing as student after the assessments are published
+            or self.action != "create"
+            and self.get_object().is_assessment_available,  # accessing as student after the assessments are published
             # assessment fields are writable by teachers at all times
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
@@ -584,6 +589,7 @@ class EventParticipationViewSet(
 
             serializer = self.get_serializer_class()(
                 participation,
+                context=self.get_serializer_context(),
                 data=data,
                 partial=True,
             )
@@ -600,21 +606,25 @@ class EventParticipationViewSet(
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
         # TODO make this idempotent (e.g. include the target slot number in request)
-        participation = self.get_object()
+        participation = self.get_queryset().get(pk=kwargs["pk"])
         participation.move_current_slot_cursor_forward()
 
-        current_slot = participation.submission.current_slots[0]
-        serializer = ParticipationSubmissionSlotSerializer(current_slot)
+        current_slot = participation.current_slots[0]
+        serializer = EventParticipationSlotSerializer(
+            current_slot, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def go_back(self, request, **kwargs):
         # TODO make this idempotent (e.g. include the target slot number in request)
-        participation = self.get_object()
+        participation = self.get_queryset().get(pk=kwargs["pk"])
         participation.move_current_slot_cursor_back()
 
-        current_slot = participation.submission.current_slots[0]
-        serializer = ParticipationSubmissionSlotSerializer(current_slot)
+        current_slot = participation.current_slots[0]
+        serializer = EventParticipationSlotSerializer(
+            current_slot, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
 
