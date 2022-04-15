@@ -16,6 +16,10 @@ from users.serializers import UserSerializer
 from django.http import FileResponse
 from courses import policies
 from courses.logic import privileges
+from django.db.models import Prefetch
+from django_auto_prefetching import AutoPrefetchViewSetMixin
+import django_auto_prefetching
+
 from courses.logic.privileges import check_privilege
 from courses.models import (
     Course,
@@ -454,6 +458,7 @@ class EventTemplateRuleClauseViewSet(viewsets.ModelViewSet):
 
 
 class EventParticipationViewSet(
+    AutoPrefetchViewSetMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,

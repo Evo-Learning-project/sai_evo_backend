@@ -777,7 +777,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
 
     def get_slots(self, obj):
         return EventParticipationSlotSerializer(
-            obj.slots.all(),  # !!!! base_slots()
+            obj.slots.all(),  # filter(parent__isnull=True),  # .base_slots(),
             many=True,
             context=self.context,
         ).data

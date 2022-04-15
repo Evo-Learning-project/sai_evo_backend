@@ -36,6 +36,7 @@ flower = "*"
 channels-redis = "*"
 requests = "*"
 django-silk = "*"
+django-auto-prefetching = "*"
 
 [dev-packages]
 mypy = "*"

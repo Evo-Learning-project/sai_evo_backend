@@ -21,6 +21,7 @@ from .managers import (
     # EventInstanceSlotManager,
     EventManager,
     EventParticipationManager,
+    EventParticipationSlotManager,
     # EventTemplateManager,
     EventTemplateRuleManager,
     ExerciseManager,
@@ -1018,6 +1019,8 @@ class EventParticipation(models.Model):
     # !! temporary
     event_instance = models.ForeignKey(
         EventInstance,
+        null=True,
+        blank=True,
         related_name="participations",
         on_delete=models.PROTECT,
     )
@@ -1139,7 +1142,7 @@ class EventParticipation(models.Model):
 
     @property
     def current_slots(self):
-        ret = self.slots.base_slots()
+        ret = self.slots.base_slots()  #!!!!base_slots()
         if (
             self.event.exercises_shown_at_a_time is not None
             # if the participation has been turned in, show all slots to allow reviewing answers
@@ -1252,6 +1255,8 @@ class EventParticipationSlot(models.Model):
         null=True,
         blank=True,
     )
+
+    # objects = EventParticipationSlotManager()
 
     class Meta:
         ordering = ["participation_id", "parent_id", "slot_number"]
