@@ -16,10 +16,6 @@ from users.serializers import UserSerializer
 from django.http import FileResponse
 from courses import policies
 from courses.logic import privileges
-from django.db.models import Prefetch
-from django_auto_prefetching import AutoPrefetchViewSetMixin
-import django_auto_prefetching
-
 from courses.logic.privileges import check_privilege
 from courses.models import (
     Course,
@@ -458,7 +454,6 @@ class EventTemplateRuleClauseViewSet(viewsets.ModelViewSet):
 
 
 class EventParticipationViewSet(
-    AutoPrefetchViewSetMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
@@ -483,12 +478,13 @@ class EventParticipationViewSet(
             "user",
             "event",
         )
-        .prefetch_related(
-            "slots",
-            "slots__exercise",
-            "slots__sub_slots",
-            "slots__exercise__choices",
-        )
+        .with_prefetched_base_slots()
+        # .prefetch_related(
+        #     "slots",
+        #     "slots__exercise",
+        #     "slots__sub_slots",
+        #     "slots__exercise__choices",
+        # )
     )
     permission_classes = [policies.EventParticipationPolicy]
     serializer_class = EventParticipationSerializer

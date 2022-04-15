@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from courses.querysets import (
     CourseQuerySet,
+    EventParticipationQuerySet,
     ExerciseQuerySet,
     SlotModelQuerySet,
     TagQuerySet,
@@ -126,6 +127,9 @@ class ExerciseManager(models.Manager):
 
 
 class EventParticipationManager(models.Manager):
+    def get_queryset(self):
+        return EventParticipationQuerySet(self.model, using=self._db)
+
     def create(self, *args, **kwargs):
         """
         Creates an event participation and its related slots

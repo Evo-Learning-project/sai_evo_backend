@@ -1079,7 +1079,7 @@ class EventParticipation(models.Model):
 
     @property
     def last_slot_number(self):
-        return self.slots.base_slots().aggregate(max_slot_number=Max("slot_number"))[
+        return self.prefetched_base_slots.aggregate(max_slot_number=Max("slot_number"))[
             "max_slot_number"
         ]
 
@@ -1092,7 +1092,7 @@ class EventParticipation(models.Model):
 
     @property
     def assessment_progress(self):
-        slot_states = [s.assessment_state for s in self.slots.base_slots()]
+        slot_states = [s.assessment_state for s in self.prefetched_base_slots]
         state = self.NOT_ASSESSED
         for slot_state in slot_states:
             if slot_state == ParticipationAssessmentSlot.ASSESSED:
@@ -1126,7 +1126,7 @@ class EventParticipation(models.Model):
                 sum(
                     [
                         s.score if s.score is not None else 0
-                        for s in self.slots.base_slots()
+                        for s in self.prefetched_base_slots
                     ]
                 )
             )
@@ -1142,7 +1142,7 @@ class EventParticipation(models.Model):
 
     @property
     def current_slots(self):
-        ret = self.slots.base_slots()  #!!!!base_slots()
+        ret = self.prefetched_base_slots
         if (
             self.event.exercises_shown_at_a_time is not None
             # if the participation has been turned in, show all slots to allow reviewing answers
@@ -1184,7 +1184,9 @@ class EventParticipation(models.Model):
 
         # mark new current slot as seen
         now = timezone.localtime(timezone.now())
-        current_slot = self.slots.base_slots().get(slot_number=self.current_slot_cursor)
+        current_slot = self.slots.prefetched_base_slots.get(
+            slot_number=self.current_slot_cursor
+        )
         if current_slot.seen_at is None:
             current_slot.seen_at = now
             current_slot.save(update_fields=["seen_at"])
@@ -1256,7 +1258,7 @@ class EventParticipationSlot(models.Model):
         blank=True,
     )
 
-    # objects = EventParticipationSlotManager()
+    objects = EventParticipationSlotManager()
 
     class Meta:
         ordering = ["participation_id", "parent_id", "slot_number"]
