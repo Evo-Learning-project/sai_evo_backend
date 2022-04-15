@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from courses.querysets import (
     CourseQuerySet,
-    EventTemplateQuerySet,
+    EventParticipationQuerySet,
     ExerciseQuerySet,
     SlotModelQuerySet,
     TagQuerySet,
@@ -25,52 +25,6 @@ class TagManager(models.Manager):
 
     def public(self):
         return self.get_queryset().public()
-
-
-class SlottedModelManager(models.Manager):
-    def create_sub_slots_for(self, from_slot, parent):
-        """
-        Recursively creates slots (with given parent) associated to the
-        sub-slots of `from_slot`
-        """
-
-        # name of the argument containing foreign key to parent and its value
-        related_object_kwarg = {
-            self.model._meta.verbose_name.split(" ")[1]: getattr(
-                parent, self.model._meta.verbose_name.split(" ")[1]
-            )
-        }
-
-        slot_model = type(parent)
-
-        for sub_slot in from_slot.sub_slots.all():
-            new_slot = slot_model.objects.create(
-                parent=parent,
-                slot_number=sub_slot.slot_number,
-                **related_object_kwarg,
-            )
-            self.create_sub_slots_for(sub_slot, new_slot)
-
-    def create(self, *args, **kwargs):
-        from django.apps import apps
-
-        obj = super().create(*args, **kwargs)
-        # !!! specialize this behavior for EventParticipation
-        # name of the argument containing foreign key to parent and its value
-        related_object_kwarg = {self.model._meta.verbose_name.split(" ")[1]: obj}
-
-        slot_model = apps.get_model(f"courses.{self.model.__name__}Slot")
-
-        for slot in obj.participation.event_instance.slots.base_slots():
-            # create a related slot for each base slot in the related EventInstance
-            new_slot = slot_model.objects.create(
-                slot_number=slot.slot_number,
-                parent=None,
-                **related_object_kwarg,
-            )
-            self.create_sub_slots_for(slot, new_slot)
-
-        return obj
 
 
 class ExerciseManager(models.Manager):
@@ -173,73 +127,45 @@ class ExerciseManager(models.Manager):
 
 
 class EventParticipationManager(models.Manager):
-    def create(self, event_id=None, event_instance=None, *args, **kwargs):
-        """
-        Creates an event participation. If supplied an EventInstance, assigns that instance
-        to the new participation, otherwise creates one on demand and assigns it to the new
-        participation. If no EventInstance is supplied, an Event argument must be supplied
-        """
-        from .models import (
-            EventInstance,
-            ParticipationAssessment,
-            ParticipationSubmission,
-        )
+    def get_queryset(self):
+        return EventParticipationQuerySet(self.model, using=self._db)
 
-        if event_instance is None and event_id is None:
-            raise ValueError("Either provide an Event or an EventInstance")
-
-        if event_instance is None:
-            # !!! here you would need to get a list of exercises from the event template
-            event_instance = EventInstance.objects.create(event_id=event_id)
-
-        kwargs["event_instance_id"] = event_instance.pk
-        participation = super().create(*args, **kwargs)
-
-        # !!! no more of these; create slots directly
-        ParticipationSubmission.objects.create(participation=participation)
-        ParticipationAssessment.objects.create(participation=participation)
-
-        participation.save()
-
-        return participation
-
-
-class EventInstanceManager(models.Manager):
     def create(self, *args, **kwargs):
         """
-        Creates an event instance. A list of exercises can be supplied to have the instance contain
-        those exercises. If no such list is supplied, the exercises are chosen applying the rules
-        in the event template
+        Creates an event participation and its related slots
         """
         from .logic.event_instances import get_exercises_from
-        from .models import Event, EventInstanceSlot
+        from .models import EventParticipationSlot, Event
+
+        assert (
+            kwargs["event_id"] is not None
+        )  # TODO eventually remove this when you make event field non-nullable
+
+        participation = super().create(*args, **kwargs)
 
         if (exercises := kwargs.pop("exercises", None)) is None:
             event = Event.objects.get(pk=kwargs["event_id"])
             event_template = event.template
 
+            # use event template to get a list of exercises for this participation
             exercises = get_exercises_from(
                 event_template,
                 public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
             )
 
-        instance = super().create(*args, **kwargs)
-
         slot_number = 0
         for exercise in exercises:
-            # !!! specialize this behavior for EventParticipation
-            EventInstanceSlot.objects.create(
-                event_instance=instance,
+            EventParticipationSlot.objects.create(
+                participation=participation,
                 exercise=exercise,
                 slot_number=slot_number,
             )
             slot_number += 1
 
-        return instance
+        return participation
 
 
-# !!! use this behavior for EventParticipationSlot too
-class EventInstanceSlotManager(models.Manager):
+class EventParticipationSlotManager(models.Manager):
     def get_queryset(self):
         return SlotModelQuerySet(self.model, using=self._db)
 
@@ -247,46 +173,22 @@ class EventInstanceSlotManager(models.Manager):
         return self.get_queryset().base_slots()
 
     def create(self, *args, **kwargs):
-        from .models import EventInstanceSlot
+        from .models import EventParticipationSlot
 
         slot = super().create(*args, **kwargs)
 
         sub_slot_number = 0
         # recursively create slots that reference sub-exercises
         for sub_exercise in slot.exercise.sub_exercises.all():
-            EventInstanceSlot.objects.create(
+            EventParticipationSlot.objects.create(
                 parent=slot,
-                event_instance=slot.event_instance,
+                participation=slot.participation,
                 exercise=sub_exercise,
                 slot_number=sub_slot_number,
             )
             sub_slot_number += 1
 
         return slot
-
-
-class ParticipationSubmissionSlotManager(models.Manager):
-    def get_queryset(self):
-        return SlotModelQuerySet(self.model, using=self._db)
-
-    def base_slots(self):
-        return self.get_queryset().base_slots()
-
-
-class ParticipationAssessmentSlotManager(models.Manager):
-    def get_queryset(self):
-        return SlotModelQuerySet(self.model, using=self._db)
-
-    def base_slots(self):
-        return self.get_queryset().base_slots()
-
-
-class ParticipationSubmissionManager(SlottedModelManager):
-    pass
-
-
-class ParticipationAssessmentManager(SlottedModelManager):
-    pass
 
 
 class EventManager(models.Manager):
@@ -300,31 +202,6 @@ class EventManager(models.Manager):
         event.save()
 
         return event
-
-
-class EventTemplateManager(models.Manager):
-    def get_queryset(self):
-        return EventTemplateQuerySet(self.model, using=self._db)
-
-    def public(self):
-        return self.get_queryset().public()
-
-    def create(self, *args, **kwargs):
-        from .models import EventTemplateRule
-
-        # rules = kwargs.pop("rules", [])
-        template = super().create(*args, **kwargs)
-
-        # target_slot_number = 0
-        # for rule in rules:
-        #     EventTemplateRule.objects.create(
-        #         template=template,
-        #         target_slot_number=target_slot_number,
-        #         **rule,
-        #     )
-        #     target_slot_number += 1
-
-        return template
 
 
 class EventTemplateRuleManager(models.Manager):

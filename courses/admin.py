@@ -76,6 +76,11 @@ class EventAdmin(admin.ModelAdmin):
     readonly_fields = ("state",)
 
 
+@admin.register(EventParticipationSlot)
+class EventParticipationSlotAdmin(admin.ModelAdmin):
+    pass
+
+
 class EventInstanceInline(admin.TabularInline):
     model = EventInstance
 

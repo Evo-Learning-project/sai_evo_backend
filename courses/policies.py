@@ -332,7 +332,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
     ]
 
     def is_in_own_participation(self, request, view, action):
-        participation = view.get_object().submission.participation
+        participation = view.get_object().participation
         return request.user == participation.user
 
     def can_update_parent_participation(self, request, view, action):

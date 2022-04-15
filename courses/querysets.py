@@ -3,6 +3,7 @@ import random
 from django.db import models
 from django.db.models import Q, aggregates
 from django.db.models.aggregates import Max, Min
+from django.db.models import Prefetch
 
 
 class ExerciseQuerySet(models.QuerySet):
@@ -76,6 +77,21 @@ class ExerciseQuerySet(models.QuerySet):
         return ret
 
 
+class EventParticipationQuerySet(models.QuerySet):
+    def with_prefetched_base_slots(self):
+        from courses.models import EventParticipationSlot
+
+        return self.prefetch_related(
+            Prefetch(
+                "slots",
+                queryset=EventParticipationSlot.objects.base_slots()
+                .select_related("exercise")
+                .prefetch_related("sub_slots"),
+                to_attr="prefetched_base_slots",
+            )
+        )
+
+
 class SlotModelQuerySet(models.QuerySet):
     def base_slots(self):
         """
@@ -83,15 +99,6 @@ class SlotModelQuerySet(models.QuerySet):
         (i.e. that aren't a sub-slot)
         """
         return self.filter(parent__isnull=True)
-
-
-class EventTemplateQuerySet(models.QuerySet):
-    def public(self):
-        """
-        Returns the slots that don't have a parent foreign key
-        (i.e. that aren't a sub-slot)
-        """
-        return self.filter(public=True)
 
 
 class CourseQuerySet(models.QuerySet):

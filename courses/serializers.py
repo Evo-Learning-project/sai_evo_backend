@@ -11,6 +11,7 @@ from courses.models import (
     Event,
     EventInstanceSlot,
     EventParticipation,
+    EventParticipationSlot,
     EventTemplate,
     EventTemplateRule,
     EventTemplateRuleClause,
@@ -654,73 +655,79 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
         ).data
 
 
-# !!! make new EventParticipationSerializer
-
-
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
+    exercise = serializers.SerializerMethodField()  # to pass context
+    sub_slots = RecursiveField(many=True, read_only=True)
+    is_last = serializers.BooleanField(
+        read_only=True,
+        source="participation.is_cursor_last_position",
+    )
+    is_first = serializers.BooleanField(
+        read_only=True,
+        source="participation.is_cursor_first_position",
+    )
+
     class Meta:
-        model = ParticipationSubmissionSlot  # !!! use new EventParticipationSlot model
+        model = EventParticipationSlot
         fields = [
             "id",
             "slot_number",
             "exercise",
             "sub_slots",
+            "seen_at",
+            "answered_at",
+            "is_last",
+            "is_first",
         ]
+        read_only_fields = ["id", "seen_at", "answered_at"]
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-            capabilities = self.context.get("capabilities", {})
+        capabilities = self.context.get("capabilities", {})
 
-            if capabilities.get("assessment_fields_read", False):
-                assessment_fields_write = capabilities.get(
-                    "assessment_fields_write", False
-                )
-                self.fields["score"] = serializers.DecimalField(
-                    max_digits=5,
-                    decimal_places=1,
-                    read_only=(not assessment_fields_write),
-                )
-                self.fields["comment"] = serializers.CharField(
-                    read_only=(not assessment_fields_write),
-                )
-                # TODO probably move these to the default fields
-                self.fields["seen_at"] = serializers.DateTimeField(
-                    source="submission.seen_at",
-                    read_only=True,
-                )
-                self.fields["answered_at"] = serializers.DateTimeField(
-                    source="submission.answered_at",
-                    read_only=True,
-                )
+        if capabilities.get("assessment_fields_read", False):
+            assessment_fields_write = capabilities.get("assessment_fields_write", False)
+            self.fields["score"] = serializers.DecimalField(
+                max_digits=5,
+                decimal_places=1,
+                allow_null=True,
+                read_only=(not assessment_fields_write),
+            )
+            self.fields["comment"] = serializers.CharField(
+                read_only=(not assessment_fields_write),
+            )
 
-            if capabilities.get("submission_fields_read", False):
-                submission_fields_write = capabilities.get(
-                    "submission_fields_write", False
-                )
-                # find a way to make these writable
-                self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
-                    many=True,
-                    read_only=(not submission_fields_write),
-                )
-                # TODO use your file field with preview
-                self.fields["attachment"] = serializers.FileField(
-                    read_only=(not submission_fields_write),
-                )
-                # TODO add other params like allow_blank
-                self.fields["answer_text"] = serializers.CharField(
-                    read_only=(not submission_fields_write),
-                )
+        if capabilities.get("submission_fields_read", False,) and not self.context.get(
+            "preview",
+            False,
+        ):
+            submission_fields_write = capabilities.get("submission_fields_write", False)
+            self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
+                many=True,
+                read_only=(not submission_fields_write),
+            )
+            self.fields["attachment"] = FileWithPreviewField(
+                read_only=(not submission_fields_write),
+            )
+            self.fields["answer_text"] = serializers.CharField(
+                read_only=(not submission_fields_write),
+                allow_blank=True,
+            )
+            self.fields["execution_results"] = serializers.JSONField(read_only=True)
 
-                # TODO add execution results and other fields
+    def get_exercise(self, obj):
+        return (
+            ExerciseSerializer(obj.exercise, context=self.context).data
+            if not self.context.get("preview", False)
+            else None
+        )
 
 
 class EventParticipationSerializer(serializers.ModelSerializer):
-    max_score = serializers.DecimalField(
-        max_digits=5,
-        decimal_places=1,
-        source="event_instance.max_score",
-    )
+    event = serializers.SerializerMethodField()  # to pass context
+    slots = serializers.SerializerMethodField()  # to pass context
+    user = UserSerializer(read_only=True)
 
     class Meta:
         model = EventParticipation
@@ -733,6 +740,8 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             "end_timestamp",
             "score",
             "max_score",
+            "event",
+            "last_slot_number",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -743,15 +752,12 @@ class EventParticipationSerializer(serializers.ModelSerializer):
         if capabilities.get("assessment_fields_read", False):
             # include teacher fields
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
-            # currently cannot write to this field, refactor to have score as a property on participation
-            self.fields["score"] = serializers.DecimalField(
-                max_digits=5,
-                decimal_places=1,
-                source="assessment.score",
+            self.fields["score"] = serializers.CharField(
+                allow_null=True,
                 read_only=(not assessment_fields_write),
             )
             self.fields["assessment_progress"] = serializers.IntegerField(
-                source="assessment.assessment_progress",
+                read_only=True
             )
             self.fields["visibility"] = serializers.IntegerField(
                 source="assessment_visibility",
@@ -759,20 +765,23 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             )
 
         if capabilities.get("submission_fields_read", False):  # student fields
-            self.fields["assessment_available"] = serializers.SerializerMethodField()
+            self.fields["assessment_available"] = serializers.BooleanField(
+                read_only=True
+            )
 
-            if not hasattr(self.fields, "score"):  # don't re-define score field
-                # add score as a read-only property and only if assessment has been published
-                self.fields["score"] = serializers.SerializerMethodField()
+    def get_event(self, obj):
+        return (
+            EventSerializer(obj.event, read_only=True, context=self.context).data
+            if not self.context.get("preview", False)
+            else None
+        )
 
-    def get_assessment_available(self, obj):
-        return obj.is_assessment_available()
-
-    def get_score(self, obj):
-        if not obj.is_assessment_available():
-            return None
-
-        return obj.assessment.score
+    def get_slots(self, obj):
+        return EventParticipationSlotSerializer(
+            obj.prefetched_base_slots,
+            many=True,
+            context=self.context,
+        ).data
 
 
 class EventInstanceSlotSerializer(serializers.ModelSerializer):
