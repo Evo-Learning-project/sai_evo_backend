@@ -470,25 +470,25 @@ class EventParticipationViewSet(
     """
 
     queryset = (
-        EventParticipation.objects.all().select_related(
-            # "assessment",
-            # "submission",
-            # "event_instance",
-            # "user",
-            # "event_instance__event",
-            # "event_instance__event__template",
-            # "event_instance__event__template__rules",
+        EventParticipation.objects.all()
+        .select_related(
+            "assessment",
+            "submission",
+            "event_instance",
+            "user",
         )
-        # .prefetch_related(
-        #     "assessment__slots",
-        #     "submission__slots",
-        #     "submission__slots__selected_choices",
-        #     "event_instance__slots",
-        #     "event_instance__slots__exercise",
-        #     "event_instance__slots__exercise__choices",
-        #     "event_instance__slots__exercise__testcases",
-        #     "event_instance__slots__exercise__sub_exercises",
-        # )
+        .prefetch_related(
+            "assessment__slots",
+            "assessment__slots__sub_slots",
+            "submission__slots",
+            "submission__slots__sub_slots",
+            "submission__slots__selected_choices",
+            "event_instance__slots",
+            "event_instance__slots__exercise",
+            "event_instance__slots__exercise__choices",
+            "event_instance__slots__exercise__testcases",
+            "event_instance__slots__exercise__sub_exercises",
+        )
     )
     permission_classes = [policies.EventParticipationPolicy]
 
