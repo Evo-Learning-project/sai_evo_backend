@@ -479,12 +479,6 @@ class EventParticipationViewSet(
             "event",
         )
         .with_prefetched_base_slots()
-        # .prefetch_related(
-        #     "slots",
-        #     "slots__exercise",
-        #     "slots__sub_slots",
-        #     "slots__exercise__choices",
-        # )
     )
     permission_classes = [policies.EventParticipationPolicy]
     serializer_class = EventParticipationSerializer
@@ -563,9 +557,10 @@ class EventParticipationViewSet(
             participation = self.get_queryset().get(user=request.user)
         except EventParticipation.DoesNotExist:
             try:
-                participation = EventParticipation.objects.create(
+                participation_pk = EventParticipation.objects.create(
                     user=request.user, event_id=self.kwargs["event_pk"]
-                )
+                ).pk
+                participation = self.get_queryset().get(pk=participation_pk)
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
 

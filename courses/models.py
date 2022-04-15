@@ -1079,9 +1079,11 @@ class EventParticipation(models.Model):
 
     @property
     def last_slot_number(self):
-        return self.prefetched_base_slots.aggregate(max_slot_number=Max("slot_number"))[
-            "max_slot_number"
-        ]
+        if hasattr(self, "prefetched_base_slots"):
+            base_slots = self.prefetched_base_slots
+        else:
+            base_slots = self.slots.base_slots()
+        return len(base_slots) - 1
 
     @property
     def max_score(self):
@@ -1106,7 +1108,7 @@ class EventParticipation(models.Model):
         if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
             return (
                 self.PUBLISHED
-                if self.participation.state == EventParticipation.TURNED_IN
+                if self.state == EventParticipation.TURNED_IN
                 else self.NOT_ASSESSED
             )
         return self._assessment_state
