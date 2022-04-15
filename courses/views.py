@@ -547,7 +547,7 @@ class EventParticipationViewSet(
             else:
                 # accessing as a nested view of course viewset
                 qs = qs.filter(
-                    event_id=self.kwargs["course_pk"],
+                    event__course_id=self.kwargs["course_pk"],
                 )
                 if self.request.query_params.get("user_id") is not None:
                     # only get participations of a specific user to a course
