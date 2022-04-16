@@ -13,6 +13,8 @@ from channels.db import database_sync_to_async
 from rest_framework.exceptions import PermissionDenied
 import msgpack
 
+from django.core.exceptions import ObjectDoesNotExist
+
 
 from django.db.models import Model
 
@@ -28,7 +30,11 @@ from courses.logic.privileges import (
     UPDATE_COURSE,
     check_privilege,
 )
-from courses.models import Event, Exercise, ParticipationSubmissionSlot
+from courses.models import (
+    Event,
+    EventParticipationSlot,
+    Exercise,
+)
 
 from hashid_field import Hashid
 
@@ -123,7 +129,7 @@ class EventConsumer(BaseObserverConsumer):
                 obj = await database_sync_to_async(
                     self.queryset.select_related("course").get
                 )(pk=kwargs["pk"])
-            except Model.DoesNotExist:
+            except ObjectDoesNotExist:
                 return False
             if not await database_sync_to_async(check_privilege)(
                 self.scope["user"], obj.course.pk, MANAGE_EVENTS
@@ -143,7 +149,7 @@ class ExerciseConsumer(BaseObserverConsumer):
                 obj = await database_sync_to_async(
                     self.queryset.select_related("course").get
                 )(pk=kwargs["pk"])
-            except Model.DoesNotExist:
+            except ObjectDoesNotExist:
                 raise PermissionDenied()
             if not await database_sync_to_async(check_privilege)(
                 self.scope["user"], obj.course.pk, MANAGE_EXERCISES
@@ -153,7 +159,7 @@ class ExerciseConsumer(BaseObserverConsumer):
 
 
 class SubmissionSlotConsumer(AsyncWebsocketConsumer):
-    queryset = ParticipationSubmissionSlot.objects.all()
+    queryset = EventParticipationSlot.objects.all()
 
     async def receive(self, text_data=None, bytes_data=None):
         payload = json.loads(text_data)
@@ -185,11 +191,11 @@ class SubmissionSlotConsumer(AsyncWebsocketConsumer):
     async def check_permissions(self, **kwargs):
         try:
             obj = await database_sync_to_async(
-                self.queryset.select_related("submission__participation__user").get
+                self.queryset.select_related("participation__user").get
             )(pk=kwargs["pk"])
-        except Model.DoesNotExist:
+        except ObjectDoesNotExist:
             return False
-        if obj.submission.participation.user != self.scope["user"]:
+        if obj.participation.user != self.scope["user"]:
             return False
         return True
 

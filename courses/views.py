@@ -706,7 +706,9 @@ class EventParticipationSlotViewSet(
             "state": "running",
         }
         slot.save(update_fields=["execution_results"])
-        serializer = self.get_serializer_class()(slot)
+        serializer = self.get_serializer_class()(
+            slot, context=self.get_serializer_context()
+        )
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["get"])

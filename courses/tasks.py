@@ -1,7 +1,7 @@
 import time
 from coding.helpers import get_code_execution_results
 from core.celery import app
-from courses.models import ParticipationSubmissionSlot
+from courses.models import EventParticipationSlot, ParticipationSubmissionSlot
 from django.db import transaction
 
 from djangochannelsrestframework import *
@@ -25,7 +25,7 @@ def run_user_code_task(self, slot_id):
     """
     from courses.consumers import SubmissionSlotConsumer
 
-    slot = ParticipationSubmissionSlot.objects.get(id=slot_id)
+    slot = EventParticipationSlot.objects.get(id=slot_id)
     try:
         # run code and save outcome to slot
         results = get_code_execution_results(slot=slot)
