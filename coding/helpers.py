@@ -104,4 +104,4 @@ def get_code_execution_results(slot=None, **kwargs):
     if exercise.exercise_type == Exercise.C:
         return run_c_code_in_vm(code, testcases)
 
-    raise ValidationError("Non-coding exercise " + exercise.pk)
+    raise ValidationError("Non-coding exercise " + str(exercise.pk))
