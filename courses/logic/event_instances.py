@@ -9,7 +9,7 @@ def get_exercises_from(template, public_only=False):
         exercises = exercises.public()
 
     picked_exercises = []
-    for rule in template.rules.all():
+    for rule in template.rules.all():  # TODO if template is randomized, order_by('?')
         rule_qs = exercises.satisfying(rule)
 
         rule_picked_exercises = rule_qs.exclude(

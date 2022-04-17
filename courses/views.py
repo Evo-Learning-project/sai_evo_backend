@@ -680,7 +680,8 @@ class EventParticipationSlotViewSet(
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
             # students can access the submission fields with write privileges
-            "submission_fields_write": not has_assess_privilege
+            "submission_fields_write": force_student
+            or not has_assess_privilege
             and not has_manage_events_privilege,
         }
 

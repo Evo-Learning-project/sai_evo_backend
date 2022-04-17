@@ -24,6 +24,6 @@ class UserQuerySet(models.QuerySet):
         return self.annotate(
             participation_count=Count(
                 "participations",
-                filter=Q(participations__event_instance__event__course_id=course_id),
+                filter=Q(participations__event__course_id=course_id),
             )
         ).filter(participation_count__gt=0)

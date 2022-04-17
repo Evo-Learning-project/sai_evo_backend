@@ -360,7 +360,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventTemplate
-        fields = ["id", "name", "rules"]
+        fields = ["id", "name", "rules", "randomize_rule_order"]
         read_only_fields = ["rules"]
 
 

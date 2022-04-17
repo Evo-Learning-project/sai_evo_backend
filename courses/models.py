@@ -566,6 +566,7 @@ class EventTemplate(models.Model):
         null=True,
         blank=True,
     )
+    randomize_rule_order = models.BooleanField(default=False)
 
     # objects = EventTemplateManager()
 
