@@ -2,5 +2,8 @@
   "dependencies": {
     "typescript": "^4.6.3",
     "vm2": "^3.9.9"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.24"
   }
 }
