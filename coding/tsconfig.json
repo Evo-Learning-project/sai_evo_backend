@@ -2,9 +2,6 @@
     "compilerOptions": {
         "target": "ESNEXT",
         "module": "ESNext",
-        "lib": [
-            "lib.esnext.d.ts"
-        ],
         "noEmit": false,
         "strict": true,
         "typeRoots": [
