@@ -78,16 +78,31 @@ def run_js_code_in_vm(code, testcases, use_ts):
     testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
 
     # call node subprocess and run user code against test cases
-    res = subprocess.check_output(
-        [
-            "node",
-            node_vm_path,
-            code,
-            json.dumps(testcases_json),
-            json.dumps(use_ts),
-        ]
-    )
-    return {**json.loads(res), "state": "completed"}
+    try:
+        res = subprocess.check_output(
+            [
+                "node",
+                node_vm_path,
+                code,
+                json.dumps(testcases_json),
+                json.dumps(use_ts),
+            ]
+        )
+        return {**json.loads(res), "state": "completed"}
+    except subprocess.CalledProcessError as e:
+        print(
+            "-----\n\n\n",
+            e.returncode,
+            "\n\n",
+            e.output,
+            "\n\n",
+            e.stdout,
+            "\n\n",
+            e.cmd,
+            "\n\n",
+            e.args,
+            "\n\n-----",
+        )
 
 
 def get_code_execution_results(slot=None, **kwargs):
