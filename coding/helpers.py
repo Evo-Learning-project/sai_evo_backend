@@ -88,6 +88,7 @@ def run_js_code_in_vm(code, testcases, use_ts):
                 json.dumps(use_ts),
             ]
         )
+        print("RES", res)
         return {**json.loads(res), "state": "completed"}
     except subprocess.CalledProcessError as e:
         print(

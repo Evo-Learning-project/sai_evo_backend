@@ -16,12 +16,20 @@ function deleteTmpFiles(filename) {
 }
 
 function getAbsoluteTmpFilePath(filename) {
-  return __dirname + "/tmp/" + filename;
+  return getTmpFileDir() + filename;
+}
+
+function getTmpFileDir() {
+  return __dirname + "/tmp/";
 }
 
 function compile(source, options) {
   const filename = getRandomIdentifier(20);
   const filepath = getAbsoluteTmpFilePath(filename) + ".ts";
+
+  if (!fs.existsSync(getTmpFileDir())) {
+    fs.mkdirSync(getTmpFileDir(), 0744, { recursive: true });
+  }
 
   createTsSourceFile(filepath, source);
 
