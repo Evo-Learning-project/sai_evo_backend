@@ -523,8 +523,7 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
 
         if (
             self._event_state == Event.RESTRICTED
-            and self.users_allowed_past_closure.count()
-            == EventParticipation.objects.filter(event_instance__event=self).count()
+            and self.users_allowed_past_closure.count() == self.participations.count()
         ):
             self._event_state = Event.OPEN
             self.save()

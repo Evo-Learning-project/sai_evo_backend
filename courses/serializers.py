@@ -422,9 +422,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
     def get_participation_exists(self, obj):
         try:
             user = self.context["request"].user
-            return EventParticipation.objects.filter(
-                user=user, event_instance__event=obj
-            ).exists()
+            return obj.participations.filter(user=user).exists()
         except KeyError:
             return None
 
