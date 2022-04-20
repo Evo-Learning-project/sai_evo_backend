@@ -69,6 +69,9 @@ def check_privilege(user, course, privilege):
     """
     from courses.models import Course, UserCoursePrivilege
 
+    if user.is_anonymous:
+        return False
+
     if not isinstance(course, Course):
         course = Course.objects.get(pk=course)
 
