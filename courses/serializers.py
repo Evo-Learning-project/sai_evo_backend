@@ -316,7 +316,11 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
         return super().update(instance, validated_data)
 
     def get_correct_choices(self, obj):
-        return [c.pk for c in obj.get_correct_choices()]
+        # workaround for drf bug https://github.com/encode/django-rest-framework/issues/6084
+        if isinstance(obj, Exercise):
+            return [c.pk for c in obj.get_correct_choices()]
+
+        return []
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
