@@ -13,7 +13,7 @@ from coding.helpers import get_code_execution_results
 from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from courses import policies
 from courses.logic import privileges
 from courses.logic.privileges import check_privilege
@@ -170,6 +170,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "choices",
         "testcases",
         "sub_exercises",
+        "sub_exercises__choices",
+        "sub_exercises__testcases",
     )
     permission_classes = [policies.ExercisePolicy]
     pagination_class = ExercisePagination
@@ -554,7 +556,7 @@ class EventParticipationViewSet(
                     qs = qs.filter(user_id=self.request.query_params["user_id"])
                 return qs
         except ValueError:
-            return qs
+            raise Http404
 
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
