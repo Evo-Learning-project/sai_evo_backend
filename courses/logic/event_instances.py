@@ -3,7 +3,9 @@ from courses.models import Exercise
 
 def get_exercises_from(template, public_only=False):
     course = template.event.course
-    exercises = Exercise.objects.base_exercises().filter(course=course)
+    exercises = Exercise.objects.base_exercises().filter(
+        course=course
+    )  # TODO prefetch?
 
     if public_only:
         exercises = exercises.public()

@@ -10,6 +10,7 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from coding.helpers import get_code_execution_results
+from courses.logic.event_instances import get_exercises_from
 from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
@@ -396,6 +397,22 @@ class EventViewSet(viewsets.ModelViewSet):
             course_id=self.kwargs["course_pk"],
             creator=self.request.user,
         )
+
+    @action(methods=["get"], detail=True)
+    def instances(self, request, **kwargs):
+        instance_count = self.request.query_params.get("amount") or 5
+
+        data = []
+        template = self.get_object().template
+        for _ in range(0, int(instance_count)):
+            data.append(
+                ExerciseSerializer(
+                    get_exercises_from(template),
+                    many=True,
+                ).data
+            )
+
+        return Response(data)
 
 
 # TODO disallow actions and make read-only

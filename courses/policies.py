@@ -96,6 +96,12 @@ class EventPolicy(BaseAccessPolicy):
             "condition_expression": "is_self_service_practice or has_teacher_privileges:manage_events",
         },
         {
+            "action": ["instances"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "has_teacher_privileges:manage_events",
+        },
+        {
             "action": ["retrieve"],
             "principal": ["authenticated"],
             "effect": "allow",
