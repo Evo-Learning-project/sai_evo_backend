@@ -463,6 +463,7 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         choices=ACCESS_RULES, default=ALLOW_ACCESS
     )
     access_rule_exceptions = models.JSONField(default=list, blank=True)
+    randomize_rule_order = models.BooleanField(default=False)
 
     objects = EventManager()
 
@@ -565,7 +566,6 @@ class EventTemplate(models.Model):
         null=True,
         blank=True,
     )
-    randomize_rule_order = models.BooleanField(default=False)
 
     # objects = EventTemplateManager()
 

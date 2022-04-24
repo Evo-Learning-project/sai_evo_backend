@@ -364,7 +364,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventTemplate
-        fields = ["id", "name", "rules", "randomize_rule_order"]
+        fields = ["id", "name", "rules"]
         read_only_fields = ["rules"]
 
 
@@ -408,6 +408,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
                 ),
                 required=False,
             )
+            self.fields["randomize_rule_order"] = serializers.BooleanField()
 
     def get_state(self, obj):
         state = obj.state
