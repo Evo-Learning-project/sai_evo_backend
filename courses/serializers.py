@@ -709,7 +709,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 read_only=(not assessment_fields_write),
             )
             self.fields["comment"] = serializers.CharField(
-                read_only=(not assessment_fields_write),
+                read_only=(not assessment_fields_write), allow_blank=True
             )
 
         if capabilities.get("submission_fields_read", False,) and not self.context.get(
