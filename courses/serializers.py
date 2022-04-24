@@ -771,6 +771,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             "max_score",
             "event",
             "last_slot_number",
+            "current_slot_cursor",
         ]
 
     def __init__(self, *args, **kwargs):

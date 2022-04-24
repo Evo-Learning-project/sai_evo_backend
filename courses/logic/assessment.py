@@ -23,7 +23,12 @@ class SubmissionAssessor:
 
     def assess_programming_exercise(self):
         if self.participation_slot.execution_results is None:
-            return None
+            return (
+                0
+                if self.participation_slot.answer_text is None
+                or len(self.participation_slot.answer_text.strip()) == 0
+                else None
+            )
 
         try:
             tests = self.participation_slot.execution_results["tests"]
