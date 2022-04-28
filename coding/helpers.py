@@ -8,7 +8,7 @@ from courses.serializers import ExerciseTestCaseSerializer
 
 
 def program_stdout_matches_expected(stdout, expected_stdout):
-    return stdout == expected_stdout
+    return stdout.rstrip("\n") == expected_stdout.rstrip("\n")
 
 
 def run_c_code_in_vm(code, testcases):
