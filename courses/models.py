@@ -248,6 +248,9 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     @property
     def max_score(self):
         # TODO add field to make this writable
+        if self.exercise_type in [Exercise.JS, Exercise.C]:
+            return self.testcases.count()
+
         if self.choices.count() == 0:
             return 0
 
@@ -1087,10 +1090,14 @@ class EventParticipation(models.Model):
 
     @property
     def max_score(self):
-        return 0
-        # TODO re-implement
-        # exercises = self.exercises.all()
-        # return sum([e.max_score for e in exercises if e.max_score is not None])
+        slots = (
+            self.prefetched_base_slots
+            if hasattr(self, "prefetched_base_slots")
+            else self.slots.base_slots()
+        )
+        return sum(
+            [s.exercise.max_score for s in slots if s.exercise.max_score is not None]
+        )
 
     @property
     def assessment_progress(self):
