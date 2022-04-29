@@ -27,28 +27,21 @@ const safeVm = new VM({
 
 const compileFromTs = JSON.parse(process.argv[4] ?? "false");
 
-let userCode;
-
-if (!compileFromTs) {
-  userCode = process.argv[2];
-} else {
-  const compilationResult = compileTsToJs(process.argv[2]);
-  if (compilationResult.compilationErrors.length > 0) {
-    console.log(
-      JSON.stringify({
-        compilation_errors: compilationResult.compilationErrors,
-      })
-    );
-    process.exit(0);
-  }
-  userCode = compilationResult.compiledCode;
-}
-
 const testcases = JSON.parse(process.argv[3]);
 
 const outputArrIdentifier = utils.getRandomIdentifier(32);
 const testDetailsObjIdentifier = utils.getRandomIdentifier(32);
 const testcaseCounterIdentifier = utils.getRandomIdentifier(32);
+
+const vmIdentifiers = [
+  // outputArrIdentifier,
+  //testDetailsObjIdentifier,
+  //testcaseCounterIdentifier,
+  assertIdentifier,
+  assertionErrorIdentifier,
+  prettyPrintErrorIdentifier,
+  prettyPrintAssertionErrorIdentifier,
+];
 
 // turn array of strings representing assertions to a series of try-catch blocks
 //  where those assertions are evaluated and the result is pushed to an array
@@ -59,7 +52,7 @@ const assertionString =
     .map(
       (a) =>
         `
-        ${testDetailsObjIdentifier} = {
+        var ${testDetailsObjIdentifier}${compileFromTs ? ":any" : ""} = {
             id: \`${a.id}\`,
         }
         try {
@@ -79,9 +72,13 @@ const assertionString =
         ${outputArrIdentifier}[${testcaseCounterIdentifier}++] = ${testDetailsObjIdentifier} // push test case results
     `
     )
-    .reduce((a, b) => a + b, ""); // reduce array of strings to a string
+    .join("");
 
-const runnableProgram = `const ${outputArrIdentifier} = [];
+const userCode = process.argv[2];
+
+let machineProgram = `const ${outputArrIdentifier}${
+  compileFromTs ? ":any" : ""
+} = [];
 ${userCode}
 // USER CODE ENDS HERE
 if(Object.isFrozen(${outputArrIdentifier})) {
@@ -93,8 +90,21 @@ ${assertionString}
 // output outcome object to console
 ${outputArrIdentifier}`;
 
+if (compileFromTs) {
+  const compilationResult = compileTsToJs(machineProgram, vmIdentifiers);
+  if (compilationResult.compilationErrors.length > 0) {
+    console.log(
+      JSON.stringify({
+        compilation_errors: compilationResult.compilationErrors,
+      })
+    );
+    process.exit(0);
+  }
+  machineProgram = compilationResult.compiledCode;
+}
+
 try {
-  const outcome = safeVm.run(runnableProgram); // run program
+  const outcome = safeVm.run(machineProgram); // run program
   console.log(JSON.stringify({ tests: outcome })); // output outcome so Django can collect it
 } catch (e) {
   // an error occurred before any test cases could be ran
