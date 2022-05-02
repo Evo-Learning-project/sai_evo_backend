@@ -247,7 +247,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
 
     @property
     def max_score(self):
-        # TODO add field to make this writable
+        # TODO add field to make this writable?
         if self.exercise_type in [Exercise.JS, Exercise.C]:
             return self.testcases.count()
 
