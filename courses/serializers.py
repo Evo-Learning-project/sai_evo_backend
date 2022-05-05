@@ -712,6 +712,9 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
             self.fields["comment"] = serializers.CharField(
                 read_only=(not assessment_fields_write), allow_blank=True
             )
+            self.fields["score_edited"] = serializers.BooleanField(
+                read_only=True,
+            )
 
         if capabilities.get("submission_fields_read", False,) and not self.context.get(
             "preview",
@@ -786,6 +789,9 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             self.fields["score"] = serializers.CharField(
                 allow_null=True,
                 read_only=(not assessment_fields_write),
+            )
+            self.fields["score_edited"] = serializers.BooleanField(
+                read_only=True,
             )
             self.fields["assessment_progress"] = serializers.IntegerField(
                 read_only=True
