@@ -61,21 +61,25 @@ function compile(source, options, environment) {
     .getPreEmitDiagnostics(program)
     .concat(emitResult.diagnostics);
 
-  const processedDiagnostics = allDiagnostics.map((diagnostic) => {
-    if (diagnostic.file) {
-      let { line, character } = ts.getLineAndCharacterOfPosition(
-        diagnostic.file,
-        diagnostic.start
-      );
-      let message = ts.flattenDiagnosticMessageText(
-        diagnostic.messageText,
-        "\n"
-      );
-      return `(on line ${line + 1}, at position ${character + 1}): ${message}`;
-    } else {
-      return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-    }
-  });
+  const processedDiagnostics = allDiagnostics
+    .map((diagnostic) => {
+      if (diagnostic.file) {
+        let { line, character } = ts.getLineAndCharacterOfPosition(
+          diagnostic.file,
+          diagnostic.start
+        );
+        let message = ts.flattenDiagnosticMessageText(
+          diagnostic.messageText,
+          "\n"
+        );
+        return `(on line ${line + 1}, at position ${
+          character + 1
+        }): ${message}`;
+      } else {
+        return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+      }
+    })
+    .join("\n\n");
 
   const res = {
     compilationErrors: processedDiagnostics,

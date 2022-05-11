@@ -757,9 +757,6 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
             else None
         )
 
-    def get_sub_slots(self, obj):
-        return RecursiveField(many=True, read_only=True, context=self.context)
-
     def get_answer_text(self, obj):
         """
         Does some processing on the answer text value
