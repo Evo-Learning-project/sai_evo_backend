@@ -441,7 +441,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
 
 
 class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
-    sub_slots = RecursiveField(many=True)
+    sub_slots = serializers.SerializerMethodField()
     exercise = serializers.SerializerMethodField()  # ExerciseSerializer()
     is_last = serializers.BooleanField(
         read_only=True,
@@ -492,8 +492,10 @@ class ParticipationSubmissionSlotSerializer(serializers.ModelSerializer):
 
         return obj.assessment.comment
 
+    def get_sub_slots(self, obj):
+        return RecursiveField(many=True, context=self.context).data
+
     def get_exercise(self, obj):
-        # print("THIS IS THE CONTEXT RECEIVED BY THE SLOT", self.context)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
 
@@ -672,7 +674,10 @@ class TeacherViewEventParticipationSerializer(serializers.ModelSerializer):
 
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
     exercise = serializers.SerializerMethodField()  # to pass context
-    sub_slots = RecursiveField(many=True, read_only=True)
+    # sub_slots = RecursiveField(
+    #     many=True, read_only=True
+    # )
+    # serializers.SerializerMethodField()  # to pass context
     is_last = serializers.BooleanField(
         read_only=True,
         source="participation.is_cursor_last_position",
@@ -700,6 +705,12 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
         capabilities = self.context.get("capabilities", {})
+
+        self.fields["sub_slots"] = RecursiveField(
+            many=True,
+            read_only=True,
+            context=self.context,
+        )
 
         if capabilities.get("assessment_fields_read", False):
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
@@ -745,6 +756,9 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
             if not self.context.get("preview", False)
             else None
         )
+
+    def get_sub_slots(self, obj):
+        return RecursiveField(many=True, read_only=True, context=self.context)
 
     def get_answer_text(self, obj):
         """

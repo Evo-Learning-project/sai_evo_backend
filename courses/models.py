@@ -635,6 +635,9 @@ class EventTemplateRuleClause(models.Model):
     )
     tags = models.ManyToManyField(Tag, blank=True)
 
+    class Meta:
+        ordering = ["rule_id", "id"]
+
 
 class EventInstance(models.Model):
     """
@@ -1180,7 +1183,6 @@ class EventParticipation(models.Model):
                     < self.current_slot_cursor + self.event.exercises_shown_at_a_time
                 ]
             )
-        print("CURRENTS", ret)
         return ret
 
     def validate_unique(self, *args, **kwargs):
