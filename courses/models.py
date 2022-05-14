@@ -194,6 +194,13 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         on_delete=models.PROTECT,
         related_name="exercises",
     )
+    creator = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        related_name="created_exercises",
+        on_delete=models.SET_NULL,
+    )
     parent = models.ForeignKey(
         "Exercise",
         null=True,

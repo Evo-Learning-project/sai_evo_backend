@@ -213,6 +213,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         serializer.save(
             course_id=self.kwargs["course_pk"],
             parent_id=self.kwargs.get("exercise_pk"),
+            creator=self.request.user,
         )
 
     # bulk creation
