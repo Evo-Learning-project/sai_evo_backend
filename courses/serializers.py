@@ -160,6 +160,14 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ["id", "name"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context.get("show_exercise_count", False):
+            self.fields["public_exercises"] = serializers.SerializerMethodField()
+
+    def get_public_exercises(self, obj):
+        return obj.public_in_exercises.filter(state=Exercise.PUBLIC).count()
+
 
 class CourseRoleSerializer(serializers.ModelSerializer):
     class Meta:

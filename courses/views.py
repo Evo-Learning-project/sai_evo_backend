@@ -354,6 +354,12 @@ class TagViewSet(
 
         return qs
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if "include_exercise_count" in self.request.query_params:
+            context["show_exercise_count"] = True
+        return context
+
     def perform_create(self, serializer):
         serializer.save(
             course_id=self.kwargs["course_pk"],
