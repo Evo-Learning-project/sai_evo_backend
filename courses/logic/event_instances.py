@@ -1,7 +1,7 @@
 from courses.models import Exercise
 
 
-def get_exercises_from(template, public_only=False):
+def get_exercises_from(template, public_only=False, exclude_seen_in_practice=False):
     course = template.event.course
     exercises = Exercise.objects.base_exercises().filter(
         course=course
@@ -9,6 +9,9 @@ def get_exercises_from(template, public_only=False):
 
     if public_only:
         exercises = exercises.public()
+
+    if exclude_seen_in_practice:
+        exercises = exercises.not_seen_in_practice_by(template.event.creator)
 
     picked_exercises = []
     rules = template.rules.all()

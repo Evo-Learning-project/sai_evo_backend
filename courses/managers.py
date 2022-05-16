@@ -151,6 +151,9 @@ class EventParticipationManager(models.Manager):
             exercises = get_exercises_from(
                 event_template,
                 public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
+                exclude_seen_in_practice=(
+                    event.event_type == Event.SELF_SERVICE_PRACTICE
+                ),
             )
 
         slot_number = 0

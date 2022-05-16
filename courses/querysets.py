@@ -29,6 +29,22 @@ class ExerciseQuerySet(models.QuerySet):
 
         return self.filter(state=Exercise.PUBLIC)
 
+    def not_seen_in_practice_by(self, user):
+        """
+        Excludes exercises that have been seen by user in a practice
+        """
+        from .models import Event
+
+        user_practice_participations = user.participations.filter(
+            event__event_type=Event.SELF_SERVICE_PRACTICE
+        )
+
+        seen_exercises = user_practice_participations.values_list(
+            "slots__exercise_id", flat=True
+        )
+
+        return self.exclude(pk__in=[e for e in seen_exercises if e is not None])
+
     def satisfying(self, rule):
         """
         Returns the exercises that satisfy an EventTemplateRule
