@@ -1042,12 +1042,14 @@ class EventParticipation(models.Model):
         on_delete=models.CASCADE,
         related_name="participation",
         null=True,
+        blank=True,
     )
     submission = models.OneToOneField(
         ParticipationSubmission,
         on_delete=models.CASCADE,
         related_name="participation",
         null=True,
+        blank=True,
     )
     #!!
 
@@ -1059,6 +1061,7 @@ class EventParticipation(models.Model):
         default=IN_PROGRESS,
     )
     current_slot_cursor = models.PositiveIntegerField(default=0)
+    bookmarked = models.BooleanField(default=False)
 
     # assessment fields
     _assessment_state = models.PositiveIntegerField(

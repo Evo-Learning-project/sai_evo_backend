@@ -286,7 +286,11 @@ class EventParticipationPolicy(BaseAccessPolicy):
         from courses.models import Event, EventParticipation
 
         participation = view.get_object()
-        if participation.state == EventParticipation.TURNED_IN:
+        if participation.state == EventParticipation.TURNED_IN and (
+            # allow bookmarking even after participation has been turned in
+            "bookmarked" not in request.data
+            or len(request.data.keys()) > 1
+        ):
             return False
 
         try:

@@ -795,6 +795,7 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             "event",
             "last_slot_number",
             "current_slot_cursor",
+            "bookmarked",
         ]
 
     def __init__(self, *args, **kwargs):
