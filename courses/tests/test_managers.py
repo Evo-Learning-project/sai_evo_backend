@@ -437,39 +437,39 @@ class EventInstanceManagerTestCase(TestCase):
             ],
         )
 
-    def test_creation_no_recursion(self):
-        exercises1 = [self.e1, self.e3, self.e5]
-        instance = EventInstance.objects.create(event=self.event, exercises=exercises1)
+    # def test_creation_no_recursion(self):
+    #     exercises1 = [self.e1, self.e3, self.e5]
+    #     instance = EventInstance.objects.create(event=self.event, exercises=exercises1)
 
-        # one slot for each exercise has been created; no recursion since the supplied
-        # exercises don't have any sub-exercises associated
-        self.assertEqual(instance.slots.count(), len(exercises1))
+    #     # one slot for each exercise has been created; no recursion since the supplied
+    #     # exercises don't have any sub-exercises associated
+    #     self.assertEqual(instance.slots.count(), len(exercises1))
 
-        i = 0
-        for slot in instance.slots.all():
-            self.assertEqual(slot.exercise.pk, exercises1[i].pk)
-            i += 1
+    #     i = 0
+    #     for slot in instance.slots.all():
+    #         self.assertEqual(slot.exercise.pk, exercises1[i].pk)
+    #         i += 1
 
-    def test_creation_with_recursion(self):
-        # show that sub-slots are recursively created for exercises with sub-exercises
-        exercises2 = [self.e2, self.e4]
-        instance = EventInstance.objects.create(event=self.event, exercises=exercises2)
+    # def test_creation_with_recursion(self):
+    #     # show that sub-slots are recursively created for exercises with sub-exercises
+    #     exercises2 = [self.e2, self.e4]
+    #     instance = EventInstance.objects.create(event=self.event, exercises=exercises2)
 
-        # slots have been created for each base exercise
-        self.assertEqual(instance.slots.base_slots().count(), len(exercises2))
+    #     # slots have been created for each base exercise
+    #     self.assertEqual(instance.slots.base_slots().count(), len(exercises2))
 
-        i = 0
-        for slot in instance.slots.base_slots():
-            self.assertEqual(slot.exercise.pk, exercises2[i].pk)
-            j = 0
-            for sub_exercise in slot.exercise.sub_exercises.all():
-                # sub-slots have been recursively created and assigned to the sub-exercises
-                sub_slot = slot.sub_slots.get(slot_number=j)
-                # sub-slots don't appear in a base_slots() queryset
-                self.assertNotIn(sub_slot, instance.slots.base_slots())
-                self.assertEqual(sub_slot.exercise.pk, sub_exercise.pk)
-                j += 1
-            i += 1
+    #     i = 0
+    #     for slot in instance.slots.base_slots():
+    #         self.assertEqual(slot.exercise.pk, exercises2[i].pk)
+    #         j = 0
+    #         for sub_exercise in slot.exercise.sub_exercises.all():
+    #             # sub-slots have been recursively created and assigned to the sub-exercises
+    #             sub_slot = slot.sub_slots.get(slot_number=j)
+    #             # sub-slots don't appear in a base_slots() queryset
+    #             self.assertNotIn(sub_slot, instance.slots.base_slots())
+    #             self.assertEqual(sub_slot.exercise.pk, sub_exercise.pk)
+    #             j += 1
+    #         i += 1
 
 
 class EventTemplateManagerTestCase(TestCase):
@@ -751,6 +751,7 @@ class EventParticipationManagerTestCase(TestCase):
                 sub_slot, sub_assessment_slot, sub_submission_slot
             )
 
+    """
     def test_creation_with_externally_supplied_event_instance(self):
         # show that when creating an EventParticipation supplying an EventInstance, the corresponding
         # ParticipationSubmission and ParticipationAssessment are created
@@ -803,6 +804,8 @@ class EventParticipationManagerTestCase(TestCase):
 
             # recursively run the assertions on the sub-slots
             self.rec_validate_sub_slots(slot, assessment_slot, submission_slot)
+
+"""
 
     def test_creation_without_externally_supplied_event_instance(self):
         # show that when creating an EventParticipation without supplying an EventInstance, one is created

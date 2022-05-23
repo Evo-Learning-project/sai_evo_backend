@@ -107,8 +107,8 @@ class ExerciseViewSetTestCase(BaseTestCase):
         # show the course creator can CRUD exercises and their
         # choices/test cases/sub-exercises
         exercise_text = "abc"
-        choice1 = {"text": "c1", "score": "-1.0"}
-        choice2 = {"text": "c2", "score": "1.5"}
+        choice1 = {"text": "c1", "score_selected": "-1.0", "score_unselected": "0.0"}
+        choice2 = {"text": "c2", "score_selected": "1.5", "score_unselected": "0.0"}
         choices = [choice1, choice2]
         exercise_post_body = {
             "text": exercise_text,
@@ -365,10 +365,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
 
         response = self.client.post(
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/",
-            {
-                "text": "new choice",
-                "score": "1.0",
-            },
+            {"text": "new choice", "score_selected": "1.0", "score_unselected": "0.0"},
         )
         self.assertEquals(response.status_code, 201)
         choice_pk = response.data["id"]
@@ -377,7 +374,8 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/",
             {
                 "text": "new choice text",
-                "score": "21.0",
+                "score_selected": "21.0",
+                "score_unselected": "0.0",
             },
         )
         self.assertEquals(response.status_code, 200)
