@@ -274,7 +274,10 @@ class EventParticipationPolicy(BaseAccessPolicy):
         except (ValueError, KeyError):
             return False
 
-        if event.state != Event.OPEN:
+        if event.state != Event.OPEN and (
+            event.state != Event.RESTRICTED
+            or request.user not in event.users_allowed_past_closure.all()
+        ):
             return False
 
         if event.access_rule == Event.ALLOW_ACCESS:
