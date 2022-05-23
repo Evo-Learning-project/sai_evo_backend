@@ -300,7 +300,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
 
         return event.state == Event.OPEN or (
             event.state == Event.RESTRICTED
-            and request.user in event.users_allowed_past_closure
+            and request.user in event.users_allowed_past_closure.all()
         )
 
     def can_go_forward(self, request, view, action):
