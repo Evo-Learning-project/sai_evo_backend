@@ -10,7 +10,7 @@ def get_exercises_from(template, public_only=False, exclude_seen_in_practice=Fal
     if public_only:
         exercises = exercises.public()
 
-    if exclude_seen_in_practice:
+    if False and exclude_seen_in_practice:
         exercises = exercises.not_seen_in_practice_by(template.event.creator)
 
     picked_exercises = []

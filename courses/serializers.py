@@ -396,7 +396,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "exercises_shown_at_a_time",
             "template",
             "users_allowed_past_closure",
-            "participation_exists",
+            "participation_exists",  # ! TODO don't always show
         ]
         hidden_fields = [
             # "template",
@@ -417,6 +417,8 @@ class EventSerializer(HiddenFieldsModelSerializer):
                 required=False,
             )
             self.fields["randomize_rule_order"] = serializers.BooleanField()
+            self.fields["access_rule"] = serializers.IntegerField()
+            self.fields["access_rule_exceptions"] = serializers.JSONField()
 
     def get_state(self, obj):
         state = obj.state
