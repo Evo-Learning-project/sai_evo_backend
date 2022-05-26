@@ -81,46 +81,46 @@ class EventParticipationSlotAdmin(admin.ModelAdmin):
     pass
 
 
-class EventInstanceInline(admin.TabularInline):
-    model = EventInstance
+# class EventInstanceInline(admin.TabularInline):
+#     model = EventInstance
 
 
-class ParticipationAssessmentSlotInline(admin.TabularInline):
-    model = ParticipationAssessmentSlot
-    readonly_fields = ("assessment_state", "exercise")
+# class ParticipationAssessmentSlotInline(admin.TabularInline):
+#     model = ParticipationAssessmentSlot
+#     readonly_fields = ("assessment_state", "exercise")
 
 
-@admin.register(ParticipationAssessment)
-class ParticipationAssessmentAdmin(admin.ModelAdmin):
-    inlines = [ParticipationAssessmentSlotInline]
-    readonly_fields = ("assessment_progress",)
+# @admin.register(ParticipationAssessment)
+# class ParticipationAssessmentAdmin(admin.ModelAdmin):
+#     inlines = [ParticipationAssessmentSlotInline]
+#     readonly_fields = ("assessment_progress",)
 
 
-class ParticipationSubmissionSlotInline(admin.TabularInline):
-    model = ParticipationSubmissionSlot
-    readonly_fields = (
-        "exercise",
-        "selected_choices",
-    )
+# class ParticipationSubmissionSlotInline(admin.TabularInline):
+#     model = ParticipationSubmissionSlot
+#     readonly_fields = (
+#         "exercise",
+#         "selected_choices",
+#     )
 
 
-@admin.register(ParticipationSubmission)
-class ParticipationSubmissionAdmin(admin.ModelAdmin):
-    inlines = [ParticipationSubmissionSlotInline]
+# @admin.register(ParticipationSubmission)
+# class ParticipationSubmissionAdmin(admin.ModelAdmin):
+#     inlines = [ParticipationSubmissionSlotInline]
 
 
-class EventInstanceSlotInline(admin.TabularInline):
-    model = EventInstanceSlot
+# class EventInstanceSlotInline(admin.TabularInline):
+#     model = EventInstanceSlot
 
 
-@admin.register(EventInstance)
-class EventInstanceAdmin(admin.ModelAdmin):
-    inlines = [EventInstanceSlotInline]
+# @admin.register(EventInstance)
+# class EventInstanceAdmin(admin.ModelAdmin):
+#     inlines = [EventInstanceSlotInline]
 
 
-@admin.register(ParticipationAssessmentSlot)
-class ParticipationAssessmentSlotAdmin(admin.ModelAdmin):
-    pass
+# @admin.register(ParticipationAssessmentSlot)
+# class ParticipationAssessmentSlotAdmin(admin.ModelAdmin):
+#     pass
 
 
 @admin.register(EventParticipation)

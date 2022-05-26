@@ -1,7 +1,7 @@
 import time
 from coding.helpers import get_code_execution_results
 from core.celery import app
-from courses.models import EventParticipationSlot, ParticipationSubmissionSlot
+from courses.models import EventParticipationSlot
 from django.db import transaction
 
 from djangochannelsrestframework import *

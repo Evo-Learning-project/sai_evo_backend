@@ -30,8 +30,6 @@ from courses.models import (
     Exercise,
     ExerciseChoice,
     ExerciseTestCase,
-    ParticipationAssessmentSlot,
-    ParticipationSubmissionSlot,
     Tag,
     UserCoursePrivilege,
 )
@@ -49,11 +47,7 @@ from .serializers import (
     ExerciseChoiceSerializer,
     ExerciseSerializer,
     ExerciseTestCaseSerializer,
-    ParticipationAssessmentSlotSerializer,
-    ParticipationSubmissionSlotSerializer,
-    StudentViewEventParticipationSerializer,
     TagSerializer,
-    TeacherViewEventParticipationSerializer,
 )
 
 

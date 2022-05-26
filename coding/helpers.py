@@ -3,7 +3,7 @@ import os
 import subprocess
 from django.core.exceptions import ValidationError
 import requests
-from courses.models import Exercise, ParticipationSubmissionSlot
+from courses.models import Exercise
 from courses.serializers import ExerciseTestCaseSerializer
 
 

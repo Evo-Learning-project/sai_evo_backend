@@ -17,20 +17,19 @@ from .abstract_models import (
 )
 from .managers import (
     CourseManager,
-    # EventInstanceManager,
-    # EventInstanceSlotManager,
     EventManager,
     EventParticipationManager,
     EventParticipationSlotManager,
-    # EventTemplateManager,
     EventTemplateRuleManager,
     ExerciseManager,
-    # ParticipationAssessmentManager,
-    # ParticipationAssessmentSlotManager,
-    # ParticipationSubmissionManager,
-    # ParticipationSubmissionSlotManager,
     TagManager,
 )
+
+
+def get_attachment_path(instance, filename):
+    event = instance.submission.participation.event_instance.event
+    course = event.course
+    return f"{course.pk}/{event.pk}/{instance.slot_number}/{filename}"
 
 
 class Course(TimestampableModel):
@@ -646,350 +645,6 @@ class EventTemplateRuleClause(models.Model):
         ordering = ["rule_id", "id"]
 
 
-class EventInstance(models.Model):
-    """
-    Represents a concrete instance of an event. The event template is applied to get a
-    concrete list of exercises assigned to the instance applying the template rules
-    """
-
-    event = models.ForeignKey(
-        Event,
-        related_name="instances",
-        on_delete=models.PROTECT,
-    )
-    exercises = models.ManyToManyField(
-        Exercise,
-        through="EventInstanceSlot",
-        blank=True,
-    )
-
-    # objects = EventInstanceManager()
-
-    class Meta:
-        ordering = ["event_id", "pk"]
-
-    def __str__(self):
-        return str(self.event) + " " + str(self.pk)
-
-    @property
-    def max_score(self):
-        exercises = self.exercises.all()
-        return sum([e.max_score for e in exercises if e.max_score is not None])
-
-
-class EventInstanceSlot(SlotNumberedModel):
-    event_instance = models.ForeignKey(
-        EventInstance,
-        related_name="slots",
-        on_delete=models.CASCADE,
-    )
-    exercise = models.ForeignKey(
-        Exercise,
-        on_delete=models.CASCADE,
-    )
-
-    # objects = EventInstanceSlotManager()
-
-    class Meta:
-        ordering = ["event_instance_id", "slot_number"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event_instance_id", "parent_id", "slot_number"],
-                name="event_instance_unique_slot_number",
-            )
-        ]
-
-    def get_submission(self, participation):
-        return self.get_sibling_slot("submission", participation.pk)
-
-    def get_assessment(self, participation):
-        return self.get_sibling_slot("assessment", participation.pk)
-
-
-class ParticipationAssessment(models.Model):
-    """
-    Represents the assessment (score, comments) of the participation to an event, either
-    issued by a teacher or compiled automatically
-    """
-
-    NOT_ASSESSED = 0
-    PARTIALLY_ASSESSED = 1
-    FULLY_ASSESSED = 2
-
-    ASSESSMENT_PROGRESS_STEPS = (
-        (NOT_ASSESSED, "Not assessed"),
-        (PARTIALLY_ASSESSED, "Partially assessed"),
-        (FULLY_ASSESSED, "Fully assessed"),
-    )
-
-    DRAFT = 0
-    FOR_REVIEW = 1
-    PUBLISHED = 2
-
-    ASSESSMENT_STATES = (
-        (DRAFT, "Draft"),
-        (FOR_REVIEW, "For review"),
-        (PUBLISHED, "Published"),
-    )
-
-    _assessment_state = models.PositiveIntegerField(
-        choices=ASSESSMENT_STATES,
-        default=DRAFT,
-        db_column="state",
-    )
-    _score = models.TextField(  # TODO make string
-        # max_digits=5,
-        # decimal_places=2,
-        null=True,
-        blank=True,
-    )
-
-    # objects = ParticipationAssessmentManager()
-
-    class Meta:
-        ordering = ["pk"]
-
-    def __str__(self):
-        try:
-            return str(self.participation)
-        except Exception:
-            return "-"
-
-    @property
-    def event(self):
-        # shortcut to access the participation's event
-        return self.participation.event
-
-    @property
-    def base_slots(self):
-        return self.slots.base_slots()
-
-    @property
-    def assessment_progress(self):
-        slot_states = [s.assessment_state for s in self.slots.base_slots()]
-        state = self.NOT_ASSESSED
-        for slot_state in slot_states:
-            if slot_state == ParticipationAssessmentSlot.ASSESSED:
-                state = self.FULLY_ASSESSED
-            else:
-                return self.PARTIALLY_ASSESSED
-        return state
-
-    @property
-    def state(self):
-        if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
-            return (
-                self.PUBLISHED
-                if self.participation.state == EventParticipation.TURNED_IN
-                else self.NOT_ASSESSED
-            )
-
-        return self._assessment_state
-
-    @state.setter
-    def state(self, value):
-        self._assessment_state = value
-
-    @property
-    def score(self):
-        if self._score is None:
-            # TODO wrap in string?
-            return str(
-                sum([s.score if s.score is not None else 0 for s in self.base_slots])
-            )
-        return self._score
-
-    @score.setter
-    def score(self, value):
-        self._score = value
-
-
-class ParticipationAssessmentSlot(SideSlotNumberedModel):
-    NOT_ASSESSED = 0
-    ASSESSED = 1
-
-    ASSESSMENT_STATES = (
-        (NOT_ASSESSED, "Not assessed"),
-        (ASSESSED, "Assessed"),
-    )
-    assessment = models.ForeignKey(
-        ParticipationAssessment,
-        related_name="slots",
-        on_delete=models.CASCADE,
-    )
-    comment = models.TextField(blank=True)
-    _score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
-
-    # objects = ParticipationAssessmentSlotManager()
-
-    class Meta:
-        ordering = ["assessment_id", "slot_number"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["assessment_id", "parent_id", "slot_number"],
-                name="assessment_unique_slot_number",
-            )
-        ]
-
-    def __str__(self):
-        return str(self.assessment) + " " + str(self.slot_number)
-
-    @property
-    def submission(self):
-        return self.get_sibling_slot("submission")
-
-    @property
-    def score(self):
-        if self._score is None:
-            return get_assessor_class(self.assessment.participation.event)(
-                self
-            ).assess()
-        return self._score
-
-    @score.setter
-    def score(self, value):
-        self._score = value
-
-    @property
-    def score_edited(self):
-        return self._score is not None
-
-    @property
-    def assessment_state(self):
-        return self.ASSESSED if self.score is not None else self.NOT_ASSESSED
-
-
-class ParticipationSubmission(models.Model):
-    # objects = ParticipationSubmissionManager()
-    # TODO (for events like assignments) have a way to close submissions and possibly re-open them
-
-    class Meta:
-        ordering = ["pk"]
-
-    def __str__(self):
-        try:
-            return str(self.participation)
-        except Exception:
-            return "-"
-
-    @property
-    def event(self):
-        # shortcut to access the participation's event
-        return self.participation.event
-
-    @property
-    def current_slots(self):
-        ret = self.slots.base_slots()
-        if (
-            self.event.exercises_shown_at_a_time is not None
-            # if the participation has been turned in, show all slots to allow reviewing answers
-            and self.participation.state != EventParticipation.TURNED_IN
-        ):
-            # slots are among the "current" ones iff their number is between
-            # the `current_slot_cursor` of the EventParticipation
-            # and the next `exercises_shown_at_a_time` slots
-            ret = ret.filter(
-                slot_number__gte=self.participation.current_slot_cursor,
-                slot_number__lt=(
-                    self.participation.current_slot_cursor
-                    + self.event.exercises_shown_at_a_time
-                ),
-            )
-        return ret
-
-
-def get_attachment_path(instance, filename):
-    event = instance.submission.participation.event_instance.event
-    course = event.course
-    return f"{course.pk}/{event.pk}/{instance.slot_number}/{filename}"
-
-
-class ParticipationSubmissionSlot(SideSlotNumberedModel):
-    submission = models.ForeignKey(
-        ParticipationSubmission,
-        on_delete=models.CASCADE,
-        related_name="slots",
-    )
-    seen_at = models.DateTimeField(null=True, blank=True)
-    answered_at = models.DateTimeField(null=True, blank=True)
-    selected_choices = models.ManyToManyField(
-        ExerciseChoice,
-        blank=True,
-    )
-    answer_text = models.TextField(blank=True)
-    attachment = models.FileField(null=True, blank=True, upload_to=get_attachment_path)
-    execution_results = models.JSONField(blank=True, null=True)
-
-    # objects = ParticipationSubmissionSlotManager()
-
-    class Meta:
-        ordering = ["submission_id", "slot_number"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["submission_id", "parent_id", "slot_number"],
-                name="participation_submission_unique_slot_number",
-            )
-        ]
-
-    @property
-    def event(self):
-        # shortcut to access the participation's event
-        return self.participation.event
-
-    @property
-    def assessment(self):
-        return self.get_sibling_slot("assessment")
-
-    def save(self, *args, **kwargs):
-        if self.pk is not None:  # can't clean as m2m field won't work without a pk
-            # TODO clean the m2m field separately
-            self.full_clean()
-            if (
-                self.selected_choices.exists()
-                or bool(self.attachment)
-                or bool(self.answer_text)
-            ) and self.answered_at is None:
-                now = timezone.localtime(timezone.now())
-                self.answered_at = now
-
-        return super().save(*args, **kwargs)
-
-    def clean(self, *args, **kwargs):
-        if self.exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            if len(self.answer_text) > 0 or bool(self.attachment):
-                raise ValidationError(
-                    "Multiple choice questions cannot have an open answer or attachment submission"
-                )
-        if (
-            self.exercise.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE
-            and self.selected_choices.count() > 1
-        ):
-            raise ValidationError(
-                "MULTIPLE_CHOICE_SINGLE_POSSIBLE exercise allow only one answer"
-            )
-
-        for c in self.selected_choices.all():
-            if c not in self.exercise.choices.all():
-                raise ValidationError("Invalid choice selected: " + str(c))
-
-    def is_in_scope(self):
-        """
-        Returns True if the slot is accessible by the user in the corresponding
-        EventParticipation, i.e. it contains one of the exercises currently being
-        shown to the user; False otherwise
-        """
-        return (
-            self in self.submission.current_slots
-            or self.parent is not None
-            and self.parent.is_in_scope()
-        )
-
-
 class EventParticipation(models.Model):
     IN_PROGRESS = 0
     TURNED_IN = 1
@@ -1028,30 +683,6 @@ class EventParticipation(models.Model):
         related_name="participations",
         on_delete=models.PROTECT,
     )
-
-    # !! temporary
-    event_instance = models.ForeignKey(
-        EventInstance,
-        null=True,
-        blank=True,
-        related_name="participations",
-        on_delete=models.PROTECT,
-    )
-    assessment = models.OneToOneField(
-        ParticipationAssessment,
-        on_delete=models.CASCADE,
-        related_name="participation",
-        null=True,
-        blank=True,
-    )
-    submission = models.OneToOneField(
-        ParticipationSubmission,
-        on_delete=models.CASCADE,
-        related_name="participation",
-        null=True,
-        blank=True,
-    )
-    #!!
 
     # bookkeeping fields
     begin_timestamp = models.DateTimeField(auto_now_add=True)
@@ -1117,7 +748,7 @@ class EventParticipation(models.Model):
         slot_states = [s.assessment_state for s in self.prefetched_base_slots]
         state = self.NOT_ASSESSED
         for slot_state in slot_states:
-            if slot_state == ParticipationAssessmentSlot.ASSESSED:
+            if slot_state == EventParticipationSlot.ASSESSED:
                 state = self.FULLY_ASSESSED
             else:
                 return self.PARTIALLY_ASSESSED
