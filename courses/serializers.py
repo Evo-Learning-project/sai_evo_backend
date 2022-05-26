@@ -408,9 +408,11 @@ class EventSerializer(HiddenFieldsModelSerializer):
             self.fields["randomize_rule_order"] = serializers.BooleanField()
             self.fields["access_rule"] = serializers.IntegerField(
                 allow_null=True,
+                required=False,
             )
             self.fields["access_rule_exceptions"] = serializers.JSONField(
                 allow_null=True,
+                required=False,
             )
 
     def get_state(self, obj):
