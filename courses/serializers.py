@@ -398,13 +398,6 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "users_allowed_past_closure",
             "participation_exists",  # ! TODO don't always show
         ]
-        hidden_fields = [
-            # "template",
-            # "users_allowed_past_closure",
-            # # "exercises_shown_at_a_time",
-            # "access_rule", #!
-            # "access_rule_exceptions", #!
-        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
