@@ -2,7 +2,6 @@ from courses.logic.event_instances import get_exercises_from
 from courses.models import (
     Course,
     Event,
-    EventInstance,
     EventTemplate,
     EventTemplateRule,
     EventTemplateRuleClause,

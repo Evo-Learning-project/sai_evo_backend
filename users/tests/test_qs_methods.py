@@ -1,14 +1,8 @@
 from courses.models import (
     Course,
     Event,
-    EventInstance,
-    EventInstanceSlot,
     EventParticipation,
     Exercise,
-    ParticipationAssessment,
-    ParticipationAssessmentSlot,
-    ParticipationSubmission,
-    ParticipationSubmissionSlot,
 )
 from django.test import TestCase
 from users.models import User

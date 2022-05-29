@@ -69,8 +69,6 @@ class ExerciseQuerySet(models.QuerySet):
             ret_qs = (
                 ret_qs.distinct()
             )  # if more than one tag match, an item may be returned more than once
-        # print("QUERY")
-        # print(ret_qs.query)
         return ret_qs
 
     def get_random(self, amount=1):

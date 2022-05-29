@@ -1,14 +1,14 @@
+from decimal import Decimal
+from time import time
+from django.forms import ValidationError
+
+from django.utils import timezone
+
 from courses.models import (
     Course,
     Event,
-    EventInstance,
-    EventInstanceSlot,
     EventParticipation,
     Exercise,
-    ParticipationAssessment,
-    ParticipationAssessmentSlot,
-    ParticipationSubmission,
-    ParticipationSubmissionSlot,
 )
 from django.test import TestCase
 from users.models import User
@@ -20,49 +20,45 @@ def common_setup(self):
     self.event_exam = Event.objects.create(
         name="event", event_type=Event.EXAM, course=self.course
     )
+
+    self.e_multiple_single_choices = [
+        {
+            "text": "aa",
+            "score_selected": "1.00",
+            "score_unselected": "-0.10",
+        },
+        {"text": "bb", "score_selected": "0.5", "score_unselected": "0.00"},
+        {"text": "cc", "score_selected": "-0.2", "score_unselected": "0.00"},
+    ]
     self.e_multiple_single = Exercise.objects.create(
         text="a",
         course=self.course,
         exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-        choices=[
-            {
-                "text": "aa",
-            },
-            {
-                "text": "bb",
-            },
-            {
-                "text": "cc",
-            },
-        ],
+        choices=self.e_multiple_single_choices,
     )
+
+    self.e_multiple_multiple_choices = [
+        {
+            "text": "aa",
+            "score_selected": "1.00",
+            "score_unselected": "-0.10",
+        },
+        {
+            "text": "bb",
+            "score_selected": "-0.50",
+            "score_unselected": "0.10",
+        },
+        {
+            "text": "cc",
+            "score_selected": "0.50",
+            "score_unselected": "-0.10",
+        },
+    ]
     self.e_multiple_multiple = Exercise.objects.create(
         text="b",
         course=self.course,
-        exercise_type=Exercise.AGGREGATED,
-        sub_exercises=[
-            {
-                "choices": [
-                    {"text": "aa"},
-                ],
-                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                "text": "xxxxxx",
-            },
-            {
-                "choices": [
-                    {"text": "bb"},
-                ],
-                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                "text": "yyyyyyy",
-            },
-            {
-                "choices": [
-                    {"text": "cc"},
-                ],
-                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                "text": "zzzzzzz",
-            },
-        ],
+        exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+        choices=self.e_multiple_multiple_choices,
     )
     self.e_open = Exercise.objects.create(
         text="c",
@@ -134,265 +130,65 @@ def common_setup(self):
             ],
         ],
     )
-
-    event_instance = EventInstance(event=self.event_exam)
-    event_instance.save()
-
-    # slots for event_instance
-    self.instance_slot_0 = EventInstanceSlot(
-        event_instance=event_instance,
-        slot_number=0,
-        exercise=self.e_multiple_single,
+    self.e_js = Exercise.objects.create(
+        text="abc",
+        course=self.course,
+        exercise_type=Exercise.JS,
+        testcases=[{"code": "assert true"}, {"code": "assert false"}],
     )
-    self.instance_slot_0.save()
-    self.instance_slot_1 = EventInstanceSlot(
-        event_instance=event_instance,
-        slot_number=1,
-        exercise=self.e_multiple_multiple,
-    )
-    self.instance_slot_1.save()
-    self.instance_slot_2 = EventInstanceSlot(
-        event_instance=event_instance,
-        slot_number=2,
-        exercise=self.e_open,
-    )
-    self.instance_slot_2.save()
-
-    # sub-slots of slot_1
-    self.instance_slot_1_0 = EventInstanceSlot(
-        event_instance=event_instance,
-        slot_number=0,
-        parent=self.instance_slot_1,
-        exercise=self.e_multiple_multiple.sub_exercises.all()[0],
-    )
-    self.instance_slot_1_0.save()
-    self.instance_slot_1_1 = EventInstanceSlot(
-        event_instance=event_instance,
-        slot_number=1,
-        parent=self.instance_slot_1,
-        exercise=self.e_multiple_multiple.sub_exercises.all()[1],
-    )
-    self.instance_slot_1_1.save()
-    self.instance_slot_1_2 = EventInstanceSlot(
-        event_instance=event_instance,
-        slot_number=2,
-        parent=self.instance_slot_1,
-        exercise=self.e_multiple_multiple.sub_exercises.all()[2],
-    )
-    self.instance_slot_1_2.save()
 
     self.participation = EventParticipation(
-        event_instance=event_instance,
         user=self.user,
     )
     self.participation.save()
-
-    participation_submission = ParticipationSubmission(participation=self.participation)
-    participation_submission.save()
-    self.participation.save()
-
-    # slots for participation_submission
-    self.submission_slot_0 = ParticipationSubmissionSlot(
-        submission=participation_submission,
-        slot_number=0,
-    )
-    self.submission_slot_0.save()
-    self.submission_slot_1 = ParticipationSubmissionSlot(
-        submission=participation_submission,
-        slot_number=1,
-    )
-    self.submission_slot_1.save()
-    self.submission_slot_2 = ParticipationSubmissionSlot(
-        submission=participation_submission,
-        slot_number=2,
-    )
-    self.submission_slot_2.save()
-
-    # sub-slots of slot_1
-    self.submission_slot_1_0 = ParticipationSubmissionSlot(
-        submission=participation_submission,
-        slot_number=0,
-        parent=self.submission_slot_1,
-    )
-    self.submission_slot_1_0.save()
-    self.submission_slot_1_1 = ParticipationSubmissionSlot(
-        submission=participation_submission,
-        slot_number=1,
-        parent=self.submission_slot_1,
-    )
-    self.submission_slot_1_1.save()
-    self.submission_slot_1_2 = ParticipationSubmissionSlot(
-        submission=participation_submission,
-        slot_number=2,
-        parent=self.submission_slot_1,
-    )
-    self.submission_slot_1_2.save()
-
-    participation_assessment = ParticipationAssessment(participation=self.participation)
-    participation_assessment.save()
-    self.participation.save()
-
-    # slots for participation_assessment
-    self.assessment_slot_0 = ParticipationAssessmentSlot(
-        assessment=participation_assessment,
-        slot_number=0,
-    )
-    self.assessment_slot_0.save()
-    self.assessment_slot_1 = ParticipationAssessmentSlot(
-        assessment=participation_assessment,
-        slot_number=1,
-    )
-    self.assessment_slot_1.save()
-    self.assessment_slot_2 = ParticipationAssessmentSlot(
-        assessment=participation_assessment,
-        slot_number=2,
-    )
-    self.assessment_slot_2.save()
-
-    # sub-slots of slot_1
-    self.assessment_slot_1_0 = ParticipationAssessmentSlot(
-        assessment=participation_assessment,
-        slot_number=0,
-        parent=self.assessment_slot_1,
-    )
-    self.assessment_slot_1_0.save()
-    self.assessment_slot_1_1 = ParticipationAssessmentSlot(
-        assessment=participation_assessment,
-        slot_number=1,
-        parent=self.assessment_slot_1,
-    )
-    self.assessment_slot_1_1.save()
-    self.assessment_slot_1_2 = ParticipationAssessmentSlot(
-        assessment=participation_assessment,
-        slot_number=2,
-        parent=self.assessment_slot_1,
-    )
-    self.assessment_slot_1_2.save()
 
 
 class ModelPropertiesTestCase(TestCase):
     def setUp(self):
         common_setup(self)
 
-    def test_sibling_slot_access(self):
-        self.assertEqual(self.assessment_slot_0.submission, self.submission_slot_0)
-        self.assertEqual(self.assessment_slot_1.submission, self.submission_slot_1)
-        self.assertEqual(self.assessment_slot_1_0.submission, self.submission_slot_1_0)
-        self.assertEqual(self.assessment_slot_1_1.submission, self.submission_slot_1_1)
-        self.assertEqual(self.assessment_slot_1_2.submission, self.submission_slot_1_2)
-        self.assertEqual(self.assessment_slot_2.submission, self.submission_slot_2)
+    def test_courses(self):
+        self.assertEqual(self.course.name, str(self.course))
 
-        self.assertEqual(self.submission_slot_0.assessment, self.assessment_slot_0)
-        self.assertEqual(self.submission_slot_1.assessment, self.assessment_slot_1)
-        self.assertEqual(self.submission_slot_1_0.assessment, self.assessment_slot_1_0)
-        self.assertEqual(self.submission_slot_1_1.assessment, self.assessment_slot_1_1)
-        self.assertEqual(self.submission_slot_1_2.assessment, self.assessment_slot_1_2)
-        self.assertEqual(self.submission_slot_2.assessment, self.assessment_slot_2)
+    def test_exercises(self):
 
-        self.assertEqual(
-            self.instance_slot_0.get_submission(self.participation),
-            self.submission_slot_0,
+        # exercises' score
+        self.assertEqual(self.e_multiple_single.max_score, round(Decimal(1.00), 2))
+        self.assertEqual(self.e_multiple_multiple.max_score, round(Decimal(1.60), 2))
+        self.assertEqual(self.e_js.max_score, round(Decimal(2.00), 2))
+
+        # correct choices
+        self.assertListEqual(
+            [c.text for c in self.e_multiple_single.get_correct_choices()],
+            [self.e_multiple_single_choices[0]["text"]],
         )
-        self.assertEqual(
-            self.instance_slot_1.get_submission(self.participation),
-            self.submission_slot_1,
-        )
-        self.assertEqual(
-            self.instance_slot_1_0.get_submission(self.participation),
-            self.submission_slot_1_0,
-        )
-        self.assertEqual(
-            self.instance_slot_1_1.get_submission(self.participation),
-            self.submission_slot_1_1,
-        )
-        self.assertEqual(
-            self.instance_slot_1_2.get_submission(self.participation),
-            self.submission_slot_1_2,
-        )
-        self.assertEqual(
-            self.instance_slot_2.get_submission(self.participation),
-            self.submission_slot_2,
+        self.assertListEqual(
+            [c.text for c in self.e_multiple_multiple.get_correct_choices()],
+            [
+                self.e_multiple_multiple_choices[0]["text"],
+                self.e_multiple_multiple_choices[2]["text"],
+            ],
         )
 
-        self.assertEqual(
-            self.instance_slot_0.get_assessment(self.participation),
-            self.assessment_slot_0,
-        )
-        self.assertEqual(
-            self.instance_slot_1.get_assessment(self.participation),
-            self.assessment_slot_1,
-        )
-        self.assertEqual(
-            self.instance_slot_1_0.get_assessment(self.participation),
-            self.assessment_slot_1_0,
-        )
-        self.assertEqual(
-            self.instance_slot_1_1.get_assessment(self.participation),
-            self.assessment_slot_1_1,
-        )
-        self.assertEqual(
-            self.instance_slot_1_2.get_assessment(self.participation),
-            self.assessment_slot_1_2,
-        )
-        self.assertEqual(
-            self.instance_slot_2.get_assessment(self.participation),
-            self.assessment_slot_2,
+    def test_events(self):
+        e1 = Event.objects.create(
+            course=self.course, name="test_event_1", event_type=Event.DRAFT
         )
 
-    def test_slot_exercise_property(self):
-        self.assertEqual(
-            self.instance_slot_0.exercise,
-            self.submission_slot_0.exercise,
-        )
-        self.assertEqual(
-            self.instance_slot_0.exercise,
-            self.assessment_slot_0.exercise,
-        )
+        e1.begin_timestamp = timezone.localtime(timezone.now())
+        e1.state = Event.PLANNED
+        e1.save()
 
-        self.assertEqual(
-            self.instance_slot_1.exercise,
-            self.submission_slot_1.exercise,
-        )
-        self.assertEqual(
-            self.instance_slot_1.exercise,
-            self.assessment_slot_1.exercise,
-        )
+        # event automatically begins at begin_time if PLANNED
+        self.assertEqual(e1.state, Event.OPEN)
 
-        self.assertEqual(
-            self.instance_slot_1_0.exercise,
-            self.submission_slot_1_0.exercise,
-        )
-        self.assertEqual(
-            self.instance_slot_1_0.exercise,
-            self.assessment_slot_1_0.exercise,
-        )
+        with self.assertRaises(ValidationError):
+            e1.access_rule_exceptions = {}
+            e1.save()
 
-        self.assertEqual(
-            self.instance_slot_1_1.exercise,
-            self.submission_slot_1_1.exercise,
-        )
-        self.assertEqual(
-            self.instance_slot_1_1.exercise,
-            self.assessment_slot_1_1.exercise,
-        )
-
-        self.assertEqual(
-            self.instance_slot_1_2.exercise,
-            self.submission_slot_1_2.exercise,
-        )
-        self.assertEqual(
-            self.instance_slot_1_2.exercise,
-            self.assessment_slot_1_2.exercise,
-        )
-
-        self.assertEqual(
-            self.instance_slot_2.exercise,
-            self.submission_slot_2.exercise,
-        )
-        self.assertEqual(
-            self.instance_slot_2.exercise,
-            self.assessment_slot_2.exercise,
-        )
+        with self.assertRaises(ValidationError):
+            e1.access_rule_exceptions = ["abc", True]
+            e1.save()
 
     def test_participation_current_exercise_property(self):
         pass

@@ -1,14 +1,11 @@
 from courses.models import (
     Course,
     Event,
-    EventInstance,
     EventParticipation,
     EventTemplate,
     EventTemplateRule,
     EventTemplateRuleClause,
     Exercise,
-    ParticipationAssessment,
-    ParticipationSubmission,
     Tag,
 )
 from django.core.exceptions import ValidationError
@@ -361,117 +358,6 @@ class ExerciseManagerTestCase(TestCase):
         self.assertNotIn(e5, Exercise.objects.base_exercises())
 
 
-class EventInstanceManagerTestCase(TestCase):
-    def setUp(self):
-        course = Course.objects.create(name="course")
-        self.event = Event.objects.create(
-            name="event", event_type=Event.EXAM, course=course
-        )
-        self.e1 = Exercise.objects.create(
-            text="a",
-            course=course,
-            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[
-                {
-                    "text": "aa",
-                }
-            ],
-        )
-        self.e2 = Exercise.objects.create(
-            text="b",
-            course=course,
-            exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
-            choices=[
-                {
-                    "text": "aa",
-                },
-                {
-                    "text": "aa",
-                },
-            ],
-        )
-        self.e3 = Exercise.objects.create(
-            text="c",
-            course=course,
-            exercise_type=Exercise.OPEN_ANSWER,
-        )
-        self.e4 = Exercise.objects.create(
-            text="d",
-            course=course,
-            exercise_type=Exercise.AGGREGATED,
-            sub_exercises=[
-                {
-                    "text": "da",
-                    "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                    "choices": [
-                        {
-                            "text": "aa",
-                        },
-                        {
-                            "text": "aa",
-                        },
-                    ],
-                },
-                {
-                    "text": "db",
-                    "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
-                    "choices": [
-                        {
-                            "text": "aa",
-                        },
-                        {
-                            "text": "aa",
-                        },
-                    ],
-                },
-            ],
-        )
-        self.e5 = Exercise.objects.create(
-            text="e",
-            course=course,
-            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            choices=[
-                {
-                    "text": "aa",
-                }
-            ],
-        )
-
-    # def test_creation_no_recursion(self):
-    #     exercises1 = [self.e1, self.e3, self.e5]
-    #     instance = EventInstance.objects.create(event=self.event, exercises=exercises1)
-
-    #     # one slot for each exercise has been created; no recursion since the supplied
-    #     # exercises don't have any sub-exercises associated
-    #     self.assertEqual(instance.slots.count(), len(exercises1))
-
-    #     i = 0
-    #     for slot in instance.slots.all():
-    #         self.assertEqual(slot.exercise.pk, exercises1[i].pk)
-    #         i += 1
-
-    # def test_creation_with_recursion(self):
-    #     # show that sub-slots are recursively created for exercises with sub-exercises
-    #     exercises2 = [self.e2, self.e4]
-    #     instance = EventInstance.objects.create(event=self.event, exercises=exercises2)
-
-    #     # slots have been created for each base exercise
-    #     self.assertEqual(instance.slots.base_slots().count(), len(exercises2))
-
-    #     i = 0
-    #     for slot in instance.slots.base_slots():
-    #         self.assertEqual(slot.exercise.pk, exercises2[i].pk)
-    #         j = 0
-    #         for sub_exercise in slot.exercise.sub_exercises.all():
-    #             # sub-slots have been recursively created and assigned to the sub-exercises
-    #             sub_slot = slot.sub_slots.get(slot_number=j)
-    #             # sub-slots don't appear in a base_slots() queryset
-    #             self.assertNotIn(sub_slot, instance.slots.base_slots())
-    #             self.assertEqual(sub_slot.exercise.pk, sub_exercise.pk)
-    #             j += 1
-    #         i += 1
-
-
 class EventTemplateManagerTestCase(TestCase):
     def setUp(self):
         self.course = Course.objects.create(name="course")
@@ -591,6 +477,7 @@ class EventParticipationManagerTestCase(TestCase):
         self.e1 = Exercise.objects.create(
             text="a",
             course=self.course,
+            state=Exercise.PRIVATE,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
             choices=[
                 {
@@ -600,6 +487,7 @@ class EventParticipationManagerTestCase(TestCase):
         )
         self.e2 = Exercise.objects.create(
             text="b",
+            state=Exercise.PRIVATE,
             course=self.course,
             exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
             choices=[
@@ -613,11 +501,13 @@ class EventParticipationManagerTestCase(TestCase):
         )
         self.e3 = Exercise.objects.create(
             text="c",
+            state=Exercise.PRIVATE,
             course=self.course,
             exercise_type=Exercise.OPEN_ANSWER,
         )
         self.e4 = Exercise.objects.create(
-            text="c",
+            text="d",
+            state=Exercise.PRIVATE,
             course=self.course,
             exercise_type=Exercise.AGGREGATED,
             sub_exercises=[
@@ -648,17 +538,20 @@ class EventParticipationManagerTestCase(TestCase):
             ],
         )
         self.e5 = Exercise.objects.create(
-            text="c",
+            text="e",
+            state=Exercise.PRIVATE,
             course=self.course,
             exercise_type=Exercise.OPEN_ANSWER,
         )
         self.e6 = Exercise.objects.create(
-            text="c",
+            text="f",
+            state=Exercise.PRIVATE,
             course=self.course,
             exercise_type=Exercise.OPEN_ANSWER,
         )
         self.e7 = Exercise.objects.create(
-            text="c",
+            text="g",
+            state=Exercise.PRIVATE,
             course=self.course,
             exercise_type=Exercise.OPEN_ANSWER,
         )
@@ -668,6 +561,7 @@ class EventParticipationManagerTestCase(TestCase):
                 text="dummy exercises " + str(i),
                 exercise_type=Exercise.OPEN_ANSWER,
                 course=self.course,
+                state=Exercise.PRIVATE,
             )
 
         rules = [
@@ -695,9 +589,10 @@ class EventParticipationManagerTestCase(TestCase):
             },
         ]
 
-        self.template = (
-            self.event.template
-        )  # EventTemplate.objects.create(course=self.course, rules=rules)
+        for rule in rules:
+            EventTemplateRule.objects.create(template=self.event.template, **rule)
+
+        self.template = self.event.template
 
         self.e1.public_tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
         self.e2.public_tags.set([self.tag1, self.tag2])  # satisfies rule 1, rule 2
@@ -751,64 +646,26 @@ class EventParticipationManagerTestCase(TestCase):
                 sub_slot, sub_assessment_slot, sub_submission_slot
             )
 
-    """
-    def test_creation_with_externally_supplied_event_instance(self):
-        # show that when creating an EventParticipation supplying an EventInstance, the corresponding
-        # ParticipationSubmission and ParticipationAssessment are created
-        instance = EventInstance.objects.create(
-            event=self.event,
-            exercises=[self.e1, self.e2, self.e3, self.e4, self.e5, self.e6, self.e7],
-        )
-
-        participation = EventParticipation.objects.create(
-            event_instance=instance, user=self.user
-        )
-
-        # show that both a ParticipationSubmission and ParticipationAssessment related
-        # to the participation have been created (no exception raised when accessed)
-        participation.assessment
-        participation.submission
-
-        for slot in participation.event_instance.slots.base_slots():
-            # show that slots with same slot_number reference the same exercise
-            assessment_slot = participation.assessment.slots.base_slots().get(
-                slot_number=slot.slot_number
-            )
-            self.assertEqual(
-                slot.exercise,
-                assessment_slot.exercise,
-            )
-            self.assertEqual(
-                slot.get_assessment(participation).exercise.pk, slot.exercise.pk
+    def test_creation(self):
+        for _ in range(0, 10):
+            participation = EventParticipation.objects.create(
+                event_id=self.event.pk, user=self.user
             )
 
-            submission_slot = participation.submission.slots.base_slots().get(
-                slot_number=slot.slot_number
-            )
-            self.assertEqual(
-                slot.exercise,
-                submission_slot.exercise,
-            )
+            slot_0 = participation.slots.base_slots().get(slot_number=0)
+            self.assertIn(slot_0.exercise.pk, [self.e1.pk, self.e2.pk])
 
-            self.assertEqual(
-                slot.get_submission(participation).exercise.pk, slot.exercise.pk
-            )
+            slot_1 = participation.slots.base_slots().get(slot_number=1)
+            self.assertIn(slot_1.exercise.pk, [self.e1.pk, self.e2.pk, self.e5.pk])
 
-            # submission and assessment slots correctly reference each other
-            self.assertEqual(
-                slot.get_assessment(participation).submission, submission_slot
-            )
-            self.assertEqual(
-                slot.get_submission(participation).assessment, assessment_slot
-            )
+            slot_2 = participation.slots.get(slot_number=2)
+            self.assertIn(slot_2.exercise.pk, [self.e3.pk, self.e4.pk, self.e5.pk])
 
-            # recursively run the assertions on the sub-slots
-            self.rec_validate_sub_slots(slot, assessment_slot, submission_slot)
+            if slot_2.exercise.pk == self.e4.pk:
+                self.assertEqual(slot_2.sub_slots.count(), 2)
 
-"""
+            slot_3 = participation.slots.get(slot_number=3)
+            self.assertIn(slot_3.exercise.pk, [self.e6.pk])
 
-    def test_creation_without_externally_supplied_event_instance(self):
-        # show that when creating an EventParticipation without supplying an EventInstance, one is created
-        # and assigned to the participation, as well as the corresponding ParticipationSubmission
-        # and ParticipationAssessment
-        pass
+            self.assertNotEqual(slot_0.exercise.pk, slot_1.exercise.pk)
+            self.assertNotEqual(slot_1.exercise.pk, slot_2.exercise.pk)

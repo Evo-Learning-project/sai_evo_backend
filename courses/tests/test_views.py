@@ -2,14 +2,8 @@ from courses.logic import privileges
 from courses.models import (
     Course,
     Event,
-    EventInstance,
-    EventInstanceSlot,
     EventParticipation,
     Exercise,
-    ParticipationAssessment,
-    ParticipationAssessmentSlot,
-    ParticipationSubmission,
-    ParticipationSubmissionSlot,
     UserCoursePrivilege,
 )
 from django.test import TestCase

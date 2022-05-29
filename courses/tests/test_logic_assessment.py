@@ -1,11 +1,8 @@
 # from courses.models import (
 #     Course,
 #     Event,
-#     EventInstance,
 #     EventParticipation,
 #     Exercise,
-#     ExerciseAssessmentRule,
-#     ParticipationAssessmentSlot,
 # )
 # from django.test import TestCase
 # from users.models import User
