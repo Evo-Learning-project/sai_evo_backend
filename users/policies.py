@@ -34,7 +34,5 @@ class UserPolicy(AccessPolicy):
         return check_privilege(request.user, course, UPDATE_COURSE)
 
     def is_personal_account(self, request, view, action):
-        print("inside")
         user = view.get_object()
-        print(user)
         return user == request.user

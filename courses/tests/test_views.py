@@ -556,6 +556,8 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+        second_slot_pk = response.data["id"]
+
         exercise = response.data["exercise"]
         self.assertEquals(exercise["text"], self.exercise_2.text)
 
@@ -614,6 +616,13 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("score_selected", exercise["choices"][0])
         self.assertNotIn("score_unselected", exercise["choices"][0])
 
+        # show slots out of scope cannot be updated
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{second_slot_pk}/",
+            {"selected_choices": [self.exercise_2.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
+
         # show a user that's not the owner of the participation cannot retrieve or
         # update it and its slots
         self.client.force_authenticate(self.student_2)
@@ -660,14 +669,24 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # show that after it's been turned in, no fields or slots can be updated
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.IN_PROGRESS},
+        )
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_1.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
 
-        # show a user with `access_participations` permission can see the participation(s)
+        # show a user with `assess_participations` permission can see the participation(s)
         # show the appropriate serializer is being used
 
         # show a user with `assess_participations` permission can update the assessment
         # related fields (and only those)
 
-        # show a user with `access_participations` or `assess_participations` cannot
+        # show a user with `assess_participations` cannot
         # create a participation of their own
 
         pass
