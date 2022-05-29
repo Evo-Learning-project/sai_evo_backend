@@ -235,6 +235,12 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "condition_expression": "can_participate or has_teacher_privileges:manage_events",
         },
         {
+            "action": ["go_back"],
+            "principal": ["authenticated"],
+            "effect": "deny",
+            "condition_expression": "not can_go_back",
+        },
+        {
             "action": ["update", "partial_update", "go_forward", "go_back"],
             "principal": ["authenticated"],
             "effect": "allow",
@@ -251,12 +257,6 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "can_go_forward",
-        },
-        {
-            "action": ["go_back"],
-            "principal": ["authenticated"],
-            "effect": "allow",
-            "condition": "can_go_back",
         },
     ]
 

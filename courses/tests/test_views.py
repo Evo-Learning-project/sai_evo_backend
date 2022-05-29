@@ -1,8 +1,11 @@
+from django.utils import timezone
 from courses.logic import privileges
 from courses.models import (
     Course,
     Event,
     EventParticipation,
+    EventParticipationSlot,
+    EventTemplateRule,
     Exercise,
     UserCoursePrivilege,
 )
@@ -465,21 +468,196 @@ class EventViewSetTestCase(BaseTestCase):
 
 
 class EventParticipationViewSetTestCase(BaseTestCase):
+    def setUp(self):
+        from data import users, courses, exercises, events
+
+        self.teacher_1 = User.objects.create(**users.teacher_1)
+        self.course = Course.objects.create(creator=self.teacher_1, **courses.course_1)
+
+        self.student_1 = User.objects.create(**users.student_1)
+        self.student_2 = User.objects.create(**users.student_2)
+
+        self.exercise_1 = Exercise.objects.create(
+            course=self.course, **exercises.mmc_priv_1
+        )
+        self.exercise_2 = Exercise.objects.create(
+            course=self.course, **exercises.msc_priv_1
+        )
+        self.event = Event.objects.create(
+            course=self.course, creator=self.teacher_1, **events.exam_1_one_at_a_time
+        )
+
+        rule_1 = EventTemplateRule.objects.create(
+            template=self.event.template, rule_type=EventTemplateRule.ID_BASED
+        )
+        rule_1.exercises.set([self.exercise_1])
+        rule_2 = EventTemplateRule.objects.create(
+            template=self.event.template, rule_type=EventTemplateRule.ID_BASED
+        )
+        rule_2.exercises.set([self.exercise_2])
+
+        self.client = APIClient()
+
     def test_participation_submission_and_assessment(self):
+        self.client.force_authenticate(user=self.student_1)
+
+        # show users cannot participate until the exam is open
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/"
+        )
+        self.assertEqual(response.status_code, 403)
+
+        self.event.state = Event.PLANNED
+        self.event.begin_timestamp = timezone.localdate(timezone.now())
+
+        self.event.access_rule = Event.DENY_ACCESS
+        self.event.save()
+
+        # show unauthorized users cannot participate
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/"
+        )
+        self.assertEqual(response.status_code, 403)
+
         # show an allowed user can create a participation
+        self.event.access_rule_exceptions = [self.student_1.email]
+        self.event.save()
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/"
+        )
+        self.assertEqual(response.status_code, 200)
+
+        participation_pk = response.data["id"]
 
         # show the appropriate serializer is displayed to the user
+        self.assertContains(response, "slots")
+
+        slots = response.data["slots"]
+
+        # show a single exercise is being shown and it's the correct one
+        self.assertEqual(len(slots), 1)
+
+        exercise = slots[0]["exercise"]
+        self.assertEquals(exercise["text"], self.exercise_1.text)
+
+        # show solution and other hidden fields aren't shown
+        self.assertNotIn("score", slots[0])
+        self.assertNotIn("comment", slots[0])
+        self.assertNotIn("solution", exercise)
+        self.assertNotIn("correct_choices", exercise)
+        self.assertNotIn("private_tags", exercise)
+        self.assertNotIn("score_selected", exercise["choices"][0])
+        self.assertNotIn("score_unselected", exercise["choices"][0])
+
+        # show moving forward
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/go_forward/"
+        )
+        self.assertEqual(response.status_code, 200)
+
+        exercise = response.data["exercise"]
+        self.assertEquals(exercise["text"], self.exercise_2.text)
+
+        self.assertNotIn("score", slots[0])
+        self.assertNotIn("comment", slots[0])
+        self.assertNotIn("solution", exercise)
+        self.assertNotIn("correct_choices", exercise)
+        self.assertNotIn("private_tags", exercise)
+        self.assertNotIn("score_selected", exercise["choices"][0])
+        self.assertNotIn("score_unselected", exercise["choices"][0])
+
+        # show moving back is only possible when allowed in the Event
+        self.event.allow_going_back = False
+        self.event.save()
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/go_back/"
+        )
+        self.assertEqual(response.status_code, 403)
+
+        self.event.allow_going_back = True
+        self.event.save()
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/go_back/"
+        )
+        self.assertEqual(response.status_code, 200)
+
+        exercise = response.data["exercise"]
+        self.assertEquals(exercise["text"], self.exercise_1.text)
+
+        self.assertNotIn("score", slots[0])
+        self.assertNotIn("comment", slots[0])
+        self.assertNotIn("solution", exercise)
+        self.assertNotIn("correct_choices", exercise)
+        self.assertNotIn("private_tags", exercise)
+        self.assertNotIn("score_selected", exercise["choices"][0])
+        self.assertNotIn("score_unselected", exercise["choices"][0])
+
+        slot_pk = response.data["id"]
+
+        # show the owner of the participation can update its slot
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_1.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 200)
+        exercise = response.data["exercise"]
+        self.assertEquals(exercise["text"], self.exercise_1.text)
+
+        self.assertNotIn("score", slots[0])
+        self.assertNotIn("comment", slots[0])
+        self.assertNotIn("solution", exercise)
+        self.assertNotIn("correct_choices", exercise)
+        self.assertNotIn("private_tags", exercise)
+        self.assertNotIn("score_selected", exercise["choices"][0])
+        self.assertNotIn("score_unselected", exercise["choices"][0])
 
         # show a user that's not the owner of the participation cannot retrieve or
         # update it and its slots
+        self.client.force_authenticate(self.student_2)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_1.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
 
         # show participations cannot be deleted by anyone
+        response = self.client.delete(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+        )
+        self.assertEqual(response.status_code, 403)
 
-        # show the owner of the participation can update the participation's slots
+        self.client.force_authenticate(self.student_2)
+        response = self.client.delete(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+        )
+        self.assertEqual(response.status_code, 403)
 
         # show that only the submission related fields can be updated
+        slot_score = EventParticipationSlot.objects.get(pk=slot_pk).score
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"score": "10.00"},
+        )
+        slot = EventParticipationSlot.objects.get(pk=slot_pk)
+        self.assertEqual(slot.score, slot_score)
 
-        # show that the owner of a participation can turn it in
+        # show that only the owner of a participation can turn it in
+        self.client.force_authenticate(self.student_2)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.TURNED_IN},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        self.client.force_authenticate(self.student_1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.TURNED_IN},
+        )
+        self.assertEqual(response.status_code, 200)
 
         # show that after it's been turned in, no fields or slots can be updated
 
