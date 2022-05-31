@@ -57,8 +57,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         Course.objects.all()
         .select_related("creator")
         .prefetch_related(
-            # "privileged_users",
-            # "roles"
+            "exercises",
+            "exercises__public_tags",
+            "exercises__private_tags",
+            "exercises__choices",
+            "exercises__testcases",
+            "exercises__sub_exercises",
+            "events",
+            "events__template",
+            "events__template__rules",
+            "events__template__rules__clauses",
+            "events__template__rules__clauses__tags",
+            "events__template__rules__exercises",
+            "roles",
+            "privileged_users",
         )
     )
     permission_classes = [policies.CoursePolicy]
@@ -338,6 +350,10 @@ class TagViewSet(
         qs = super().get_queryset()
         qs = qs.filter(course_id=self.kwargs["course_pk"])
 
+        qs = qs.with_prefetched_public_exercises().with_prefetched_public_unseen_exercises(
+            self.request.user
+        )
+
         # students can only access public tags
         if not check_privilege(
             self.request.user,
@@ -391,6 +407,7 @@ class EventViewSet(viewsets.ModelViewSet):
             self.kwargs["course_pk"],
             privileges.MANAGE_EVENTS,
         )
+        context["preview"] = self.action == "list"
         return context
 
     def perform_create(self, serializer):
@@ -443,6 +460,15 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
         return qs.filter(
             template_id=self.kwargs["template_pk"],
         )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["show_hidden_fields"] = check_privilege(
+            self.request.user,
+            self.kwargs["course_pk"],
+            privileges.MANAGE_EXERCISES,
+        )
+        return context
 
     def perform_create(self, serializer):
         serializer.save(

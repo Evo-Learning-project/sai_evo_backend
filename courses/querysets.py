@@ -129,6 +129,28 @@ class CourseQuerySet(models.QuerySet):
 
 
 class TagQuerySet(models.QuerySet):
+    def with_prefetched_public_exercises(self):
+        from .models import Exercise
+
+        return self.prefetch_related(
+            Prefetch(
+                "public_in_exercises",
+                queryset=Exercise.objects.public(),
+                to_attr="prefetched_public_in_public_exercises",
+            ),
+        )
+
+    def with_prefetched_public_unseen_exercises(self, unseen_by):
+        from .models import Exercise
+
+        return self.prefetch_related(
+            Prefetch(
+                "public_in_exercises",
+                queryset=Exercise.objects.public().not_seen_in_practice_by(unseen_by),
+                to_attr="prefetched_public_in_unseen_public_exercises",
+            )
+        )
+
     def public(self):
         """
         A tag is public if it is in public_tags relationship with at least one public exercise
@@ -138,7 +160,11 @@ class TagQuerySet(models.QuerySet):
         pk_list = []
 
         for tag in qs:
-            if tag.public_in_exercises.public().exists():
+            if (
+                hasattr(tag, "prefetched_public_in_public_exercises")
+                and len(tag.prefetched_public_in_public_exercises) > 0
+                or tag.public_in_exercises.public().exists()
+            ):
                 pk_list.append(tag.pk)
 
         return qs.filter(id__in=pk_list)

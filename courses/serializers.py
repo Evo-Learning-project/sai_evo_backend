@@ -90,13 +90,13 @@ class CourseSerializer(serializers.ModelSerializer):
             self.fields[
                 "unstarted_practice_events"
             ] = serializers.SerializerMethodField()
-            self.fields["public_exercises_exist"] = serializers.SerializerMethodField()
+            self.fields["public_exercises_count"] = serializers.SerializerMethodField()
 
     def get_privileges(self, obj):
         return get_user_privileges(self.context["request"].user, obj)
 
-    def get_public_exercises_exist(self, obj):
-        return obj.exercises.public().exists()
+    def get_public_exercises_count(self, obj):
+        return obj.exercises.public().count()
 
     def get_participations(self, obj):
         try:
@@ -108,16 +108,17 @@ class CourseSerializer(serializers.ModelSerializer):
             EventParticipation.objects.all()
             .with_prefetched_base_slots()
             .filter(user=user, event__course=obj)
+            .select_related("user", "event")
         )
         return EventParticipationSerializer(
             participations,
             many=True,
             context={
-                # "include_slots": False,
                 "capabilities": {
                     "assessment_fields_read": True,
                     "submission_fields_read": True,
                 },
+                "preview": True,
                 **self.context,
             },
         ).data
@@ -160,9 +161,15 @@ class TagSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         if self.context.get("show_exercise_count", False):
             self.fields["public_exercises"] = serializers.SerializerMethodField()
+            self.fields[
+                "public_exercises_not_seen"
+            ] = serializers.SerializerMethodField()
 
     def get_public_exercises(self, obj):
-        return obj.public_in_exercises.filter(state=Exercise.PUBLIC).count()
+        return len(obj.prefetched_public_in_public_exercises)
+
+    def get_public_exercises_not_seen(self, obj):
+        return len(obj.prefetched_public_in_unseen_public_exercises)
 
 
 class CourseRoleSerializer(serializers.ModelSerializer):
@@ -336,7 +343,6 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 class EventTemplateRuleSerializer(serializers.ModelSerializer):
     clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
     _ordering = serializers.IntegerField(required=False)
-    satisfying = serializers.SerializerMethodField()
 
     class Meta:
         model = EventTemplateRule
@@ -347,8 +353,12 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
             "clauses",
             "amount",
             "_ordering",
-            "satisfying",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context.get("show_hidden_fields", False):
+            self.fields["satisfying"] = serializers.SerializerMethodField()
 
     def get_satisfying(self, obj):
         qs = Exercise.objects.filter(course=obj.template.event.course).satisfying(obj)
@@ -364,18 +374,23 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
 
 
 class EventTemplateSerializer(serializers.ModelSerializer):
-    rules = EventTemplateRuleSerializer(many=True, read_only=True)
+    rules = serializers.SerializerMethodField()
 
     class Meta:
         model = EventTemplate
         fields = ["id", "name", "rules"]
         read_only_fields = ["rules"]
 
+    def get_rules(self, obj):
+        return EventTemplateRuleSerializer(
+            obj.rules.all(), many=True, context=self.context
+        ).data
+
 
 class EventSerializer(HiddenFieldsModelSerializer):
     id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
-    template = serializers.SerializerMethodField()
-    participation_exists = serializers.SerializerMethodField()
+    # template = serializers.SerializerMethodField()
+    # participation_exists = serializers.SerializerMethodField()
     state = ReadWriteSerializerMethodField()
 
     class Meta:
@@ -390,9 +405,8 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "state",
             "allow_going_back",
             "exercises_shown_at_a_time",
-            "template",
-            "users_allowed_past_closure",
-            "participation_exists",  # ! TODO don't always show
+            # "template",
+            # "participation_exists",  # ! TODO don't always show
         ]
 
     def __init__(self, *args, **kwargs):
@@ -415,12 +429,15 @@ class EventSerializer(HiddenFieldsModelSerializer):
                 required=False,
             )
 
+        if not self.context.get("preview", False):
+            self.fields["template"] = serializers.SerializerMethodField()
+            self.fields["participation_exists"] = serializers.SerializerMethodField()
+
     def get_state(self, obj):
         state = obj.state
         user = self.context["request"].user
-        if (
-            not check_privilege(user, obj.course, MANAGE_EVENTS)
-            and state == Event.RESTRICTED
+        if state == Event.RESTRICTED and not check_privilege(
+            user, obj.course, MANAGE_EVENTS
         ):
             return (
                 Event.OPEN
@@ -437,28 +454,18 @@ class EventSerializer(HiddenFieldsModelSerializer):
             return None
 
     def get_template(self, obj):
-        if (
-            self.context.get("show_hidden_fields", False)
-            or obj.event_type == Event.SELF_SERVICE_PRACTICE
-        ):
-            return EventTemplateSerializer(obj.template).data
-        return None
+        return (
+            EventTemplateSerializer(obj.template, context=self.context).data
+            if (
+                self.context.get("show_hidden_fields", False)
+                or obj.event_type == Event.SELF_SERVICE_PRACTICE
+            )
+            else None
+        )
 
 
 class EventParticipationSlotSerializer(serializers.ModelSerializer):
     exercise = serializers.SerializerMethodField()  # to pass context
-    # sub_slots = RecursiveField(
-    #     many=True, read_only=True
-    # )
-    # serializers.SerializerMethodField()  # to pass context
-    is_last = serializers.BooleanField(
-        read_only=True,
-        source="participation.is_cursor_last_position",
-    )
-    is_first = serializers.BooleanField(
-        read_only=True,
-        source="participation.is_cursor_first_position",
-    )
 
     class Meta:
         model = EventParticipationSlot
@@ -469,8 +476,6 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
             "sub_slots",
             "seen_at",
             "answered_at",
-            "is_last",
-            "is_first",
         ]
         read_only_fields = ["id", "seen_at", "answered_at"]
 
@@ -500,10 +505,7 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 read_only=True,
             )
 
-        if capabilities.get("submission_fields_read", False,) and not self.context.get(
-            "preview",
-            False,
-        ):
+        if capabilities.get("submission_fields_read", False):
             submission_fields_write = capabilities.get("submission_fields_write", False)
             selected_choices_kwargs = {"read_only": (not submission_fields_write)}
             if not selected_choices_kwargs["read_only"]:
@@ -523,12 +525,18 @@ class EventParticipationSlotSerializer(serializers.ModelSerializer):
                 )
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
 
+        if not self.context.get("preview", False):
+            self.fields["is_last"] = serializers.BooleanField(
+                read_only=True,
+                source="participation.is_cursor_last_position",
+            )
+            self.fields["is_first"] = serializers.BooleanField(
+                read_only=True,
+                source="participation.is_cursor_first_position",
+            )
+
     def get_exercise(self, obj):
-        return (
-            ExerciseSerializer(obj.exercise, context=self.context).data
-            if not self.context.get("preview", False)
-            else None
-        )
+        return ExerciseSerializer(obj.exercise, context=self.context).data
 
     def get_answer_text(self, obj):
         """
@@ -592,17 +600,14 @@ class EventParticipationSerializer(serializers.ModelSerializer):
             )
 
     def get_event(self, obj):
-        return (
-            EventSerializer(obj.event, read_only=True, context=self.context).data
-            if not self.context.get("preview", False)
-            else None
-        )
+        return EventSerializer(obj.event, read_only=True, context=self.context).data
 
     def get_slots(self, obj):
         if self.context.get("capabilities").get("assessment_fields_read", False):
             slots = obj.prefetched_base_slots
         else:
             slots = obj.current_slots
+
         ret = (
             EventParticipationSlotSerializer(
                 slots,
