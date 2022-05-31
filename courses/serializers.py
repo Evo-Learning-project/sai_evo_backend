@@ -28,42 +28,7 @@ import re
 
 
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
-    """
-    Used to conditionally show certain fields only when the `context` argument
-    is provided and contains key `show_hidden_fields` with a truthy value
-    """
-
-    # note: using this serializer the way shown below has proven to be incorrect, as the methods
-    # init and get_field_names may be called only once and affect all future accesses to the serializer
-    # for now, the best thing seems to be checking the context manually in each serializer.
-    # try and find another abstraction for this behavior (maybe even generalizable, such as having a dict of
-    # {string: string[]ƒ}, where the key of a record if a property that must be in the context in order to have
-    # the fields in the value included)
-
     pass
-
-    # def __init__(self, *args, **kwargs):
-    #     print("____________________-INITING______________________")
-    #     context = kwargs.get("context")
-    #     self.show_hidden_fields = context is not None and context.get(
-    #         "show_hidden_fields", False
-    #     )
-
-    #     if self.show_hidden_fields:
-    #         print("????????????SHOWING HIDDEN FIELDS???????????")
-    #         # self.Meta.fields.extend(self.Meta.hidden_fields)
-    #     super().__init__(*args, **kwargs)
-
-    # def get_field_names(self, declared_fields, info):
-    #     show_hidden_fields = self.context is not None and self.context.get(
-    #         "show_hidden_fields", False
-    #     )
-    #     self.show_hidden_fields = False
-    #     fields = super().get_field_names(declared_fields, info)
-    #     if show_hidden_fields:
-    #         fields.extend(self.Meta.hidden_fields)
-    #     print("fields:", fields)
-    #     return fields
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -77,7 +42,6 @@ class CourseSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "creator",
-            # "is_enrolled",
             "privileges",
             "hidden",
         ]
