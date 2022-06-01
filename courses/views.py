@@ -207,6 +207,9 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
         "sub_exercises__choices",
         "sub_exercises__testcases",
+        "sub_exercises__private_tags",
+        "sub_exercises__public_tags",
+        "sub_exercises__sub_exercises",
     )
     permission_classes = [policies.ExercisePolicy]
     pagination_class = ExercisePagination
@@ -417,6 +420,7 @@ class EventViewSet(viewsets.ModelViewSet):
             "template__rules__exercises",
             "template__rules__clauses",
             "template__rules__clauses__tags",
+            "users_allowed_past_closure",
         )
     )
     # TODO disallow list view for non-teachers (only allow students to retrieve an exam if they know the id)
