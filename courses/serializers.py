@@ -133,7 +133,11 @@ class TagSerializer(serializers.ModelSerializer):
         return len(obj.prefetched_public_in_public_exercises)
 
     def get_public_exercises_not_seen(self, obj):
-        return len(obj.prefetched_public_in_unseen_public_exercises)
+        return len(
+            obj.prefetched_public_in_public_exercises
+        )  # ! temporarily disable functionality
+
+    # return len(obj.prefetched_public_in_unseen_public_exercises)
 
 
 class CourseRoleSerializer(serializers.ModelSerializer):
