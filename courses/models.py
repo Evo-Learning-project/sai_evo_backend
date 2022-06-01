@@ -54,10 +54,14 @@ class Course(TimestampableModel):
 
 class UserCoursePrivilege(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="privileged_courses"
+        User,
+        on_delete=models.CASCADE,
+        related_name="privileged_courses",
     )
     course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="privileged_users"
+        Course,
+        on_delete=models.CASCADE,
+        related_name="privileged_users",
     )
     allow_privileges = models.JSONField(default=list, blank=True)
     deny_privileges = models.JSONField(default=list, blank=True)

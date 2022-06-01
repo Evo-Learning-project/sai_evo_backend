@@ -5,6 +5,8 @@ from django.db.models import Q
 
 
 from django.db.models import Exists, OuterRef
+from django.db.models import Prefetch
+
 
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
@@ -60,20 +62,10 @@ class CourseViewSet(viewsets.ModelViewSet):
         Course.objects.all()
         .select_related("creator")
         .prefetch_related(
-            "exercises",
-            "exercises__public_tags",
-            "exercises__private_tags",
-            "exercises__choices",
-            "exercises__testcases",
-            "exercises__sub_exercises",
-            "events",
-            "events__template",
-            "events__template__rules",
-            "events__template__rules__clauses",
-            "events__template__rules__clauses__tags",
-            "events__template__rules__exercises",
             "roles",
+            "roles__users",
             "privileged_users",
+            "privileged_users__user",
         )
     )
     permission_classes = [policies.CoursePolicy]
@@ -82,6 +74,19 @@ class CourseViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         if not self.request.user.is_teacher:
             qs = qs.public()
+
+        qs = qs.prefetch_related(
+            Prefetch(
+                "privileged_users",
+                queryset=UserCoursePrivilege.objects.filter(user=self.request.user),
+                to_attr="prefetched_privileged_users",
+            ),
+            Prefetch(
+                "roles",
+                queryset=self.request.user.roles.all(),
+                to_attr="prefetched_user_roles",
+            ),
+        )
 
         return qs
 
