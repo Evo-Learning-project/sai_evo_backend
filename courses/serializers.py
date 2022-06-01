@@ -47,14 +47,18 @@ class CourseSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["creator"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.context.pop("preview", False):
-            self.fields["participations"] = serializers.SerializerMethodField()
-            self.fields[
-                "unstarted_practice_events"
-            ] = serializers.SerializerMethodField()
-            self.fields["public_exercises_count"] = serializers.SerializerMethodField()
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     if not self.context.pop(
+    #         "preview", False
+    #     ):  # TODO make inside_student_dashboard condition explicit
+    #         # meant to be shown inside student dashboard
+    #         self.add_student_dashboard_fields()
+
+    # def add_student_dashboard_fields(self):
+    #     # self.fields["participations"] = serializers.SerializerMethodField()
+    #     self.fields["unstarted_practice_events"] = serializers.SerializerMethodField()
+    #     self.fields["public_exercises_count"] = serializers.SerializerMethodField()
 
     def get_privileges(self, obj):
         return get_user_privileges(self.context["request"].user, obj)
@@ -62,58 +66,58 @@ class CourseSerializer(serializers.ModelSerializer):
     def get_public_exercises_count(self, obj):
         return obj.exercises.public().count()
 
-    def get_participations(self, obj):
-        try:
-            user = self.context["request"].user
-        except KeyError:
-            return None
+    # def get_participations(self, obj):
+    #     try:
+    #         user = self.context["request"].user
+    #     except KeyError:
+    #         return None
 
-        participations = (
-            EventParticipation.objects.all()
-            .with_prefetched_base_slots()
-            .filter(user=user, event__course=obj)
-            .select_related("user", "event")
-        )
-        return EventParticipationSerializer(
-            participations,
-            many=True,
-            context={
-                "capabilities": {
-                    "assessment_fields_read": True,
-                    "submission_fields_read": True,
-                },
-                "preview": True,
-                **self.context,
-            },
-        ).data
+    #     participations = (
+    #         EventParticipation.objects.all()
+    #         .with_prefetched_base_slots()
+    #         .filter(user=user, event__course=obj)
+    #         .select_related("user", "event")
+    #     )
+    #     return EventParticipationSerializer(
+    #         participations,
+    #         many=True,
+    #         context={
+    #             "capabilities": {
+    #                 "assessment_fields_read": True,
+    #                 "submission_fields_read": True,
+    #             },
+    #             "preview": True,
+    #             **self.context,
+    #         },
+    #     ).data
 
-    def get_unstarted_practice_events(self, obj):
-        """
-        Returns Events with type SELF_SERVICE_PRACTICE created by the user
-        for which a participation doesn't exist yet
-        """
-        try:
-            user = self.context["request"].user
-        except KeyError:
-            return None
+    # def get_unstarted_practice_events(self, obj):
+    #     """
+    #     Returns Events with type SELF_SERVICE_PRACTICE created by the user
+    #     for which a participation doesn't exist yet
+    #     """
+    #     try:
+    #         user = self.context["request"].user
+    #     except KeyError:
+    #         return None
 
-        # sub-query that retrieves a user's participation to events
-        exists_user_participation = (
-            EventParticipation.objects.all()
-            .with_prefetched_base_slots()
-            .filter(user=user, event=OuterRef("pk"))
-        )
+    #     # sub-query that retrieves a user's participation to events
+    #     exists_user_participation = (
+    #         EventParticipation.objects.all()
+    #         .with_prefetched_base_slots()
+    #         .filter(user=user, event=OuterRef("pk"))
+    #     )
 
-        practice_events = Event.objects.annotate(
-            user_participation_exists=Exists(exists_user_participation)
-        ).filter(
-            creator=user,
-            course=obj,
-            event_type=Event.SELF_SERVICE_PRACTICE,
-            user_participation_exists=False,
-        )
+    #     practice_events = Event.objects.annotate(
+    #         user_participation_exists=Exists(exists_user_participation)
+    #     ).filter(
+    #         creator=user,
+    #         course=obj,
+    #         event_type=Event.SELF_SERVICE_PRACTICE,
+    #         user_participation_exists=False,
+    #     )
 
-        return EventSerializer(practice_events, many=True, context=self.context).data
+    #     return EventSerializer(practice_events, many=True, context=self.context).data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -123,11 +127,12 @@ class TagSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context.get("show_exercise_count", False):
-            self.fields["public_exercises"] = serializers.SerializerMethodField()
-            self.fields[
-                "public_exercises_not_seen"
-            ] = serializers.SerializerMethodField()
+        if self.context.get("show_exercise_count", False):  # TODO
+            self.add_public_exercise_count_fields()
+
+    def add_public_exercise_count_fields(self):
+        self.fields["public_exercises"] = serializers.SerializerMethodField()
+        self.fields["public_exercises_not_seen"] = serializers.SerializerMethodField()
 
     def get_public_exercises(self, obj):
         return len(obj.prefetched_public_in_public_exercises)
@@ -148,7 +153,6 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseChoice
         fields = ["id", "text", "_ordering"]
-        # hidden_fields = ["score"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -156,12 +160,17 @@ class ExerciseChoiceSerializer(HiddenFieldsModelSerializer):
             "show_solution",
             False,
         ) or self.context.get("show_hidden_fields", False):
-            self.fields["score_selected"] = serializers.DecimalField(
-                max_digits=5, decimal_places=1
-            )
-            self.fields["score_unselected"] = serializers.DecimalField(
-                max_digits=5, decimal_places=1
-            )
+            # to be used when a teacher accesses the object or the solution
+            # to an exam/practice is being shown
+            self.add_score_fields()
+
+    def add_score_fields(self):
+        self.fields["score_selected"] = serializers.DecimalField(
+            max_digits=5, decimal_places=1
+        )
+        self.fields["score_unselected"] = serializers.DecimalField(
+            max_digits=5, decimal_places=1
+        )
 
 
 class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
@@ -170,16 +179,19 @@ class ExerciseTestCaseSerializer(HiddenFieldsModelSerializer):
     class Meta:
         model = ExerciseTestCase
         fields = ["id", "code", "text", "_ordering", "stdin", "expected_stdout"]
-        # hidden_fields = ["testcase_type"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.context.get("show_hidden_fields", False):
             self.fields["testcase_type"] = serializers.IntegerField()
         else:
-            # for unauthorized users, overwrite code and text fields to enforce visibility rule
-            self.fields["code"] = serializers.SerializerMethodField()
-            self.fields["text"] = serializers.SerializerMethodField()
+            # for unauthorized users, overwrite code and text
+            # fields to enforce visibility rule
+            self.add_relevant_public_info_fields()
+
+    def add_relevant_public_info_fields(self):
+        self.fields["code"] = serializers.SerializerMethodField()
+        self.fields["text"] = serializers.SerializerMethodField()
 
     def get_code(self, obj):
         return (
@@ -214,7 +226,6 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
             "state",
             "requires_typescript",
         ]
-        # hidden_fields = ["solution", "state"]
 
     def __init__(self, *args, **kwargs):
         kwargs.pop("required", None)  # TODO remove this
@@ -234,31 +245,36 @@ class ExerciseSerializer(HiddenFieldsModelSerializer):
                 many=True,
                 required=False,
                 context=self.context,
-                # *args,
-                # **kwargs,
             )
         if self.context.pop("show_testcases", True):
             self.fields["testcases"] = ExerciseTestCaseSerializer(
                 many=True,
                 required=False,
                 context=self.context,
-                # *args,
-                # **kwargs,
             )
 
-        if self.context.get("show_hidden_fields", False):
-            self.fields["locked_by"] = UserSerializer(read_only=True)
-            self.fields["private_tags"] = TagSerializer(many=True, required=False)
+        if self.context.get(
+            "show_hidden_fields", False
+        ):  # TODO make condition explicit
+            # meant to be shown only to teachers
+            self.add_hidden_fields()
         else:  # TODO find a more elegant way
             self.fields.pop("state", None)
 
         if self.context.get("show_hidden_fields", False) or self.context.get(
             "show_solution", False
         ):
-            self.fields["solution"] = serializers.CharField(
-                required=False, allow_blank=True
-            )
-            self.fields["correct_choices"] = serializers.SerializerMethodField()
+            self.add_solution_fields()
+
+    def add_hidden_fields(self):
+        self.fields["locked_by"] = UserSerializer(read_only=True)
+        self.fields["private_tags"] = TagSerializer(many=True, required=False)
+
+    def add_solution_fields(self):
+        self.fields["solution"] = serializers.CharField(
+            required=False, allow_blank=True
+        )
+        self.fields["correct_choices"] = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])
@@ -321,7 +337,10 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context.get("show_hidden_fields", False):
+        if self.context.get(
+            "show_hidden_fields", False
+        ):  # TODO make condition explicit
+            # meant to be shown to teachers when using a tag-based rule
             self.fields["satisfying"] = serializers.SerializerMethodField()
 
     def get_satisfying(self, obj):
@@ -330,7 +349,7 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
         return {
             "count": qs.count(),
             "example": ExerciseSerializer(
-                qs.first(), context={"show_hidden_fields": True}
+                qs.first(), context={"show_hidden_fields": True}  # TODO make explicit
             ).data
             if qs.count() > 0
             else None,
@@ -338,7 +357,7 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer):
 
 
 class EventTemplateSerializer(serializers.ModelSerializer):
-    rules = serializers.SerializerMethodField()
+    rules = serializers.SerializerMethodField()  # to pass context
 
     class Meta:
         model = EventTemplate
@@ -353,8 +372,6 @@ class EventTemplateSerializer(serializers.ModelSerializer):
 
 class EventSerializer(HiddenFieldsModelSerializer):
     id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
-    # template = serializers.SerializerMethodField()
-    # participation_exists = serializers.SerializerMethodField()
     state = ReadWriteSerializerMethodField()
 
     class Meta:
@@ -369,13 +386,14 @@ class EventSerializer(HiddenFieldsModelSerializer):
             "state",
             "allow_going_back",
             "exercises_shown_at_a_time",
-            # "template",
-            # "participation_exists",  # ! TODO don't always show
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context.get("show_hidden_fields", False):
+        if self.context.get(
+            "show_hidden_fields", False
+        ):  # TODO make condition explicit
+            # meant to be shown to teachers only
             self.fields["locked_by"] = UserSerializer(read_only=True)
             self.fields["users_allowed_past_closure"] = serializers.ManyRelatedField(
                 child_relation=serializers.PrimaryKeyRelatedField(
@@ -394,6 +412,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
             )
 
         if not self.context.get("preview", False):
+            # TODO separate these two fields: participation_exists should only be shown when accessing the event in detail mode, template when???
             self.fields["template"] = serializers.SerializerMethodField()
             self.fields["participation_exists"] = serializers.SerializerMethodField()
 
@@ -401,7 +420,9 @@ class EventSerializer(HiddenFieldsModelSerializer):
         state = obj.state
         user = self.context["request"].user
         if state == Event.RESTRICTED and not check_privilege(
-            user, obj.course, MANAGE_EVENTS
+            user,
+            obj.course,
+            MANAGE_EVENTS,
         ):
             return (
                 Event.OPEN
@@ -421,7 +442,7 @@ class EventSerializer(HiddenFieldsModelSerializer):
         return (
             EventTemplateSerializer(obj.template, context=self.context).data
             if (
-                self.context.get("show_hidden_fields", False)
+                self.context.get("show_hidden_fields", False)  # TODO make explicit
                 or obj.event_type == Event.SELF_SERVICE_PRACTICE
             )
             else None

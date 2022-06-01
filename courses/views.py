@@ -3,6 +3,9 @@ import os
 import time
 from django.db.models import Q
 
+
+from django.db.models import Exists, OuterRef
+
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django.shortcuts import get_object_or_404
@@ -119,6 +122,26 @@ class CourseViewSet(viewsets.ModelViewSet):
         active_users = User.objects.all().active_in_course(self.kwargs["pk"])
         serializer = UserSerializer(active_users, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def unstarted_practice_events(self, request, **kwargs):
+        # sub-query that retrieves a user's participation to events
+        exists_user_participation = (
+            EventParticipation.objects.all()
+            .with_prefetched_base_slots()
+            .filter(user=request.user, event=OuterRef("pk"))
+        )
+
+        practice_events = Event.objects.annotate(
+            user_participation_exists=Exists(exists_user_participation)
+        ).filter(
+            creator=request.user,
+            course=self.get_object(),
+            event_type=Event.SELF_SERVICE_PRACTICE,
+            user_participation_exists=False,
+        )
+
+        return EventSerializer(practice_events, many=True, context=self.context).data
 
 
 class CourseRoleViewSet(viewsets.ModelViewSet):
@@ -573,8 +596,8 @@ class EventParticipationViewSet(
             # if the assessments have been published
             "assessment_fields_read": not force_student
             and (has_assess_privilege or has_manage_events_privilege)
-            or self.action != "create"
-            and self.get_object().is_assessment_available,  # accessing as student after the assessments are published
+            # accessing as student after the assessments are published
+            or self.action == "retrieve" and self.get_object().is_assessment_available,
             # assessment fields are writable by teachers at all times
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
@@ -587,17 +610,20 @@ class EventParticipationViewSet(
         try:
             if self.kwargs.get("event_pk") is not None:
                 # accessing as a nested view of event viewset
+
                 return qs.filter(
                     event_id=self.kwargs["event_pk"],
                 )
             else:
                 # accessing as a nested view of course viewset
-                qs = qs.filter(
-                    event__course_id=self.kwargs["course_pk"],
-                )
+
+                qs = qs.filter(event__course_id=self.kwargs["course_pk"])
                 if self.request.query_params.get("user_id") is not None:
                     # only get participations of a specific user to a course
                     qs = qs.filter(user_id=self.request.query_params["user_id"])
+                else:
+                    # if user doesn't specify a user id, return their participations
+                    qs = qs.filter(user=self.request.user)
                 return qs
         except ValueError:
             raise Http404
