@@ -681,7 +681,6 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 403)
 
         # show a user with `assess_participations` permission can see the participation(s)
-        # show the appropriate serializer is being used
 
         # show a user with `assess_participations` permission can update the assessment
         # related fields (and only those)

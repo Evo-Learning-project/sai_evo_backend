@@ -14,3 +14,9 @@ REST_FRAMEWORK = {
 }
 
 CSRF_TRUSTED_ORIGINS = ["http://*"]
+
+DRF_VIEWSET_PROFILER = {
+    #  "DEFAULT_OUTPUT_GENERATION_TYPE": "drf_viewset_profiler.output.FileOutput",
+    "DEFAULT_OUTPUT_LOCATION": "",
+    "ENABLE_SERIALIZER_PROFILER": True,
+}

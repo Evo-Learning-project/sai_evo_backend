@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from django.db.models import Exists, OuterRef
 from django.db.models import Prefetch
+from drf_viewset_profiler import line_profiler_viewset
 
 
 import django_filters
@@ -606,6 +607,10 @@ class EventParticipationViewSet(
                 preview = json.loads(self.request.query_params["preview"])
 
                 #! TODO FIXME context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
+                # ! have one parameter to define that you get the first n slots, and one to define
+                # ! if you get all fields, for participation monitor you get all but no exercise field,
+                # ! for student dashboard you get the first 3 with exercise and answer
+
                 context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
                 # downloading for csv
                 # TODO use more explicit conditions (e.g. a "for_csv" query param)
