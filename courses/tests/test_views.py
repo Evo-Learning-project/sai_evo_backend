@@ -527,13 +527,24 @@ class EventParticipationViewSetTestCase(BaseTestCase):
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/"
         )
         self.assertEqual(response.status_code, 200)
-
-        participation_pk = response.data["id"]
-
-        # show the appropriate serializer is displayed to the user
         self.assertContains(response, "slots")
 
         slots = response.data["slots"]
+
+        # show exercise isn't included in the response if not asked for
+        self.assertNotIn("exercise", slots[0])
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/?include_details=true"
+        )
+        self.assertEqual(response.status_code, 200)
+        participation_pk = response.data["id"]
+
+        self.assertContains(response, "slots")
+
+        slots = response.data["slots"]
+        # show exercise is included in the response if asked for
+        self.assertIn("exercise", slots[0])
 
         # show a single exercise is being shown and it's the correct one
         self.assertEqual(len(slots), 1)
@@ -608,6 +619,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         exercise = response.data["exercise"]
         self.assertEquals(exercise["text"], self.exercise_1.text)
 
+        # show hidden fields aren't showed in the response
         self.assertNotIn("score", slots[0])
         self.assertNotIn("comment", slots[0])
         self.assertNotIn("solution", exercise)

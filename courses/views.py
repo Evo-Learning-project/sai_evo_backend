@@ -597,32 +597,23 @@ class EventParticipationViewSet(
         if self.action != "list":
             context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
         if self.action == "retrieve":
-            # if a participation to a practice is being retrieved, show
-            # solution fields
+            # if a participation to a practice is being retrieved, or the assessments
+            # for the participation are available, show solution fields
             participation = self.get_object()
             context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
                 participation.event.event_type == Event.SELF_SERVICE_PRACTICE
                 or participation.is_assessment_available
             )
-        # elif self.request.query_params.get("preview") is not None:
-        #     try:
-        #         preview = json.loads(self.request.query_params["preview"])
 
-        #         context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
-        #         # ! have one parameter to define that you get the first n slots, and one to define
-        #         # ! if you get all fields, for participation monitor you get all but no exercise field,
-        #         # ! for student dashboard you get the first 3 with exercise and answer
-
-        #         context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
-        #         EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS
-
+        # show "computationally expensive" fields only if accessing a single
+        # participation or explicitly requesting them in query params
         if self.action == "retrieve" or "include_details" in self.request.query_params:
             context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
             context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
             context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
 
+        # downloading for csv, do processing on answer text
         if "for_csv" in self.request.query_params:
-            # downloading for csv
             context["trim_images_in_text"] = True
 
         context["capabilities"] = self.get_capabilities()
@@ -740,6 +731,8 @@ class EventParticipationViewSet(
             current_slot,
             context={
                 EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS: True,
                 **self.get_serializer_context(),
             },
         )
@@ -756,6 +749,8 @@ class EventParticipationViewSet(
             current_slot,
             context={
                 EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS: True,
                 **self.get_serializer_context(),
             },
         )
