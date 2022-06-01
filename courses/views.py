@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from coding.helpers import get_code_execution_results
 from courses.logic.event_instances import get_exercises_from
 from courses.logic.presentation import (
+    CHOICE_SHOW_SCORE_FIELDS,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
     EVENT_SHOW_HIDDEN_FIELDS,
@@ -74,6 +75,18 @@ class CourseViewSet(viewsets.ModelViewSet):
         Course.objects.all()
         .select_related("creator")
         .prefetch_related(
+            "exercises",
+            "exercises__public_tags",
+            "exercises__private_tags",
+            "exercises__choices",
+            "exercises__testcases",
+            "exercises__sub_exercises",
+            "events",
+            "events__template",
+            "events__template__rules",
+            "events__template__rules__clauses",
+            "events__template__rules__clauses__tags",
+            "events__template__rules__exercises",
             "roles",
             "roles__users",
             "privileged_users",
@@ -345,7 +358,7 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
+        context[CHOICE_SHOW_SCORE_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -586,13 +599,14 @@ class EventParticipationViewSet(
             participation = self.get_object()
             context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
                 participation.event.event_type == Event.SELF_SERVICE_PRACTICE
+                or participation.is_assessment_available
             )
         elif self.request.query_params.get("preview") is not None:
             try:
                 preview = json.loads(self.request.query_params["preview"])
 
-                # context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
-                context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = not preview
+                #! TODO FIXME context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
+                context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
                 # downloading for csv
                 # TODO use more explicit conditions (e.g. a "for_csv" query param)
                 if not preview and self.action == "list":
@@ -799,6 +813,7 @@ class EventParticipationSlotViewSet(
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["capabilities"] = self.get_capabilities()
+        context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
         return context
 
     def get_queryset(self):

@@ -121,7 +121,7 @@ class ExerciseChoiceSerializer(serializers.ModelSerializer, ConditionalFieldsMix
         fields = ["id", "text", "_ordering", "score_selected", "score_unselected"]
 
         conditional_fields = {
-            EXERCISE_SHOW_SOLUTION_FIELDS: ["score_selected", "score_unselected"]
+            CHOICE_SHOW_SCORE_FIELDS: ["score_selected", "score_unselected"]
         }
 
     def __init__(self, *args, **kwargs):
@@ -454,12 +454,16 @@ class EventParticipationSlotSerializer(
         read_only_fields = ["id", "seen_at", "answered_at"]
 
         conditional_fields = {
-            EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: ["is_first", "is_last"]
+            EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: [
+                "is_first",
+                "is_last",
+                "exercise",
+                "sub_slots",
+            ]
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.remove_unsatisfied_condition_fields()
 
         capabilities = self.context.get("capabilities", {})
 
@@ -468,6 +472,8 @@ class EventParticipationSlotSerializer(
             read_only=True,
             context=self.context,
         )
+
+        self.remove_unsatisfied_condition_fields()
 
         if capabilities.get("assessment_fields_read", False):
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
