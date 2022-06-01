@@ -21,6 +21,8 @@ from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
+    EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
+    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS,
     EVENT_SHOW_HIDDEN_FIELDS,
     EVENT_SHOW_PARTICIPATION_EXISTS,
     EVENT_SHOW_TEMPLATE,
@@ -602,22 +604,26 @@ class EventParticipationViewSet(
                 participation.event.event_type == Event.SELF_SERVICE_PRACTICE
                 or participation.is_assessment_available
             )
-        elif self.request.query_params.get("preview") is not None:
-            try:
-                preview = json.loads(self.request.query_params["preview"])
+        # elif self.request.query_params.get("preview") is not None:
+        #     try:
+        #         preview = json.loads(self.request.query_params["preview"])
 
-                #! TODO FIXME context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
-                # ! have one parameter to define that you get the first n slots, and one to define
-                # ! if you get all fields, for participation monitor you get all but no exercise field,
-                # ! for student dashboard you get the first 3 with exercise and answer
+        #         context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
+        #         # ! have one parameter to define that you get the first n slots, and one to define
+        #         # ! if you get all fields, for participation monitor you get all but no exercise field,
+        #         # ! for student dashboard you get the first 3 with exercise and answer
 
-                context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
-                # downloading for csv
-                # TODO use more explicit conditions (e.g. a "for_csv" query param)
-                if not preview and self.action == "list":
-                    context["trim_images_in_text"] = True
-            except Exception:
-                pass
+        #         context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+        #         EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS
+
+        if self.action == "retrieve" or "include_details" in self.request.query_params:
+            context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+            context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
+            context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
+
+        if "for_csv" in self.request.query_params:
+            # downloading for csv
+            context["trim_images_in_text"] = True
 
         context["capabilities"] = self.get_capabilities()
         return context
@@ -819,6 +825,8 @@ class EventParticipationSlotViewSet(
         context = super().get_serializer_context()
         context["capabilities"] = self.get_capabilities()
         context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+        context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
+        context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
         return context
 
     def get_queryset(self):

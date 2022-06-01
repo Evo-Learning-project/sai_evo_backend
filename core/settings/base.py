@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     "silk",
 ]
 
+SILKY_PYTHON_PROFILER = True
+
 MIDDLEWARE = [
     "silk.middleware.SilkyMiddleware",
     "drf_viewset_profiler.middleware.LineProfilerViewSetMiddleware",

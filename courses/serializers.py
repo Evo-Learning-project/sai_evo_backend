@@ -4,6 +4,8 @@ from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
+    EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
+    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS,
     EVENT_SHOW_HIDDEN_FIELDS,
     EVENT_SHOW_PARTICIPATION_EXISTS,
     EVENT_SHOW_TEMPLATE,
@@ -55,7 +57,7 @@ class ConditionalFieldsMixin:
         for condition, fields in conditional_fields.items():
             if not self.context.get(condition, False):
                 for field in fields:
-                    self.fields.pop(field)
+                    self.fields.pop(field, None)
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -459,7 +461,12 @@ class EventParticipationSlotSerializer(
                 "is_last",
                 "exercise",
                 "sub_slots",
-            ]
+            ],
+            EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE: ["exercise"],
+            EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS: [
+                "answer_text",
+                "selected_choices",
+            ],
         }
 
     def __init__(self, *args, **kwargs):
@@ -472,8 +479,6 @@ class EventParticipationSlotSerializer(
             read_only=True,
             context=self.context,
         )
-
-        self.remove_unsatisfied_condition_fields()
 
         if capabilities.get("assessment_fields_read", False):
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
@@ -509,6 +514,8 @@ class EventParticipationSlotSerializer(
                     allow_blank=True,
                 )
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
+
+        self.remove_unsatisfied_condition_fields()
 
     def get_exercise(self, obj):
         return ExerciseSerializer(obj.exercise, context=self.context).data
@@ -586,13 +593,9 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
         else:
             slots = obj.current_slots
 
-        ret = (
-            EventParticipationSlotSerializer(
-                slots,
-                many=True,
-                context=self.context,
-            ).data
-            if self.context.get("include_slots", True)
-            else None
-        )
+        ret = EventParticipationSlotSerializer(
+            slots,
+            many=True,
+            context=self.context,
+        ).data
         return ret
