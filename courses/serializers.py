@@ -43,6 +43,16 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
     pass
 
 
+class ConditionalFieldsMixin:
+    def remove_unsatisfied_condition_fields(self):
+        conditional_fields = self.Meta.conditional_fields
+
+        for condition, fields in conditional_fields.items():
+            if not self.context.get(condition, False):
+                for field in fields:
+                    self.fields.pop(field)
+
+
 class CourseSerializer(serializers.ModelSerializer):
     privileges = serializers.SerializerMethodField()
     creator = UserSerializer(read_only=True)
@@ -66,10 +76,13 @@ class CourseSerializer(serializers.ModelSerializer):
         return obj.exercises.public().count()
 
 
-class TagSerializer(serializers.ModelSerializer):
+class TagSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
+    public_exercises = serializers.SerializerMethodField()
+    public_exercises_not_seen = serializers.SerializerMethodField()
+
     class Meta:
         model = Tag
-        fields = ["id", "name"]
+        fields = ["id", "name", "public_exercises", "public_exercises_not_seen"]
 
         conditional_fields = {
             TAG_SHOW_PUBLIC_EXERCISES_COUNT: [
@@ -80,12 +93,7 @@ class TagSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context.get("show_exercise_count", False):  # TODO
-            self.add_public_exercise_count_fields()
-
-    def add_public_exercise_count_fields(self):
-        self.fields["public_exercises"] = serializers.SerializerMethodField()
-        self.fields["public_exercises_not_seen"] = serializers.SerializerMethodField()
+        self.remove_unsatisfied_condition_fields()
 
     def get_public_exercises(self, obj):
         return len(obj.prefetched_public_in_public_exercises)

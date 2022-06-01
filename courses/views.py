@@ -16,6 +16,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from coding.helpers import get_code_execution_results
 from courses.logic.event_instances import get_exercises_from
+from courses.logic.presentation import TAG_SHOW_PUBLIC_EXERCISES_COUNT
 from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
@@ -398,7 +399,7 @@ class TagViewSet(
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if "include_exercise_count" in self.request.query_params:
-            context["show_exercise_count"] = True
+            context[TAG_SHOW_PUBLIC_EXERCISES_COUNT] = True
         return context
 
     def perform_create(self, serializer):
