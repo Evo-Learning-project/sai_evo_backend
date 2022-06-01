@@ -43,7 +43,11 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
     pass
 
 
-class ConditionalFieldsMixin:
+class ConditionalFieldsMixin(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.remove_unsatisfied_condition_fields()
+
     def remove_unsatisfied_condition_fields(self):
         conditional_fields = self.Meta.conditional_fields
 
@@ -76,7 +80,7 @@ class CourseSerializer(serializers.ModelSerializer):
         return obj.exercises.public().count()
 
 
-class TagSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
+class TagSerializer(ConditionalFieldsMixin):
     public_exercises = serializers.SerializerMethodField()
     public_exercises_not_seen = serializers.SerializerMethodField()
 
@@ -91,9 +95,9 @@ class TagSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             ]
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.remove_unsatisfied_condition_fields()
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.remove_unsatisfied_condition_fields()
 
     def get_public_exercises(self, obj):
         return len(obj.prefetched_public_in_public_exercises)
