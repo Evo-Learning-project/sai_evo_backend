@@ -16,7 +16,18 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from coding.helpers import get_code_execution_results
 from courses.logic.event_instances import get_exercises_from
-from courses.logic.presentation import TAG_SHOW_PUBLIC_EXERCISES_COUNT
+from courses.logic.presentation import (
+    EVENT_PARTICIPATION_SHOW_SLOTS,
+    EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
+    EVENT_SHOW_HIDDEN_FIELDS,
+    EVENT_SHOW_PARTICIPATION_EXISTS,
+    EVENT_SHOW_TEMPLATE,
+    EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
+    EXERCISE_SHOW_HIDDEN_FIELDS,
+    EXERCISE_SHOW_SOLUTION_FIELDS,
+    TAG_SHOW_PUBLIC_EXERCISES_COUNT,
+    TESTCASE_SHOW_HIDDEN_FIELDS,
+)
 from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
@@ -233,7 +244,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context["show_hidden_fields"] = True
+        context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
+        context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -333,7 +345,7 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context["show_hidden_fields"] = True
+        context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -355,7 +367,7 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context["show_hidden_fields"] = True
+        context[TESTCASE_SHOW_HIDDEN_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -415,8 +427,6 @@ class EventViewSet(viewsets.ModelViewSet):
         Event.objects.all()
         .select_related("template", "creator")
         .prefetch_related(
-            # "instances",
-            # "instances__participations",
             "template__rules",
             "template__rules__exercises",
             "template__rules__clauses",
@@ -435,12 +445,13 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context["show_hidden_fields"] = check_privilege(
+        context[EVENT_SHOW_HIDDEN_FIELDS] = check_privilege(
             self.request.user,
             self.kwargs["course_pk"],
             privileges.MANAGE_EVENTS,
         )
-        context["preview"] = self.action == "list"
+        context[EVENT_SHOW_PARTICIPATION_EXISTS] = self.action == "retrieve"
+        context[EVENT_SHOW_TEMPLATE] = self.action != "list"
         return context
 
     def perform_create(self, serializer):
@@ -461,6 +472,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     get_exercises_from(template),
                     many=True,
                 ).data
+                # TODO? context to exercise serializer?
             )
 
         return Response(data)
@@ -496,7 +508,7 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context["show_hidden_fields"] = check_privilege(
+        context[EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD] = check_privilege(
             self.request.user,
             self.kwargs["course_pk"],
             privileges.MANAGE_EXERCISES,
@@ -564,16 +576,23 @@ class EventParticipationViewSet(
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        context[EVENT_PARTICIPATION_SHOW_SLOTS] = True
+
+        if self.action != "list":
+            context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
         if self.action == "retrieve":
+            # if a participation to a practice is being retrieved, show
+            # solution fields
             participation = self.get_object()
-            # show solutions and scores when participation to a practice event is reviewed
-            context["show_solution"] = (
+            context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
                 participation.event.event_type == Event.SELF_SERVICE_PRACTICE
             )
         elif self.request.query_params.get("preview") is not None:
             try:
                 preview = json.loads(self.request.query_params["preview"])
-                context["preview"] = preview
+
+                # context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
+                context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = not preview
                 # downloading for csv
                 # TODO use more explicit conditions (e.g. a "for_csv" query param)
                 if not preview and self.action == "list":
@@ -693,7 +712,11 @@ class EventParticipationViewSet(
 
         current_slot = participation.current_slots[0]
         serializer = EventParticipationSlotSerializer(
-            current_slot, context=self.get_serializer_context()
+            current_slot,
+            context={
+                EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: True,
+                **self.get_serializer_context(),
+            },
         )
         return Response(serializer.data)
 
@@ -705,7 +728,11 @@ class EventParticipationViewSet(
 
         current_slot = participation.current_slots[0]
         serializer = EventParticipationSlotSerializer(
-            current_slot, context=self.get_serializer_context()
+            current_slot,
+            context={
+                EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: True,
+                **self.get_serializer_context(),
+            },
         )
         return Response(serializer.data)
 

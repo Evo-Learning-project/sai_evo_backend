@@ -2,7 +2,8 @@
   "cSpell.words": [
     "filterset",
     "Hashid",
-    "PARTICIPATIONS"
+    "PARTICIPATIONS",
+    "viewset"
   ],
   "python.linting.flake8Enabled": false,
   "python.linting.enabled": true,
