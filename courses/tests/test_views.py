@@ -696,11 +696,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
 
         # show a user with `assess_participations` permission can update the assessment
         # related fields (and only those)
+        # TODO show how detail fields are shown if accessing a single participation
 
-        # show a user with `assess_participations` cannot
-        # create a participation of their own
-
-        pass
+        # TODO show student accessing the participation afterwards and accessing the solution fields
 
     def test_view_queryset(self):
         # show that, for each event, you can only access that events's

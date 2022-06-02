@@ -39,6 +39,9 @@ def get_user_privileges(user, course):
     if user.is_anonymous:
         return []
 
+    if not isinstance(course, Course):
+        course = Course.objects.get(pk=course)
+
     if user == course.creator:
         return TEACHER_PRIVILEGES
 

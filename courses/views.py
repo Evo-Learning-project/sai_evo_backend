@@ -1,3 +1,4 @@
+from functools import cached_property
 import json
 import os
 import time
@@ -38,7 +39,12 @@ from users.serializers import UserSerializer
 from django.http import FileResponse, Http404
 from courses import policies
 from courses.logic import privileges
-from courses.logic.privileges import check_privilege
+from courses.logic.privileges import (
+    ASSESS_PARTICIPATIONS,
+    MANAGE_EVENTS,
+    MANAGE_EXERCISES,
+    get_user_privileges,
+)
 from courses.models import (
     Course,
     CourseRole,
@@ -70,6 +76,15 @@ from .serializers import (
     ExerciseTestCaseSerializer,
     TagSerializer,
 )
+
+
+class RequestingUserPrivilegesMixin:
+    @cached_property
+    def user_privileges(self):
+        return get_user_privileges(
+            self.request.user,
+            self.kwargs["course_pk"],
+        )
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -397,6 +412,7 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
 
 
 class TagViewSet(
+    RequestingUserPrivilegesMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
@@ -415,11 +431,7 @@ class TagViewSet(
         )
 
         # students can only access public tags
-        if not check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EXERCISES,
-        ):
+        if MANAGE_EXERCISES not in self.user_privileges:
             qs = qs.public()
 
         return qs
@@ -437,7 +449,7 @@ class TagViewSet(
         )
 
 
-class EventViewSet(viewsets.ModelViewSet):
+class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     serializer_class = EventSerializer
     queryset = (
         Event.objects.all()
@@ -461,11 +473,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context[EVENT_SHOW_HIDDEN_FIELDS] = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EVENTS,
-        )
+        context[EVENT_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
         context[EVENT_SHOW_PARTICIPATION_EXISTS] = self.action == "retrieve"
         context[EVENT_SHOW_TEMPLATE] = self.action != "list"
         return context
@@ -511,7 +519,7 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
         )
 
 
-class EventTemplateRuleViewSet(viewsets.ModelViewSet):
+class EventTemplateRuleViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     serializer_class = EventTemplateRuleSerializer
     queryset = EventTemplateRule.objects.all()
     permission_classes = [policies.EventTemplatePolicy]
@@ -524,10 +532,8 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context[EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD] = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EXERCISES,
+        context[EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD] = (
+            MANAGE_EXERCISES in self.user_privileges
         )
         return context
 
@@ -536,11 +542,8 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
             template_id=self.kwargs["template_pk"],
             search_public_tags_only=(
                 # if rule was created by a student, rule should only search for public tags
-                not check_privilege(
-                    self.request.user,
-                    self.kwargs["course_pk"],
-                    privileges.MANAGE_EXERCISES,
-                )
+                MANAGE_EXERCISES
+                not in self.user_privileges
             ),
         )
 
@@ -566,6 +569,7 @@ class EventParticipationViewSet(
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
+    RequestingUserPrivilegesMixin,
 ):
 
     """
@@ -611,6 +615,7 @@ class EventParticipationViewSet(
             context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
             context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
             context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
+            context[EXERCISE_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
 
         # downloading for csv, do processing on answer text
         if "for_csv" in self.request.query_params:
@@ -625,16 +630,8 @@ class EventParticipationViewSet(
         to display some fields ans whether to make them writable
         """
         force_student = "as_student" in self.request.query_params
-        has_assess_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.ASSESS_PARTICIPATIONS,
-        )
-        has_manage_events_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EVENTS,
-        )
+        has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
+        has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
 
         ret = {
             # assessment fields are displayed to teachers at all times and to students
@@ -762,6 +759,7 @@ class EventParticipationSlotViewSet(
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
+    RequestingUserPrivilegesMixin,
 ):
     """
     A viewset for accessing and updating the individual slots of a participation
@@ -788,16 +786,8 @@ class EventParticipationSlotViewSet(
         to display some fields ans whether to make them writable
         """
         force_student = "as_student" in self.request.query_params
-        has_assess_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.ASSESS_PARTICIPATIONS,
-        )
-        has_manage_events_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EVENTS,
-        )
+        has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
+        has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
 
         ret = {
             # assessment fields are displayed to teachers at all times and to students
