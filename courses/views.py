@@ -20,6 +20,7 @@ from coding.helpers import get_code_execution_results
 from courses.logic.event_instances import get_exercises_from
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
+    EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
     EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
@@ -604,22 +605,27 @@ class EventParticipationViewSet(
             # if a participation to a practice is being retrieved, or the assessments
             # for the participation are available, show solution fields
             participation = self.get_object()
-            context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
+            show_assessments_and_solutions = (
                 participation.event.event_type == Event.SELF_SERVICE_PRACTICE
                 or participation.is_assessment_available
             )
+            context[EVENT_PARTICIPATION_SHOW_SCORE] = show_assessments_and_solutions
+            context[EXERCISE_SHOW_SOLUTION_FIELDS] = show_assessments_and_solutions
 
         # show "computationally expensive" fields only if accessing a single
         # participation or explicitly requesting them in query params
-        if self.action == "retrieve" or "include_details" in self.request.query_params:
+        if self.action != "list" or "include_details" in self.request.query_params:
             context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
             context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
             context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
-            context[EXERCISE_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
 
         # downloading for csv, do processing on answer text
         if "for_csv" in self.request.query_params:
             context["trim_images_in_text"] = True
+
+        # always show solution and exercises' hidden fields to teachers
+        context[EXERCISE_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
+        context[EXERCISE_SHOW_SOLUTION_FIELDS] = MANAGE_EVENTS in self.user_privileges
 
         context["capabilities"] = self.get_capabilities()
         return context

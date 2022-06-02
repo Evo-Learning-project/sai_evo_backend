@@ -501,7 +501,17 @@ class EventParticipationViewSetTestCase(BaseTestCase):
     def test_participation_submission_and_assessment(self):
         self.client.force_authenticate(user=self.student_1)
 
-        # show users cannot participate until the exam is open
+        """
+        Show failure to create a participation for a nonexistent Event
+        """
+        # response = self.client.post(
+        #     f"/courses/{self.course.pk}/events/ovQqgvP/participations/"
+        # )
+        # self.assertEqual(response.status_code, 404)
+
+        """
+        Show users cannot participate until the exam is open
+        """
         response = self.client.post(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/"
         )
@@ -513,13 +523,17 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.event.access_rule = Event.DENY_ACCESS
         self.event.save()
 
-        # show unauthorized users cannot participate
+        """
+        Show unauthorized users cannot participate
+        """
         response = self.client.post(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/"
         )
         self.assertEqual(response.status_code, 403)
 
-        # show an allowed user can create a participation
+        """
+        Show an allowed user can create a participation
+        """
         self.event.access_rule_exceptions = [self.student_1.email]
         self.event.save()
 
@@ -531,8 +545,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
 
         slots = response.data["slots"]
 
-        # show exercise isn't included in the response if not asked for
-        self.assertNotIn("exercise", slots[0])
+        # show exercise is included in the response
+        # TODO show exercise isn't included when a teacher accesses the list of participations
+        self.assertIn("exercise", slots[0])
 
         response = self.client.post(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/?include_details=true"
@@ -553,6 +568,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertEquals(exercise["text"], self.exercise_1.text)
 
         # show solution and other hidden fields aren't shown
+        self.assertNotIn("score", response.data)
         self.assertNotIn("score", slots[0])
         self.assertNotIn("comment", slots[0])
         self.assertNotIn("solution", exercise)
@@ -561,7 +577,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("score_selected", exercise["choices"][0])
         self.assertNotIn("score_unselected", exercise["choices"][0])
 
-        # show moving forward
+        """
+        Moving forward one slot
+        """
         response = self.client.post(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/go_forward/"
         )
@@ -569,11 +587,12 @@ class EventParticipationViewSetTestCase(BaseTestCase):
 
         second_slot_pk = response.data["id"]
 
+        # correctly moved forward
         exercise = response.data["exercise"]
         self.assertEquals(exercise["text"], self.exercise_2.text)
-
-        self.assertNotIn("score", slots[0])
-        self.assertNotIn("comment", slots[0])
+        # hidden fields not shown
+        self.assertNotIn("score", response.data)
+        self.assertNotIn("comment", response.data)
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
@@ -584,9 +603,13 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.event.allow_going_back = False
         self.event.save()
 
+        """
+        Moving back
+        """
         response = self.client.post(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/go_back/"
         )
+        # fails because Event doesn't allow it
         self.assertEqual(response.status_code, 403)
 
         self.event.allow_going_back = True
@@ -595,13 +618,15 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         response = self.client.post(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/go_back/"
         )
+        # Event now allows it
         self.assertEqual(response.status_code, 200)
 
+        # correctly went back
         exercise = response.data["exercise"]
         self.assertEquals(exercise["text"], self.exercise_1.text)
-
-        self.assertNotIn("score", slots[0])
-        self.assertNotIn("comment", slots[0])
+        # hidden fields not shown
+        self.assertNotIn("score", response.data)
+        self.assertNotIn("comment", response.data)
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
@@ -610,33 +635,39 @@ class EventParticipationViewSetTestCase(BaseTestCase):
 
         slot_pk = response.data["id"]
 
-        # show the owner of the participation can update its slot
+        """
+        Show the owner of the participation can update its slot
+        """
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
             {"selected_choices": [self.exercise_1.choices.first().pk]},
         )
         self.assertEqual(response.status_code, 200)
         exercise = response.data["exercise"]
+        # still same exercise
         self.assertEquals(exercise["text"], self.exercise_1.text)
-
         # show hidden fields aren't showed in the response
-        self.assertNotIn("score", slots[0])
-        self.assertNotIn("comment", slots[0])
+        self.assertNotIn("score", response.data)
+        self.assertNotIn("comment", response.data)
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
         self.assertNotIn("score_selected", exercise["choices"][0])
         self.assertNotIn("score_unselected", exercise["choices"][0])
 
-        # show slots out of scope cannot be updated
+        """
+        Show failure in updating an out-of-scope slot
+        """
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{second_slot_pk}/",
             {"selected_choices": [self.exercise_2.choices.first().pk]},
         )
         self.assertEqual(response.status_code, 403)
 
-        # show a user that's not the owner of the participation cannot retrieve or
-        # update it and its slots
+        """
+        Show a user that's not the owner of the participation cannot retrieve or
+        update it and its slots
+        """
         self.client.force_authenticate(self.student_2)
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
@@ -644,7 +675,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-        # show participations cannot be deleted by anyone
+        """
+        Show participations cannot be deleted by anyone
+        """
         response = self.client.delete(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
         )
@@ -656,7 +689,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-        # show that only the submission related fields can be updated
+        """
+        Show failure to update an assessment field as a student
+        """
         slot_score = EventParticipationSlot.objects.get(pk=slot_pk).score
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
@@ -665,7 +700,10 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         slot = EventParticipationSlot.objects.get(pk=slot_pk)
         self.assertEqual(slot.score, slot_score)
 
-        # show that only the owner of a participation can turn it in
+        """
+        Show failure to update participation (i.e. turning it in) as a user
+        that's not its owner
+        """
         self.client.force_authenticate(self.student_2)
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
@@ -673,6 +711,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+        """
+        Show turning in the participation as the correct user 
+        """
         self.client.force_authenticate(self.student_1)
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
@@ -680,7 +721,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        # show that after it's been turned in, no fields or slots can be updated
+        """
+        Show that after it's been turned in, no fields or slots can be updated
+        """
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
             {"state": EventParticipation.IN_PROGRESS},
@@ -692,11 +735,130 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-        # show a user with `assess_participations` permission can see the participation(s)
+        """
+        Show accessing the participations before assessments have been published
+        """
+        response = self.client.get(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+        )
 
-        # show a user with `assess_participations` permission can update the assessment
-        # related fields (and only those)
-        # TODO show how detail fields are shown if accessing a single participation
+        # all slots are shown
+        self.assertContains(response, "slots")
+        slots = response.data["slots"]
+        self.assertEqual(len(slots), 2)
+
+        exercise = slots[0]["exercise"]
+        # show solution and other hidden fields aren't shown
+        self.assertNotIn("score", response.data)
+        self.assertNotIn("score", slots[0])
+        self.assertNotIn("comment", slots[0])
+        self.assertNotIn("solution", exercise)
+        self.assertNotIn("correct_choices", exercise)
+        self.assertNotIn("private_tags", exercise)
+        self.assertNotIn("score_selected", exercise["choices"][0])
+        self.assertNotIn("score_unselected", exercise["choices"][0])
+
+        """
+        Show failure to access someone else's participation as a student
+        """
+        self.client.force_authenticate(self.student_2)
+        response = self.client.get(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        """
+        Show a user with `assess_participations` permission can see the participation(s)
+        """
+        self.client.force_authenticate(self.teacher_1)
+        response = self.client.get(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        participations = response.data
+        self.assertEqual(len(participations), 1)
+
+        participation = participations[0]
+        slots = participation["slots"]
+
+        # show hidden fields are shown to teachers with appropriate permissions
+        self.assertIn("score", participation)
+        self.assertIn("score", slots[0])
+        self.assertIn("comment", slots[0])
+
+        # show "expensive" fields aren't shown if not requested when viewing
+        # the list of all participations
+        self.assertNotIn("exercise", slots[0])
+        self.assertNotIn("answer_text", slots[0])
+        self.assertNotIn("selected_choices", slots[0])
+        self.assertNotIn("sub_slots", slots[0])
+        self.assertNotIn("is_first", slots[0])
+        self.assertNotIn("is_last", slots[0])
+
+        # request all fields
+        response = self.client.get(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/?include_details=1",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        participations = response.data
+        self.assertEqual(len(participations), 1)
+
+        participation = participations[0]
+        slots = participation["slots"]
+
+        # "expensive" fields are shown if requested
+        self.assertIn("exercise", slots[0])
+        self.assertIn("answer_text", slots[0])
+        self.assertIn("selected_choices", slots[0])
+        self.assertIn("sub_slots", slots[0])
+        self.assertIn("is_first", slots[0])
+        self.assertIn("is_last", slots[0])
+
+        # show hidden fields are shown to teachers with appropriate permissions
+        self.assertIn("score", participation)
+        self.assertIn("score", slots[0])
+        self.assertIn("comment", slots[0])
+
+        self.assertIn("solution", slots[0]["exercise"])
+        self.assertIn("correct_choices", slots[0]["exercise"])
+        self.assertIn("score_selected", slots[0]["exercise"]["choices"][0])
+        self.assertIn("score_unselected", slots[0]["exercise"]["choices"][0])
+
+        """
+        Show a user with `assess_participations` permission can update the assessment
+        related fields (and only those)
+        """
+        self.client.force_authenticate(self.teacher_1)
+        response = self.client.get(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+        )
+        self.assertEqual(response.status_code, 200)
+        participation = response.data
+
+        self.assertIn("slots", participation)
+        slots = participation["slots"]
+
+        # "expensive" fields are shown if accessing a single participation
+        self.assertIn("exercise", slots[0])
+        self.assertIn("answer_text", slots[0])
+        self.assertIn("selected_choices", slots[0])
+        self.assertIn("sub_slots", slots[0])
+        self.assertIn("is_first", slots[0])
+        self.assertIn("is_last", slots[0])
+
+        # show hidden fields are shown to teachers with appropriate permissions
+        self.assertIn("score", participation)
+        self.assertIn("score", slots[0])
+        self.assertIn("comment", slots[0])
+
+        self.assertIn("solution", slots[0]["exercise"])
+        self.assertIn("correct_choices", slots[0]["exercise"])
+        self.assertIn("score_selected", slots[0]["exercise"]["choices"][0])
+        self.assertIn("score_unselected", slots[0]["exercise"]["choices"][0])
+
+        # TODO edit score/comment in a slot and publish assessment
 
         # TODO show student accessing the participation afterwards and accessing the solution fields
 

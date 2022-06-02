@@ -2,6 +2,7 @@ from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
+    EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
     EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
@@ -550,9 +551,13 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
             "last_slot_number",
             "current_slot_cursor",
             "bookmarked",
+            "score",
         ]
 
-        conditional_fields = {EVENT_PARTICIPATION_SHOW_SLOTS: ["slots"]}
+        conditional_fields = {
+            EVENT_PARTICIPATION_SHOW_SLOTS: ["slots"],
+            EVENT_PARTICIPATION_SHOW_SCORE: ["score"],
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

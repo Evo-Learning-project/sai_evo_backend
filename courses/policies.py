@@ -270,7 +270,6 @@ class EventParticipationPolicy(BaseAccessPolicy):
         specified a user_id in the params, therefore requesting to view their
         own participations only
         """
-        print("req", request.query_params)
         return "user_id" not in request.query_params
 
     def can_participate(self, request, view, action):
