@@ -835,6 +835,7 @@ class EventParticipation(models.Model):
 
     def save(self, *args, **kwargs):
         self.validate_unique()
+        # TODO use django lifecycle package
         if self.state == EventParticipation.TURNED_IN and self.end_timestamp is None:
             self.end_timestamp = timezone.localtime(timezone.now())
         super().save(*args, **kwargs)
@@ -850,6 +851,7 @@ class EventParticipation(models.Model):
         )  # ? max between this and max_slot_number?
         self.save(update_fields=["current_slot_cursor"])
 
+        # TODO use django lifecycle package
         # mark new current slot as seen
         now = timezone.localtime(timezone.now())
         current_slot = [
@@ -964,6 +966,7 @@ class EventParticipationSlot(models.Model):
         if self.pk is not None:  # can't clean as m2m field won't work without a pk
             # TODO clean the m2m field separately
             self.full_clean()
+            # TODO use django lifecycle package
             if (
                 self.selected_choices.exists()
                 or bool(self.attachment)
