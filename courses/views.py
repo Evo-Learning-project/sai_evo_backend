@@ -88,6 +88,79 @@ class RequestingUserPrivilegesMixin:
         )
 
 
+class BulkCreateMixin:
+    def create(self, request, *args, **kwargs):
+        many = isinstance(request.data, list)
+        serializer = self.get_serializer(data=request.data, many=many)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, headers=headers)
+
+
+class BulkPatchMixin:
+    @action(detail=False, methods=["patch"])
+    def bulk_patch(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
+        ret = []
+
+        try:
+            for pk in id_list:
+                participation = get_object_or_404(self.get_queryset(), pk=pk)
+                ret.append(participation)
+
+                serializer = self.get_serializer_class()(
+                    participation,
+                    context=self.get_serializer_context(),
+                    data=data,
+                    partial=True,
+                )
+                serializer.is_valid()
+                serializer.save()
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer_class()(
+            ret,
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        return Response(serializer.data)
+
+
+class BulkGetMixin:
+    @action(detail=False, methods=["get"])
+    def bulk_get(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        exercises = []
+        try:
+            course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
+
+            for pk in id_list:
+                exercise = get_object_or_404(self.get_queryset(), pk=pk)
+                exercises.append(exercise)
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer_class()(
+            data=exercises,
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        serializer.is_valid()
+        return Response(serializer.data)
+
+
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     queryset = (
@@ -133,12 +206,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
 
         return qs
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        if self.action == "list":
-            context["preview"] = True
-        return context
 
     def perform_create(self, serializer):
         serializer.save(
@@ -241,7 +308,7 @@ class ExerciseFilter(FilterSet):
         return queryset
 
 
-class ExerciseViewSet(viewsets.ModelViewSet):
+class ExerciseViewSet(BulkCreateMixin, viewsets.ModelViewSet, BulkGetMixin):
     serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().prefetch_related(
         "private_tags",
@@ -300,37 +367,13 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
     # bulk creation
     # TODO export to mixin
-    def create(self, request, *args, **kwargs):
-        many = isinstance(request.data, list)
-        serializer = self.get_serializer(data=request.data, many=many)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, headers=headers)
-
-    # TODO export to mixin
-    @action(detail=False, methods=["get"])
-    def bulk_get(self, request, **kwargs):
-        try:
-            ids = request.query_params["ids"]
-            id_list = ids.split(",")
-        except KeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        exercises = []
-        course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
-
-        for pk in id_list:
-            exercise = get_object_or_404(self.get_queryset(), pk=pk)
-            exercises.append(exercise)
-
-        serializer = self.get_serializer_class()(
-            data=exercises,
-            many=True,
-            context=self.get_serializer_context(),
-        )
-        serializer.is_valid()
-        return Response(serializer.data)
+    # def create(self, request, *args, **kwargs):
+    #     many = isinstance(request.data, list)
+    #     serializer = self.get_serializer(data=request.data, many=many)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, headers=headers)
 
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
@@ -476,8 +519,13 @@ class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        # show hidden fields only to privileged users
         context[EVENT_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
+        # tell user if a participation of their own to the
+        #  event exists if they retrieve a specific event
         context[EVENT_SHOW_PARTICIPATION_EXISTS] = self.action == "retrieve"
+        # don't show events' templates if they are shown in
+        # a list in order to save queries
         context[EVENT_SHOW_TEMPLATE] = self.action != "list"
         return context
 
@@ -572,6 +620,7 @@ class EventParticipationViewSet(
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
+    BulkPatchMixin,
     RequestingUserPrivilegesMixin,
 ):
 
@@ -626,8 +675,9 @@ class EventParticipationViewSet(
             context["trim_images_in_text"] = True
 
         # always show solution and exercises' hidden fields to teachers
-        context[EXERCISE_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
-        context[EXERCISE_SHOW_SOLUTION_FIELDS] = MANAGE_EVENTS in self.user_privileges
+        if MANAGE_EVENTS in self.user_privileges:
+            context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
+            context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
 
         context["capabilities"] = self.get_capabilities()
         return context
@@ -693,36 +743,6 @@ class EventParticipationViewSet(
 
         serializer = self.get_serializer_class()(
             participation, context=self.get_serializer_context()
-        )
-        return Response(serializer.data)
-
-    @action(detail=False, methods=["patch"])
-    # TODO make mixin
-    def bulk_patch(self, request, **kwargs):
-        try:
-            ids = request.query_params["ids"]
-            id_list = ids.split(",")
-        except KeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        data = request.data
-        ret = []
-        for pk in id_list:
-            participation = get_object_or_404(self.get_queryset(), pk=pk)
-            ret.append(participation)
-
-            serializer = self.get_serializer_class()(
-                participation,
-                context=self.get_serializer_context(),
-                data=data,
-                partial=True,
-            )
-            serializer.is_valid()
-            serializer.save()
-
-        serializer = self.get_serializer_class()(
-            ret,
-            many=True,
-            context=self.get_serializer_context(),
         )
         return Response(serializer.data)
 

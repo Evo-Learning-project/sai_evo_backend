@@ -88,6 +88,7 @@ def get_user_privileges(user, course):
     ]
 
 
+# TODO eventually remove this and use get_user_privileges everywhere
 def check_privilege(user, course, privilege):
     """
     Returns True if and only `user` has `privilege` for `course`
