@@ -48,10 +48,6 @@ class HiddenFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class ConditionalFieldsMixin:
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.remove_unsatisfied_condition_fields()
-
     def remove_unsatisfied_condition_fields(self):
         conditional_fields = self.Meta.conditional_fields
 
