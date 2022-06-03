@@ -299,6 +299,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         )
 
     # bulk creation
+    # TODO export to mixin
     def create(self, request, *args, **kwargs):
         many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=many)
@@ -307,6 +308,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, headers=headers)
 
+    # TODO export to mixin
     @action(detail=False, methods=["get"])
     def bulk_get(self, request, **kwargs):
         try:
@@ -695,6 +697,7 @@ class EventParticipationViewSet(
         return Response(serializer.data)
 
     @action(detail=False, methods=["patch"])
+    # TODO make mixin
     def bulk_patch(self, request, **kwargs):
         try:
             ids = request.query_params["ids"]

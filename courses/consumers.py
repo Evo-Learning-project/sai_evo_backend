@@ -24,6 +24,13 @@ from channels.generic.websocket import (
 )
 
 from courses import serializers
+from courses.logic.presentation import (
+    EVENT_SHOW_HIDDEN_FIELDS,
+    EVENT_SHOW_PARTICIPATION_EXISTS,
+    EVENT_SHOW_TEMPLATE,
+    EXERCISE_SHOW_HIDDEN_FIELDS,
+    EXERCISE_SHOW_SOLUTION_FIELDS,
+)
 from courses.logic.privileges import (
     MANAGE_EVENTS,
     MANAGE_EXERCISES,
@@ -123,6 +130,13 @@ class EventConsumer(BaseObserverConsumer):
     serializer_class = serializers.EventSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
+    def get_serializer_context(self, **kwargs):
+        context = super().get_serializer_context(**kwargs)
+        context[EVENT_SHOW_HIDDEN_FIELDS] = True
+        context[EVENT_SHOW_PARTICIPATION_EXISTS] = True
+        context[EVENT_SHOW_TEMPLATE] = True
+        return context
+
     async def check_permissions(self, action, **kwargs):
         if action == "subscribe_instance":
             try:
@@ -142,6 +156,12 @@ class ExerciseConsumer(BaseObserverConsumer):
     queryset = Exercise.objects.all()
     serializer_class = serializers.ExerciseSerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+    def get_serializer_context(self, **kwargs):
+        context = super().get_serializer_context(**kwargs)
+        context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
+        context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
+        return context
 
     async def check_permissions(self, action, **kwargs):
         if action == "subscribe_instance":
