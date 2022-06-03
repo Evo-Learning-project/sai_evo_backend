@@ -142,7 +142,7 @@ class ExerciseConsumer(BaseObserverConsumer):
     queryset = Exercise.objects.all()
     serializer_class = serializers.ExerciseSerializer
     permission_classes = (permissions.IsAuthenticated,)
-
+    # .
     async def check_permissions(self, action, **kwargs):
         if action == "subscribe_instance":
             try:
