@@ -1,11 +1,13 @@
 from courses.logic.privileges import ACCESS_EXERCISES, MANAGE_EXERCISES
-from courses.models import Course, UserCoursePrivilege
+from courses.models import Course, CourseRole, UserCoursePrivilege
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from users.models import User
+
+from django.db.models import Prefetch
 
 from . import policies
 from .serializers import UserSerializer
@@ -18,8 +20,32 @@ class UserViewSet(
 ):
     serializer_class = UserSerializer
     queryset = User.objects.all()
+    # .prefetch_related("roles", "privileged_courses")
 
     permission_classes = [policies.UserPolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        if "course_id" in self.request.query_params:
+            qs = qs.prefetch_related(
+                Prefetch(
+                    "privileged_courses",
+                    queryset=UserCoursePrivilege.objects.filter(
+                        course_id=self.request.query_params["course_id"]
+                    ),
+                    to_attr="prefetched_privileged_courses",
+                ),
+                Prefetch(
+                    "roles",
+                    queryset=CourseRole.objects.filter(
+                        course_id=self.request.query_params["course_id"]
+                    ),
+                    to_attr="prefetched_course_roles",
+                ),
+            )
+
+        return qs
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

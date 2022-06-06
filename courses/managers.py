@@ -10,6 +10,8 @@ from courses.querysets import (
     TagQuerySet,
 )
 
+from django.utils import timezone
+
 
 class CourseManager(models.Manager):
     def get_queryset(self):
@@ -158,10 +160,15 @@ class EventParticipationManager(models.Manager):
 
         slot_number = 0
         for exercise in exercises:
+            now = timezone.localtime(timezone.now())
+            # mark first slot as seen
+            seen_at_kwarg = {"seen_at": now} if slot_number == 0 else {}
+
             EventParticipationSlot.objects.create(
                 participation=participation,
                 exercise=exercise,
                 slot_number=slot_number,
+                **seen_at_kwarg,
             )
             slot_number += 1
 

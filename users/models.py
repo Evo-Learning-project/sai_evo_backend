@@ -6,7 +6,11 @@ from users.managers import UserManager
 
 class User(AbstractUser):
     is_teacher = models.BooleanField(default=False)
-    roles = models.ManyToManyField("courses.CourseRole", blank=True)
+    roles = models.ManyToManyField(
+        "courses.CourseRole",
+        related_name="users",
+        blank=True,
+    )
     mat = models.CharField(max_length=6, blank=True)
     course = models.CharField(max_length=1, blank=True)
     objects = UserManager()

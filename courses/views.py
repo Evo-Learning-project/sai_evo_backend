@@ -1,7 +1,14 @@
+from functools import cached_property
 import json
 import os
 import time
 from django.db.models import Q
+
+
+from django.db.models import Exists, OuterRef
+from django.db.models import Prefetch
+from drf_viewset_profiler import line_profiler_viewset
+
 
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
@@ -11,13 +18,34 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from coding.helpers import get_code_execution_results
 from courses.logic.event_instances import get_exercises_from
+from courses.logic.presentation import (
+    CHOICE_SHOW_SCORE_FIELDS,
+    EVENT_PARTICIPATION_SHOW_SCORE,
+    EVENT_PARTICIPATION_SHOW_SLOTS,
+    EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
+    EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
+    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS,
+    EVENT_SHOW_HIDDEN_FIELDS,
+    EVENT_SHOW_PARTICIPATION_EXISTS,
+    EVENT_SHOW_TEMPLATE,
+    EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
+    EXERCISE_SHOW_HIDDEN_FIELDS,
+    EXERCISE_SHOW_SOLUTION_FIELDS,
+    TAG_SHOW_PUBLIC_EXERCISES_COUNT,
+    TESTCASE_SHOW_HIDDEN_FIELDS,
+)
 from courses.tasks import run_user_code_task
 from users.models import User
 from users.serializers import UserSerializer
 from django.http import FileResponse, Http404
 from courses import policies
 from courses.logic import privileges
-from courses.logic.privileges import check_privilege
+from courses.logic.privileges import (
+    ASSESS_PARTICIPATIONS,
+    MANAGE_EVENTS,
+    MANAGE_EXERCISES,
+    get_user_privileges,
+)
 from courses.models import (
     Course,
     CourseRole,
@@ -51,6 +79,88 @@ from .serializers import (
 )
 
 
+class RequestingUserPrivilegesMixin:
+    @cached_property
+    def user_privileges(self):
+        return get_user_privileges(
+            self.request.user,
+            self.kwargs["course_pk"],
+        )
+
+
+class BulkCreateMixin:
+    def create(self, request, *args, **kwargs):
+        many = isinstance(request.data, list)
+        serializer = self.get_serializer(data=request.data, many=many)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, headers=headers)
+
+
+class BulkPatchMixin:
+    @action(detail=False, methods=["patch"])
+    def bulk_patch(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
+        ret = []
+
+        try:
+            for pk in id_list:
+                participation = get_object_or_404(self.get_queryset(), pk=pk)
+                ret.append(participation)
+
+                serializer = self.get_serializer_class()(
+                    participation,
+                    context=self.get_serializer_context(),
+                    data=data,
+                    partial=True,
+                )
+                serializer.is_valid()
+                serializer.save()
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer_class()(
+            ret,
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        return Response(serializer.data)
+
+
+class BulkGetMixin:
+    @action(detail=False, methods=["get"])
+    def bulk_get(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        exercises = []
+        try:
+            course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
+
+            for pk in id_list:
+                exercise = get_object_or_404(self.get_queryset(), pk=pk)
+                exercises.append(exercise)
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer_class()(
+            data=exercises,
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        serializer.is_valid()
+        return Response(serializer.data)
+
+
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     queryset = (
@@ -70,7 +180,9 @@ class CourseViewSet(viewsets.ModelViewSet):
             "events__template__rules__clauses__tags",
             "events__template__rules__exercises",
             "roles",
+            "roles__users",
             "privileged_users",
+            "privileged_users__user",
         )
     )
     permission_classes = [policies.CoursePolicy]
@@ -80,13 +192,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_teacher:
             qs = qs.public()
 
-        return qs
+        qs = qs.prefetch_related(
+            Prefetch(
+                "privileged_users",
+                queryset=UserCoursePrivilege.objects.filter(user=self.request.user),
+                to_attr="prefetched_privileged_users",
+            ),
+            Prefetch(
+                "roles",
+                queryset=self.request.user.roles.all(),
+                to_attr="prefetched_user_roles",
+            ),
+        )
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        if self.action == "list":
-            context["preview"] = True
-        return context
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(
@@ -119,6 +238,26 @@ class CourseViewSet(viewsets.ModelViewSet):
         active_users = User.objects.all().active_in_course(self.kwargs["pk"])
         serializer = UserSerializer(active_users, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def unstarted_practice_events(self, request, **kwargs):
+        # sub-query that retrieves a user's participation to events
+        exists_user_participation = (
+            EventParticipation.objects.all()
+            .with_prefetched_base_slots()
+            .filter(user=request.user, event=OuterRef("pk"))
+        )
+
+        practice_events = Event.objects.annotate(
+            user_participation_exists=Exists(exists_user_participation)
+        ).filter(
+            creator=request.user,
+            course=self.get_object(),
+            event_type=Event.SELF_SERVICE_PRACTICE,
+            user_participation_exists=False,
+        )
+
+        return EventSerializer(practice_events, many=True, context=self.context).data
 
 
 class CourseRoleViewSet(viewsets.ModelViewSet):
@@ -169,7 +308,7 @@ class ExerciseFilter(FilterSet):
         return queryset
 
 
-class ExerciseViewSet(viewsets.ModelViewSet):
+class ExerciseViewSet(BulkCreateMixin, viewsets.ModelViewSet, BulkGetMixin):
     serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().prefetch_related(
         "private_tags",
@@ -179,6 +318,9 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         "sub_exercises",
         "sub_exercises__choices",
         "sub_exercises__testcases",
+        "sub_exercises__private_tags",
+        "sub_exercises__public_tags",
+        "sub_exercises__sub_exercises",
     )
     permission_classes = [policies.ExercisePolicy]
     pagination_class = ExercisePagination
@@ -201,7 +343,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context["show_hidden_fields"] = True
+        context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
+        context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -223,36 +366,14 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         )
 
     # bulk creation
-    def create(self, request, *args, **kwargs):
-        many = isinstance(request.data, list)
-        serializer = self.get_serializer(data=request.data, many=many)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, headers=headers)
-
-    @action(detail=False, methods=["get"])
-    def bulk_get(self, request, **kwargs):
-        try:
-            ids = request.query_params["ids"]
-            id_list = ids.split(",")
-        except KeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        exercises = []
-        course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
-
-        for pk in id_list:
-            exercise = get_object_or_404(self.get_queryset(), pk=pk)
-            exercises.append(exercise)
-
-        serializer = self.get_serializer_class()(
-            data=exercises,
-            many=True,
-            context=self.get_serializer_context(),
-        )
-        serializer.is_valid()
-        return Response(serializer.data)
+    # TODO export to mixin
+    # def create(self, request, *args, **kwargs):
+    #     many = isinstance(request.data, list)
+    #     serializer = self.get_serializer(data=request.data, many=many)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, headers=headers)
 
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
@@ -301,7 +422,7 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context["show_hidden_fields"] = True
+        context[CHOICE_SHOW_SCORE_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -323,7 +444,7 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context["show_hidden_fields"] = True
+        context[TESTCASE_SHOW_HIDDEN_FIELDS] = True
         return context
 
     def get_queryset(self):
@@ -337,6 +458,7 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
 
 
 class TagViewSet(
+    RequestingUserPrivilegesMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
@@ -355,11 +477,7 @@ class TagViewSet(
         )
 
         # students can only access public tags
-        if not check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EXERCISES,
-        ):
+        if MANAGE_EXERCISES not in self.user_privileges:
             qs = qs.public()
 
         return qs
@@ -367,7 +485,7 @@ class TagViewSet(
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if "include_exercise_count" in self.request.query_params:
-            context["show_exercise_count"] = True
+            context[TAG_SHOW_PUBLIC_EXERCISES_COUNT] = True
         return context
 
     def perform_create(self, serializer):
@@ -377,18 +495,17 @@ class TagViewSet(
         )
 
 
-class EventViewSet(viewsets.ModelViewSet):
+class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     serializer_class = EventSerializer
     queryset = (
         Event.objects.all()
         .select_related("template", "creator")
         .prefetch_related(
-            # "instances",
-            # "instances__participations",
             "template__rules",
             "template__rules__exercises",
             "template__rules__clauses",
             "template__rules__clauses__tags",
+            "users_allowed_past_closure",
         )
     )
     # TODO disallow list view for non-teachers (only allow students to retrieve an exam if they know the id)
@@ -402,12 +519,14 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context["show_hidden_fields"] = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EVENTS,
-        )
-        context["preview"] = self.action == "list"
+        # show hidden fields only to privileged users
+        context[EVENT_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
+        # tell user if a participation of their own to the
+        #  event exists if they retrieve a specific event
+        context[EVENT_SHOW_PARTICIPATION_EXISTS] = self.action == "retrieve"
+        # don't show events' templates if they are shown in
+        # a list in order to save queries
+        context[EVENT_SHOW_TEMPLATE] = self.action != "list"
         return context
 
     def perform_create(self, serializer):
@@ -428,6 +547,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     get_exercises_from(template),
                     many=True,
                 ).data
+                # TODO? context to exercise serializer?
             )
 
         return Response(data)
@@ -450,7 +570,7 @@ class EventTemplateViewSet(viewsets.ModelViewSet):
         )
 
 
-class EventTemplateRuleViewSet(viewsets.ModelViewSet):
+class EventTemplateRuleViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     serializer_class = EventTemplateRuleSerializer
     queryset = EventTemplateRule.objects.all()
     permission_classes = [policies.EventTemplatePolicy]
@@ -463,10 +583,8 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context["show_hidden_fields"] = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EXERCISES,
+        context[EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD] = (
+            MANAGE_EXERCISES in self.user_privileges
         )
         return context
 
@@ -475,11 +593,8 @@ class EventTemplateRuleViewSet(viewsets.ModelViewSet):
             template_id=self.kwargs["template_pk"],
             search_public_tags_only=(
                 # if rule was created by a student, rule should only search for public tags
-                not check_privilege(
-                    self.request.user,
-                    self.kwargs["course_pk"],
-                    privileges.MANAGE_EXERCISES,
-                )
+                MANAGE_EXERCISES
+                not in self.user_privileges
             ),
         )
 
@@ -505,6 +620,8 @@ class EventParticipationViewSet(
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
+    BulkPatchMixin,
+    RequestingUserPrivilegesMixin,
 ):
 
     """
@@ -531,22 +648,36 @@ class EventParticipationViewSet(
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        context[EVENT_PARTICIPATION_SHOW_SLOTS] = True
+
+        if self.action != "list":
+            context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
         if self.action == "retrieve":
+            # if a participation to a practice is being retrieved, or the assessments
+            # for the participation are available, show solution fields
             participation = self.get_object()
-            # show solutions and scores when participation to a practice event is reviewed
-            context["show_solution"] = (
+            show_assessments_and_solutions = (
                 participation.event.event_type == Event.SELF_SERVICE_PRACTICE
+                or participation.is_assessment_available
             )
-        elif self.request.query_params.get("preview") is not None:
-            try:
-                preview = json.loads(self.request.query_params["preview"])
-                context["preview"] = preview
-                # downloading for csv
-                # TODO use more explicit conditions (e.g. a "for_csv" query param)
-                if not preview and self.action == "list":
-                    context["trim_images_in_text"] = True
-            except Exception:
-                pass
+            context[EVENT_PARTICIPATION_SHOW_SCORE] = show_assessments_and_solutions
+            context[EXERCISE_SHOW_SOLUTION_FIELDS] = show_assessments_and_solutions
+
+        # show "computationally expensive" fields only if accessing a single
+        # participation or explicitly requesting them in query params
+        if self.action != "list" or "include_details" in self.request.query_params:
+            context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+            context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
+            context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
+
+        # downloading for csv, do processing on answer text
+        if "for_csv" in self.request.query_params:
+            context["trim_images_in_text"] = True
+
+        # always show solution and exercises' hidden fields to teachers
+        if MANAGE_EVENTS in self.user_privileges:
+            context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
+            context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
 
         context["capabilities"] = self.get_capabilities()
         return context
@@ -557,24 +688,16 @@ class EventParticipationViewSet(
         to display some fields ans whether to make them writable
         """
         force_student = "as_student" in self.request.query_params
-        has_assess_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.ASSESS_PARTICIPATIONS,
-        )
-        has_manage_events_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EVENTS,
-        )
+        has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
+        has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
 
         ret = {
             # assessment fields are displayed to teachers at all times and to students
             # if the assessments have been published
             "assessment_fields_read": not force_student
             and (has_assess_privilege or has_manage_events_privilege)
-            or self.action != "create"
-            and self.get_object().is_assessment_available,  # accessing as student after the assessments are published
+            # accessing as student after the assessments are published
+            or self.action == "retrieve" and self.get_object().is_assessment_available,
             # assessment fields are writable by teachers at all times
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
@@ -587,17 +710,20 @@ class EventParticipationViewSet(
         try:
             if self.kwargs.get("event_pk") is not None:
                 # accessing as a nested view of event viewset
+
                 return qs.filter(
                     event_id=self.kwargs["event_pk"],
                 )
             else:
                 # accessing as a nested view of course viewset
-                qs = qs.filter(
-                    event__course_id=self.kwargs["course_pk"],
-                )
+
+                qs = qs.filter(event__course_id=self.kwargs["course_pk"])
                 if self.request.query_params.get("user_id") is not None:
                     # only get participations of a specific user to a course
                     qs = qs.filter(user_id=self.request.query_params["user_id"])
+                else:
+                    # if user doesn't specify a user id, return their participations
+                    qs = qs.filter(user=self.request.user)
                 return qs
         except ValueError:
             raise Http404
@@ -620,35 +746,6 @@ class EventParticipationViewSet(
         )
         return Response(serializer.data)
 
-    @action(detail=False, methods=["patch"])
-    def bulk_patch(self, request, **kwargs):
-        try:
-            ids = request.query_params["ids"]
-            id_list = ids.split(",")
-        except KeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        data = request.data
-        ret = []
-        for pk in id_list:
-            participation = get_object_or_404(self.get_queryset(), pk=pk)
-            ret.append(participation)
-
-            serializer = self.get_serializer_class()(
-                participation,
-                context=self.get_serializer_context(),
-                data=data,
-                partial=True,
-            )
-            serializer.is_valid()
-            serializer.save()
-
-        serializer = self.get_serializer_class()(
-            ret,
-            many=True,
-            context=self.get_serializer_context(),
-        )
-        return Response(serializer.data)
-
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
         # TODO make this idempotent (e.g. include the target slot number in request)
@@ -657,7 +754,13 @@ class EventParticipationViewSet(
 
         current_slot = participation.current_slots[0]
         serializer = EventParticipationSlotSerializer(
-            current_slot, context=self.get_serializer_context()
+            current_slot,
+            context={
+                EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS: True,
+                **self.get_serializer_context(),
+            },
         )
         return Response(serializer.data)
 
@@ -669,7 +772,13 @@ class EventParticipationViewSet(
 
         current_slot = participation.current_slots[0]
         serializer = EventParticipationSlotSerializer(
-            current_slot, context=self.get_serializer_context()
+            current_slot,
+            context={
+                EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE: True,
+                EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS: True,
+                **self.get_serializer_context(),
+            },
         )
         return Response(serializer.data)
 
@@ -679,6 +788,7 @@ class EventParticipationSlotViewSet(
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
+    RequestingUserPrivilegesMixin,
 ):
     """
     A viewset for accessing and updating the individual slots of a participation
@@ -705,16 +815,8 @@ class EventParticipationSlotViewSet(
         to display some fields ans whether to make them writable
         """
         force_student = "as_student" in self.request.query_params
-        has_assess_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.ASSESS_PARTICIPATIONS,
-        )
-        has_manage_events_privilege = check_privilege(
-            self.request.user,
-            self.kwargs["course_pk"],
-            privileges.MANAGE_EVENTS,
-        )
+        has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
+        has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
 
         ret = {
             # assessment fields are displayed to teachers at all times and to students
@@ -736,6 +838,9 @@ class EventParticipationSlotViewSet(
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["capabilities"] = self.get_capabilities()
+        context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+        context[EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE] = True
+        context[EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS] = True
         return context
 
     def get_queryset(self):

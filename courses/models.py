@@ -54,10 +54,14 @@ class Course(TimestampableModel):
 
 class UserCoursePrivilege(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="privileged_courses"
+        User,
+        on_delete=models.CASCADE,
+        related_name="privileged_courses",
     )
     course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="privileged_users"
+        Course,
+        on_delete=models.CASCADE,
+        related_name="privileged_users",
     )
     allow_privileges = models.JSONField(default=list, blank=True)
     deny_privileges = models.JSONField(default=list, blank=True)
@@ -846,20 +850,19 @@ class EventParticipation(models.Model):
                 f"Cursor is past the max position: {self.current_slot_cursor}"
             )
 
-        self.current_slot_cursor += (
-            self.event.exercises_shown_at_a_time
-        )  # ? max between this and max_slot_number?
+        # ? add min between this exercises_shown_at_a_time and max_slot_number?
+        self.current_slot_cursor += self.event.exercises_shown_at_a_time
         self.save(update_fields=["current_slot_cursor"])
 
         # TODO use django lifecycle package
         # mark new current slot as seen
-        now = timezone.localtime(timezone.now())
         current_slot = [
             s
             for s in self.prefetched_base_slots
             if s.slot_number == self.current_slot_cursor
         ][0]
         if current_slot.seen_at is None:
+            now = timezone.localtime(timezone.now())
             current_slot.seen_at = now
             current_slot.save(update_fields=["seen_at"])
 
@@ -974,6 +977,10 @@ class EventParticipationSlot(models.Model):
             ) and self.answered_at is None:
                 now = timezone.localtime(timezone.now())
                 self.answered_at = now
+                # update answered time of parent too
+                if self.parent is not None and self.parent.answered_at is None:
+                    self.parent.answered_at = now
+                    self.parent.save(update_fields=["answered_at"])
 
         return super().save(*args, **kwargs)
 

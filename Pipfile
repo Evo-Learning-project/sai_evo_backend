@@ -37,6 +37,7 @@ channels-redis = "*"
 requests = "*"
 django-silk = "*"
 django-auto-prefetching = "*"
+drf-viewset-profiler = "*"
 
 [dev-packages]
 mypy = "*"

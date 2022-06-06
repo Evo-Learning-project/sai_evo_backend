@@ -21,7 +21,10 @@ class UserQsTestCase(TestCase):
             name="event2", event_type=Event.EXAM, course=self.course
         )
         self.event_practice = Event.objects.create(
-            name="event3", event_type=Event.SELF_SERVICE_PRACTICE, course=self.course
+            name="event3",
+            event_type=Event.SELF_SERVICE_PRACTICE,
+            course=self.course,
+            creator=self.user2,
         )
 
     def test_active_users(self):

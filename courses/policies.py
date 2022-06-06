@@ -27,7 +27,7 @@ class BaseAccessPolicy(AccessPolicy):
 class CoursePolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list"],
+            "action": ["list", "unstarted_practice_events"],
             "principal": ["authenticated"],
             "effect": "allow",
         },
@@ -220,7 +220,7 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["list"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_events",  # "has_teacher_privileges:assess_participations",
+            "condition_expression": "has_teacher_privileges:manage_events or requested_own_participations",
         },
         {
             "action": ["retrieve"],
@@ -263,6 +263,14 @@ class EventParticipationPolicy(BaseAccessPolicy):
     def is_own_participation(self, request, view, action):
         participation = view.get_object()
         return request.user == participation.user
+
+    def requested_own_participations(self, request, view, action):
+        """
+        The user has accessed the viewset as a sub-route of courses and hasn't
+        specified a user_id in the params, therefore requesting to view their
+        own participations only
+        """
+        return "user_id" not in request.query_params
 
     def can_participate(self, request, view, action):
         from courses.models import Event

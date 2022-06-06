@@ -1,0 +1,1239 @@
+Timer unit: 1e-06 s
+
+Total time: 4e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/django/views/generic/base.py
+Function: _allowed_methods at line 137
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   137                                               def _allowed_methods(self):
+   138         1          4.0      4.0    100.0          return [m.upper() for m in self.http_method_names if hasattr(self, m)]
+
+Total time: 0.150966 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/fields.py
+Function: bind at line 369
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   369                                               def bind(self, field_name, parent):
+   370                                                   """
+   371                                                   Initializes the field name and parent for the field instance.
+   372                                                   Called when a field is added to the parent serializer instance.
+   373                                                   """
+   374                                           
+   375                                                   # In order to enforce a consistent style, we error if a redundant
+   376                                                   # 'source' argument has been used. For example:
+   377                                                   # my_field = serializer.CharField(source='my_field')
+   378     38228      15175.0      0.4     10.1          assert self.source != field_name, (
+   379                                                       "It is redundant to specify `source='%s'` on field '%s' in "
+   380                                                       "serializer '%s', because it is the same as the field name. "
+   381                                                       "Remove the `source` keyword argument." %
+   382                                                       (field_name, self.__class__.__name__, parent.__class__.__name__)
+   383                                                   )
+   384                                           
+   385     38228      23154.0      0.6     15.3          self.field_name = field_name
+   386     38228      12031.0      0.3      8.0          self.parent = parent
+   387                                           
+   388                                                   # `self.label` should default to being based on the field name.
+   389     38228      13380.0      0.4      8.9          if self.label is None:
+   390     33976      17664.0      0.5     11.7              self.label = field_name.replace('_', ' ').capitalize()
+   391                                           
+   392                                                   # self.source should default to being the same as the field name.
+   393     38228      17475.0      0.5     11.6          if self.source is None:
+   394     31860       8789.0      0.3      5.8              self.source = field_name
+   395                                           
+   396                                                   # self.source_attrs is a list of attributes that need to be looked up
+   397                                                   # when serializing the instance, or populating the validated data.
+   398     38228      19584.0      0.5     13.0          if self.source == '*':
+   399      6098       2275.0      0.4      1.5              self.source_attrs = []
+   400                                                   else:
+   401     32130      21439.0      0.7     14.2              self.source_attrs = self.source.split('.')
+
+Total time: 0.134239 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/fields.py
+Function: get_attribute at line 451
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   451                                               def get_attribute(self, instance):
+   452                                                   """
+   453                                                   Given the *outgoing* object instance, return the primitive value
+   454                                                   that should be used for this field.
+   455                                                   """
+   456     14717       5010.0      0.3      3.7          try:
+   457     14717     129229.0      8.8     96.3              return get_attribute(instance, self.source_attrs)
+   458                                                   except BuiltinSignatureError as exc:
+   459                                                       msg = (
+   460                                                           'Field source for `{serializer}.{field}` maps to a built-in '
+   461                                                           'function type and is invalid. Define a property or method on '
+   462                                                           'the `{instance}` instance that wraps the call to the built-in '
+   463                                                           'function.'.format(
+   464                                                               serializer=self.parent.__class__.__name__,
+   465                                                               field=self.field_name,
+   466                                                               instance=instance.__class__.__name__,
+   467                                                           )
+   468                                                       )
+   469                                                       raise type(exc)(msg)
+   470                                                   except (KeyError, AttributeError) as exc:
+   471                                                       if self.default is not empty:
+   472                                                           return self.get_default()
+   473                                                       if self.allow_null:
+   474                                                           return None
+   475                                                       if not self.required:
+   476                                                           raise SkipField()
+   477                                                       msg = (
+   478                                                           'Got {exc_type} when attempting to get a value for field '
+   479                                                           '`{field}` on serializer `{serializer}`.\nThe serializer '
+   480                                                           'field might be named incorrectly and not match '
+   481                                                           'any attribute or key on the `{instance}` instance.\n'
+   482                                                           'Original exception text was: {exc}.'.format(
+   483                                                               exc_type=type(exc).__name__,
+   484                                                               field=self.field_name,
+   485                                                               serializer=self.parent.__class__.__name__,
+   486                                                               instance=instance.__class__.__name__,
+   487                                                               exc=exc
+   488                                                           )
+   489                                                       )
+   490                                                       raise type(exc)(msg)
+
+Total time: 0.300669 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/fields.py
+Function: __deepcopy__ at line 670
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   670                                               def __deepcopy__(self, memo):
+   671                                                   """
+   672                                                   When cloning fields we instantiate using the arguments it was
+   673                                                   originally created with, rather than copying the complete state.
+   674                                                   """
+   675                                                   # Treat regexes and validators as immutable.
+   676                                                   # See https://github.com/encode/django-rest-framework/issues/1954
+   677                                                   # and https://github.com/encode/django-rest-framework/pull/4489
+   678     22878      19162.0      0.8      6.4          args = [
+   679                                                       copy.deepcopy(item) if not isinstance(item, REGEX_TYPE) else item
+   680     11439       5427.0      0.5      1.8              for item in self._args
+   681                                                   ]
+   682     22878      34208.0      1.5     11.4          kwargs = {
+   683                                                       key: (copy.deepcopy(value, memo) if (key not in ('validators', 'regex')) else value)
+   684     11439       6735.0      0.6      2.2              for key, value in self._kwargs.items()
+   685                                                   }
+   686     11439     235137.0     20.6     78.2          return self.__class__(*args, **kwargs)
+
+Total time: 0.028124 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/generics.py
+Function: get_serializer at line 103
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   103                                               def get_serializer(self, *args, **kwargs):
+   104                                                   """
+   105                                                   Return the serializer instance that should be used for validating and
+   106                                                   deserializing input, and for serializing output.
+   107                                                   """
+   108         1          2.0      2.0      0.0          serializer_class = self.get_serializer_class()
+   109         1      26615.0  26615.0     94.6          kwargs.setdefault('context', self.get_serializer_context())
+   110         1       1507.0   1507.0      5.4          return serializer_class(*args, **kwargs)
+
+Total time: 1e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/generics.py
+Function: filter_queryset at line 140
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   140                                               def filter_queryset(self, queryset):
+   141                                                   """
+   142                                                   Given a queryset, filter it with whichever filter backend is in use.
+   143                                           
+   144                                                   You are unlikely to want to override this method, although you may need
+   145                                                   to call it either from a list view, or from a custom `get_object`
+   146                                                   method if you want to apply the configured filtering backend to the
+   147                                                   default queryset.
+   148                                                   """
+   149         1          1.0      1.0    100.0          for backend in list(self.filter_backends):
+   150                                                       queryset = backend().filter_queryset(self.request, queryset, self)
+   151         1          0.0      0.0      0.0          return queryset
+
+Total time: 3e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/generics.py
+Function: paginate_queryset at line 165
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   165                                               def paginate_queryset(self, queryset):
+   166                                                   """
+   167                                                   Return a single page of results, or `None` if pagination is disabled.
+   168                                                   """
+   169         1          3.0      3.0    100.0          if self.paginator is None:
+   170         1          0.0      0.0      0.0              return None
+   171                                                   return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+Total time: 5.81328 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/mixins.py
+Function: list at line 37
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    37                                               def list(self, request, *args, **kwargs):
+    38         1        606.0    606.0      0.0          queryset = self.filter_queryset(self.get_queryset())
+    39                                           
+    40         1          5.0      5.0      0.0          page = self.paginate_queryset(queryset)
+    41         1          0.0      0.0      0.0          if page is not None:
+    42                                                       serializer = self.get_serializer(page, many=True)
+    43                                                       return self.get_paginated_response(serializer.data)
+    44                                           
+    45         1      28129.0  28129.0      0.5          serializer = self.get_serializer(queryset, many=True)
+    46         1    5784539.0 5784539.0     99.5          return Response(serializer.data)
+
+Total time: 0.027578 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: __new__ at line 118
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   118                                               def __new__(cls, *args, **kwargs):
+   119                                                   # We override this method in order to automatically create
+   120                                                   # `ListSerializer` classes instead when `many=True` is set.
+   121     11258       3826.0      0.3     13.9          if kwargs.pop('many', False):
+   122      2202       8773.0      4.0     31.8              return cls.many_init(*args, **kwargs)
+   123      9056      14979.0      1.7     54.3          return super().__new__(cls, *args, **kwargs)
+
+Total time: 2.93591 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: many_init at line 129
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   129                                               @classmethod
+   130                                               def many_init(cls, *args, **kwargs):
+   131                                                   """
+   132                                                   This method implements the creation of a `ListSerializer` parent
+   133                                                   class when `many=True` is used. You can customize it if you need to
+   134                                                   control which keyword arguments are passed to the parent, and
+   135                                                   which are passed to the child.
+   136                                           
+   137                                                   Note that we're over-cautious in passing most arguments to both parent
+   138                                                   and child classes in order to try to cover the general case. If you're
+   139                                                   overriding this method you'll probably want something much simpler, eg:
+   140                                           
+   141                                                   @classmethod
+   142                                                   def many_init(cls, *args, **kwargs):
+   143                                                       kwargs['child'] = cls()
+   144                                                       return CustomListSerializer(*args, **kwargs)
+   145                                                   """
+   146      2202       1195.0      0.5      0.0          allow_empty = kwargs.pop('allow_empty', None)
+   147      2202        878.0      0.4      0.0          max_length = kwargs.pop('max_length', None)
+   148      2202        801.0      0.4      0.0          min_length = kwargs.pop('min_length', None)
+   149      2202    2849453.0   1294.0     97.1          child_serializer = cls(*args, **kwargs)
+   150      2202        825.0      0.4      0.0          list_kwargs = {
+   151      2202        771.0      0.4      0.0              'child': child_serializer,
+   152                                                   }
+   153      2202        797.0      0.4      0.0          if allow_empty is not None:
+   154                                                       list_kwargs['allow_empty'] = allow_empty
+   155      2202        690.0      0.3      0.0          if max_length is not None:
+   156                                                       list_kwargs['max_length'] = max_length
+   157      2202        687.0      0.3      0.0          if min_length is not None:
+   158                                                       list_kwargs['min_length'] = min_length
+   159      4404       5289.0      1.2      0.2          list_kwargs.update({
+   160      2202        906.0      0.4      0.0              key: value for key, value in kwargs.items()
+   161                                                       if key in LIST_SERIALIZER_KWARGS
+   162                                                   })
+   163      2202       1238.0      0.6      0.0          meta = getattr(cls, 'Meta', None)
+   164      2202       1607.0      0.7      0.1          list_serializer_class = getattr(meta, 'list_serializer_class', ListSerializer)
+   165      2202      70772.0     32.1      2.4          return list_serializer_class(*args, **list_kwargs)
+
+Total time: 4.64383 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: to_representation at line 500
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   500                                               def to_representation(self, instance):
+   501                                                   """
+   502                                                   Object instance -> Dict of primitive datatypes.
+   503                                                   """
+   504      2279        889.0      0.4      0.0          ret = OrderedDict()
+   505      2279       1074.0      0.5      0.0          fields = self._readable_fields
+   506                                           
+   507     17398    2156677.0    124.0     46.4          for field in fields:
+   508     15119       5205.0      0.3      0.1              try:
+   509     15119     185885.0     12.3      4.0                  attribute = field.get_attribute(instance)
+   510                                                       except SkipField:
+   511                                                           continue
+   512                                           
+   513                                                       # We skip `to_representation` for `None` values so that fields do
+   514                                                       # not have to explicitly deal with that case.
+   515                                                       #
+   516                                                       # For related fields with `use_pk_only_optimization` we need to
+   517                                                       # resolve the pk value.
+   518     15119       5649.0      0.4      0.1              check_for_none = attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
+   519     15119       3756.0      0.2      0.1              if check_for_none is None:
+   520      1248        504.0      0.4      0.0                  ret[field.field_name] = None
+   521                                                       else:
+   522     13871    2283629.0    164.6     49.2                  ret[field.field_name] = field.to_representation(attribute)
+   523                                           
+   524      2279        564.0      0.2      0.0          return ret
+
+Total time: 3.07029 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: get_fields at line 1019
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1019                                               def get_fields(self):
+  1020                                                   """
+  1021                                                   Return the dict of field names -> field instances that should be
+  1022                                                   used for `self.fields` when instantiating the serializer.
+  1023                                                   """
+  1024      4318       2749.0      0.6      0.1          if self.url_field_name is None:
+  1025      4318       3167.0      0.7      0.1              self.url_field_name = api_settings.URL_FIELD_NAME
+  1026                                           
+  1027      4318       2498.0      0.6      0.1          assert hasattr(self, 'Meta'), (
+  1028                                                       'Class {serializer_class} missing "Meta" attribute'.format(
+  1029                                                           serializer_class=self.__class__.__name__
+  1030                                                       )
+  1031                                                   )
+  1032      4318       2727.0      0.6      0.1          assert hasattr(self.Meta, 'model'), (
+  1033                                                       'Class {serializer_class} missing "Meta.model" attribute'.format(
+  1034                                                           serializer_class=self.__class__.__name__
+  1035                                                       )
+  1036                                                   )
+  1037      4318       6662.0      1.5      0.2          if model_meta.is_abstract_model(self.Meta.model):
+  1038                                                       raise ValueError(
+  1039                                                           'Cannot use ModelSerializer with Abstract Models.'
+  1040                                                       )
+  1041                                           
+  1042      4318     242604.0     56.2      7.9          declared_fields = copy.deepcopy(self._declared_fields)
+  1043      4318       3666.0      0.8      0.1          model = getattr(self.Meta, 'model')
+  1044      4318       3565.0      0.8      0.1          depth = getattr(self.Meta, 'depth', 0)
+  1045                                           
+  1046      4318       2145.0      0.5      0.1          if depth is not None:
+  1047      4318       2083.0      0.5      0.1              assert depth >= 0, "'depth' may not be negative."
+  1048      4318       2214.0      0.5      0.1              assert depth <= 10, "'depth' may not be greater than 10."
+  1049                                           
+  1050                                                   # Retrieve metadata about fields & relationships on the model class.
+  1051      4318     170426.0     39.5      5.6          info = model_meta.get_field_info(model)
+  1052      4318      92693.0     21.5      3.0          field_names = self.get_field_names(declared_fields, info)
+  1053                                           
+  1054                                                   # Determine any extra field arguments and hidden fields that
+  1055                                                   # should be included
+  1056      4318      50897.0     11.8      1.7          extra_kwargs = self.get_extra_kwargs()
+  1057      8636     498744.0     57.8     16.2          extra_kwargs, hidden_fields = self.get_uniqueness_extra_kwargs(
+  1058      4318       2031.0      0.5      0.1              field_names, declared_fields, extra_kwargs
+  1059                                                   )
+  1060                                           
+  1061                                                   # Determine the fields that should be included on the serializer.
+  1062      4318       2848.0      0.7      0.1          fields = OrderedDict()
+  1063                                           
+  1064     33640      17828.0      0.5      0.6          for field_name in field_names:
+  1065                                                       # If the field is explicitly declared on the class then use that.
+  1066     29322      14992.0      0.5      0.5              if field_name in declared_fields:
+  1067      9793       5751.0      0.6      0.2                  fields[field_name] = declared_fields[field_name]
+  1068      9793       4543.0      0.5      0.1                  continue
+  1069                                           
+  1070     19529      10934.0      0.6      0.4              extra_field_kwargs = extra_kwargs.get(field_name, {})
+  1071     19529      10249.0      0.5      0.3              source = extra_field_kwargs.get('source', '*')
+  1072     19529       9958.0      0.5      0.3              if source == '*':
+  1073     19529       8672.0      0.4      0.3                  source = field_name
+  1074                                           
+  1075                                                       # Determine the serializer field class and keyword arguments.
+  1076     39058    1362551.0     34.9     44.4              field_class, field_kwargs = self.build_field(
+  1077     19529       9433.0      0.5      0.3                  source, info, model, depth
+  1078                                                       )
+  1079                                           
+  1080                                                       # Include any kwargs defined in `Meta.extra_kwargs`
+  1081     39058      95679.0      2.4      3.1              field_kwargs = self.include_extra_kwargs(
+  1082     19529       9202.0      0.5      0.3                  field_kwargs, extra_field_kwargs
+  1083                                                       )
+  1084                                           
+  1085                                                       # Create the serializer field.
+  1086     19529     413732.0     21.2     13.5              fields[field_name] = field_class(**field_kwargs)
+  1087                                           
+  1088                                                   # Add in any hidden fields.
+  1089      4318       3165.0      0.7      0.1          fields.update(hidden_fields)
+  1090                                           
+  1091      4318       1879.0      0.4      0.1          return fields
+
+Total time: 0.04866 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: get_field_names at line 1095
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1095                                               def get_field_names(self, declared_fields, info):
+  1096                                                   """
+  1097                                                   Returns the list of all field names that should be created when
+  1098                                                   instantiating this serializer class. This is based on the default
+  1099                                                   set of fields, but also takes into account the `Meta.fields` or
+  1100                                                   `Meta.exclude` options if they have been specified.
+  1101                                                   """
+  1102      4318       2716.0      0.6      5.6          fields = getattr(self.Meta, 'fields', None)
+  1103      4318       3162.0      0.7      6.5          exclude = getattr(self.Meta, 'exclude', None)
+  1104                                           
+  1105      4318       2839.0      0.7      5.8          if fields and fields != ALL_FIELDS and not isinstance(fields, (list, tuple)):
+  1106                                                       raise TypeError(
+  1107                                                           'The `fields` option must be a list or tuple or "__all__". '
+  1108                                                           'Got %s.' % type(fields).__name__
+  1109                                                       )
+  1110                                           
+  1111      4318       1537.0      0.4      3.2          if exclude and not isinstance(exclude, (list, tuple)):
+  1112                                                       raise TypeError(
+  1113                                                           'The `exclude` option must be a list or tuple. Got %s.' %
+  1114                                                           type(exclude).__name__
+  1115                                                       )
+  1116                                           
+  1117      4318       1671.0      0.4      3.4          assert not (fields and exclude), (
+  1118                                                       "Cannot set both 'fields' and 'exclude' options on "
+  1119                                                       "serializer {serializer_class}.".format(
+  1120                                                           serializer_class=self.__class__.__name__
+  1121                                                       )
+  1122                                                   )
+  1123                                           
+  1124      4318       1664.0      0.4      3.4          assert not (fields is None and exclude is None), (
+  1125                                                       "Creating a ModelSerializer without either the 'fields' attribute "
+  1126                                                       "or the 'exclude' attribute has been deprecated since 3.3.0, "
+  1127                                                       "and is now disallowed. Add an explicit fields = '__all__' to the "
+  1128                                                       "{serializer_class} serializer.".format(
+  1129                                                           serializer_class=self.__class__.__name__
+  1130                                                       ),
+  1131                                                   )
+  1132                                           
+  1133      4318       1675.0      0.4      3.4          if fields == ALL_FIELDS:
+  1134                                                       fields = None
+  1135                                           
+  1136      4318       2037.0      0.5      4.2          if fields is not None:
+  1137                                                       # Ensure that all declared fields have also been included in the
+  1138                                                       # `Meta.fields` option.
+  1139                                           
+  1140                                                       # Do not require any fields that are declared in a parent class,
+  1141                                                       # in order to allow serializer subclasses to only include
+  1142                                                       # a subset of fields.
+  1143      4318       3425.0      0.8      7.0              required_field_names = set(declared_fields)
+  1144     12953       6927.0      0.5     14.2              for cls in self.__class__.__bases__:
+  1145      8635       9054.0      1.0     18.6                  required_field_names -= set(getattr(cls, '_declared_fields', []))
+  1146                                           
+  1147     14111       5843.0      0.4     12.0              for field_name in required_field_names:
+  1148      9793       4608.0      0.5      9.5                  assert field_name in fields, (
+  1149                                                               "The field '{field_name}' was declared on serializer "
+  1150                                                               "{serializer_class}, but has not been included in the "
+  1151                                                               "'fields' option.".format(
+  1152                                                                   field_name=field_name,
+  1153                                                                   serializer_class=self.__class__.__name__
+  1154                                                               )
+  1155                                                           )
+  1156      4318       1502.0      0.3      3.1              return fields
+  1157                                           
+  1158                                                   # Use the default set of field names if `Meta.fields` is not specified.
+  1159                                                   fields = self.get_default_field_names(declared_fields, info)
+  1160                                           
+  1161                                                   if exclude is not None:
+  1162                                                       # If `Meta.exclude` is included, then remove those fields.
+  1163                                                       for field_name in exclude:
+  1164                                                           assert field_name not in self._declared_fields, (
+  1165                                                               "Cannot both declare the field '{field_name}' and include "
+  1166                                                               "it in the {serializer_class} 'exclude' option. Remove the "
+  1167                                                               "field or, if inherited from a parent serializer, disable "
+  1168                                                               "with `{field_name} = None`."
+  1169                                                               .format(
+  1170                                                                   field_name=field_name,
+  1171                                                                   serializer_class=self.__class__.__name__
+  1172                                                               )
+  1173                                                           )
+  1174                                           
+  1175                                                           assert field_name in fields, (
+  1176                                                               "The field '{field_name}' was included on serializer "
+  1177                                                               "{serializer_class} in the 'exclude' option, but does "
+  1178                                                               "not match any model field.".format(
+  1179                                                                   field_name=field_name,
+  1180                                                                   serializer_class=self.__class__.__name__
+  1181                                                               )
+  1182                                                           )
+  1183                                                           fields.remove(field_name)
+  1184                                           
+  1185                                                   return fields
+
+Total time: 1.3133 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: build_field at line 1201
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1201                                               def build_field(self, field_name, info, model_class, nested_depth):
+  1202                                                   """
+  1203                                                   Return a two tuple of (cls, kwargs) to build a serializer field with.
+  1204                                                   """
+  1205     19529       7846.0      0.4      0.6          if field_name in info.fields_and_pk:
+  1206     18502       5576.0      0.3      0.4              model_field = info.fields_and_pk[field_name]
+  1207     18502    1292979.0     69.9     98.5              return self.build_standard_field(field_name, model_field)
+  1208                                           
+  1209      1027        556.0      0.5      0.0          elif field_name in info.relations:
+  1210       201         63.0      0.3      0.0              relation_info = info.relations[field_name]
+  1211       201         52.0      0.3      0.0              if not nested_depth:
+  1212       201       3820.0     19.0      0.3                  return self.build_relational_field(field_name, relation_info)
+  1213                                                       else:
+  1214                                                           return self.build_nested_field(field_name, relation_info, nested_depth)
+  1215                                           
+  1216       826        456.0      0.6      0.0          elif hasattr(model_class, field_name):
+  1217       826       1948.0      2.4      0.1              return self.build_property_field(field_name, model_class)
+  1218                                           
+  1219                                                   elif field_name == self.url_field_name:
+  1220                                                       return self.build_url_field(field_name, model_class)
+  1221                                           
+  1222                                                   return self.build_unknown_field(field_name, model_class)
+
+Total time: 1.11449 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: build_standard_field at line 1224
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1224                                               def build_standard_field(self, field_name, model_field):
+  1225                                                   """
+  1226                                                   Create regular model fields.
+  1227                                                   """
+  1228     18502      25906.0      1.4      2.3          field_mapping = ClassLookupDict(self.serializer_field_mapping)
+  1229                                           
+  1230     18502      36733.0      2.0      3.3          field_class = field_mapping[model_field]
+  1231     18502     831074.0     44.9     74.6          field_kwargs = get_field_kwargs(field_name, model_field)
+  1232                                           
+  1233                                                   # Special case to handle when a OneToOneField is also the primary key
+  1234     18502      17700.0      1.0      1.6          if model_field.one_to_one and model_field.primary_key:
+  1235                                                       field_class = self.serializer_related_field
+  1236                                                       field_kwargs['queryset'] = model_field.related_model.objects
+  1237                                           
+  1238     18502      17088.0      0.9      1.5          if 'choices' in field_kwargs:
+  1239                                                       # Fields with choices get coerced into `ChoiceField`
+  1240                                                       # instead of using their regular typed field.
+  1241      2604       1709.0      0.7      0.2              field_class = self.serializer_choice_field
+  1242                                                       # Some model fields may introduce kwargs that would not be valid
+  1243                                                       # for the choice field. We need to strip these out.
+  1244                                                       # Eg. models.DecimalField(max_digits=3, decimal_places=1, choices=DECIMAL_CHOICES)
+  1245      2604       8515.0      3.3      0.8              valid_kwargs = {
+  1246      2604       1229.0      0.5      0.1                  'read_only', 'write_only',
+  1247      2604       1246.0      0.5      0.1                  'required', 'default', 'initial', 'source',
+  1248      2604       1190.0      0.5      0.1                  'label', 'help_text', 'style',
+  1249      2604       1188.0      0.5      0.1                  'error_messages', 'validators', 'allow_null', 'allow_blank',
+  1250      2604       1127.0      0.4      0.1                  'choices'
+  1251                                                       }
+  1252      9526       5158.0      0.5      0.5              for key in list(field_kwargs):
+  1253      6922       3713.0      0.5      0.3                  if key not in valid_kwargs:
+  1254      2604       1604.0      0.6      0.1                      field_kwargs.pop(key)
+  1255                                           
+  1256     18502      10333.0      0.6      0.9          if not issubclass(field_class, ModelField):
+  1257                                                       # `model_field` is only valid for the fallback case of
+  1258                                                       # `ModelField`, which is used when no other typed field
+  1259                                                       # matched to the model field.
+  1260     18502      17166.0      0.9      1.5              field_kwargs.pop('model_field', None)
+  1261                                           
+  1262     18502      12048.0      0.7      1.1          if not issubclass(field_class, CharField) and not issubclass(field_class, ChoiceField):
+  1263                                                       # `allow_blank` is only valid for textual fields.
+  1264      7529       4018.0      0.5      0.4              field_kwargs.pop('allow_blank', None)
+  1265                                           
+  1266     18502      11585.0      0.6      1.0          is_django_jsonfield = hasattr(models, 'JSONField') and isinstance(model_field, models.JSONField)
+  1267     18502       9405.0      0.5      0.8          if (postgres_fields and isinstance(model_field, postgres_fields.JSONField)) or is_django_jsonfield:
+  1268                                                       # Populate the `encoder` argument of `JSONField` instances generated
+  1269                                                       # for the model `JSONField`.
+  1270        67         55.0      0.8      0.0              field_kwargs['encoder'] = getattr(model_field, 'encoder', None)
+  1271        67         32.0      0.5      0.0              if is_django_jsonfield:
+  1272        67         43.0      0.6      0.0                  field_kwargs['decoder'] = getattr(model_field, 'decoder', None)
+  1273                                           
+  1274     18502       8751.0      0.5      0.8          if postgres_fields and isinstance(model_field, postgres_fields.ArrayField):
+  1275                                                       # Populate the `child` argument on `ListField` instances generated
+  1276                                                       # for the PostgreSQL specific `ArrayField`.
+  1277                                                       child_model_field = model_field.base_field
+  1278                                                       child_field_class, child_field_kwargs = self.build_standard_field(
+  1279                                                           'child', child_model_field
+  1280                                                       )
+  1281                                                       field_kwargs['child'] = child_field_class(**child_field_kwargs)
+  1282                                           
+  1283     18502      85874.0      4.6      7.7          return field_class, field_kwargs
+
+Total time: 0.002525 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: build_relational_field at line 1285
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1285                                               def build_relational_field(self, field_name, relation_info):
+  1286                                                   """
+  1287                                                   Create fields for forward and reverse relationships.
+  1288                                                   """
+  1289       201         84.0      0.4      3.3          field_class = self.serializer_related_field
+  1290       201       2089.0     10.4     82.7          field_kwargs = get_relation_kwargs(field_name, relation_info)
+  1291                                           
+  1292       201         69.0      0.3      2.7          to_field = field_kwargs.pop('to_field', None)
+  1293       201         56.0      0.3      2.2          if to_field and not relation_info.reverse and not relation_info.related_model._meta.get_field(to_field).primary_key:
+  1294                                                       field_kwargs['slug_field'] = to_field
+  1295                                                       field_class = self.serializer_related_to_field
+  1296                                           
+  1297                                                   # `view_name` is only valid for hyperlinked relationships.
+  1298       201        102.0      0.5      4.0          if not issubclass(field_class, HyperlinkedRelatedField):
+  1299       201         60.0      0.3      2.4              field_kwargs.pop('view_name', None)
+  1300                                           
+  1301       201         65.0      0.3      2.6          return field_class, field_kwargs
+
+Total time: 0.000661 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: build_property_field at line 1318
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1318                                               def build_property_field(self, field_name, model_class):
+  1319                                                   """
+  1320                                                   Create a read only field for model methods and properties.
+  1321                                                   """
+  1322       826        260.0      0.3     39.3          field_class = ReadOnlyField
+  1323       826        208.0      0.3     31.5          field_kwargs = {}
+  1324                                           
+  1325       826        193.0      0.2     29.2          return field_class, field_kwargs
+
+Total time: 0.036388 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: include_extra_kwargs at line 1345
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1345                                               def include_extra_kwargs(self, kwargs, extra_kwargs):
+  1346                                                   """
+  1347                                                   Include any 'extra_kwargs' that have been included for this field,
+  1348                                                   possibly removing any incompatible existing keyword arguments.
+  1349                                                   """
+  1350     19529       6965.0      0.4     19.1          if extra_kwargs.get('read_only', False):
+  1351      4080       1066.0      0.3      2.9              for attr in [
+  1352                                                           'required', 'default', 'allow_blank', 'min_length',
+  1353                                                           'max_length', 'min_value', 'max_value', 'validators', 'queryset'
+  1354                                                       ]:
+  1355      3672       1173.0      0.3      3.2                  kwargs.pop(attr, None)
+  1356                                           
+  1357     19529       6281.0      0.3     17.3          if extra_kwargs.get('default') and kwargs.get('required') is False:
+  1358                                                       kwargs.pop('required')
+  1359                                           
+  1360     19529       7308.0      0.4     20.1          if extra_kwargs.get('read_only', kwargs.get('read_only', False)):
+  1361      4525       1386.0      0.3      3.8              extra_kwargs.pop('required', None)  # Read only fields should always omit the 'required' argument.
+  1362                                           
+  1363     19529       7660.0      0.4     21.1          kwargs.update(extra_kwargs)
+  1364                                           
+  1365     19529       4549.0      0.2     12.5          return kwargs
+
+Total time: 0.031129 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: get_extra_kwargs at line 1369
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1369                                               def get_extra_kwargs(self):
+  1370                                                   """
+  1371                                                   Return a dictionary mapping field names to a dictionary of
+  1372                                                   additional keyword arguments.
+  1373                                                   """
+  1374      4318      22187.0      5.1     71.3          extra_kwargs = copy.deepcopy(getattr(self.Meta, 'extra_kwargs', {}))
+  1375                                           
+  1376      4318       2661.0      0.6      8.5          read_only_fields = getattr(self.Meta, 'read_only_fields', None)
+  1377      4318       1499.0      0.3      4.8          if read_only_fields is not None:
+  1378       135         63.0      0.5      0.2              if not isinstance(read_only_fields, (list, tuple)):
+  1379                                                           raise TypeError(
+  1380                                                               'The `read_only_fields` option must be a list or tuple. '
+  1381                                                               'Got %s.' % type(read_only_fields).__name__
+  1382                                                           )
+  1383       543        172.0      0.3      0.6              for field_name in read_only_fields:
+  1384       408        144.0      0.4      0.5                  kwargs = extra_kwargs.get(field_name, {})
+  1385       408        158.0      0.4      0.5                  kwargs['read_only'] = True
+  1386       408        146.0      0.4      0.5                  extra_kwargs[field_name] = kwargs
+  1387                                           
+  1388                                                   else:
+  1389                                                       # Guard against the possible misspelling `readonly_fields` (used
+  1390                                                       # by the Django admin and others).
+  1391      4183       2773.0      0.7      8.9              assert not hasattr(self.Meta, 'readonly_fields'), (
+  1392                                                           'Serializer `%s.%s` has field `readonly_fields`; '
+  1393                                                           'the correct spelling for the option is `read_only_fields`.' %
+  1394                                                           (self.__class__.__module__, self.__class__.__name__)
+  1395                                                       )
+  1396                                           
+  1397      4318       1326.0      0.3      4.3          return extra_kwargs
+
+Total time: 0.405555 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: get_uniqueness_extra_kwargs at line 1399
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1399                                               def get_uniqueness_extra_kwargs(self, field_names, declared_fields, extra_kwargs):
+  1400                                                   """
+  1401                                                   Return any additional field options that need to be included as a
+  1402                                                   result of uniqueness constraints on the model. This is returned as
+  1403                                                   a two-tuple of:
+  1404                                           
+  1405                                                   ('dict of updated extra kwargs', 'mapping of hidden fields')
+  1406                                                   """
+  1407      4318       3648.0      0.8      0.9          if getattr(self.Meta, 'validators', None) is not None:
+  1408                                                       return (extra_kwargs, {})
+  1409                                           
+  1410      4318       2383.0      0.6      0.6          model = getattr(self.Meta, 'model')
+  1411      8636     228668.0     26.5     56.4          model_fields = self._get_model_fields(
+  1412      4318       1872.0      0.4      0.5              field_names, declared_fields, extra_kwargs
+  1413                                                   )
+  1414                                           
+  1415                                                   # Determine if we need any additional `HiddenField` or extra keyword
+  1416                                                   # arguments to deal with `unique_for` dates that are required to
+  1417                                                   # be in the input data in order to validate it.
+  1418      4318      93376.0     21.6     23.0          unique_constraint_names = set()
+  1419                                           
+  1420     27960      12978.0      0.5      3.2          for model_field in model_fields.values():
+  1421                                                       # Include each of the `unique_for_*` field names.
+  1422     47284      28020.0      0.6      6.9              unique_constraint_names |= {model_field.unique_for_date, model_field.unique_for_month,
+  1423     23642      11869.0      0.5      2.9                                          model_field.unique_for_year}
+  1424                                           
+  1425      4318       2372.0      0.5      0.6          unique_constraint_names -= {None}
+  1426                                           
+  1427                                                   # Include each of the `unique_together` field names,
+  1428                                                   # so long as all the field names are included on the serializer.
+  1429      8636       7047.0      0.8      1.7          for parent_class in [model] + list(model._meta.parents):
+  1430      4318       2745.0      0.6      0.7              for unique_together_list in parent_class._meta.unique_together:
+  1431                                                           if set(field_names).issuperset(unique_together_list):
+  1432                                                               unique_constraint_names |= set(unique_together_list)
+  1433                                           
+  1434                                                   # Now we have all the field names that have uniqueness constraints
+  1435                                                   # applied, we can add the extra 'required=...' or 'default=...'
+  1436                                                   # arguments that are appropriate to these fields, or add a `HiddenField` for it.
+  1437      4318       1966.0      0.5      0.5          hidden_fields = {}
+  1438      4318       1799.0      0.4      0.4          uniqueness_extra_kwargs = {}
+  1439                                           
+  1440      4318       2168.0      0.5      0.5          for unique_constraint_name in unique_constraint_names:
+  1441                                                       # Get the model field that is referred too.
+  1442                                                       unique_constraint_field = model._meta.get_field(unique_constraint_name)
+  1443                                           
+  1444                                                       if getattr(unique_constraint_field, 'auto_now_add', None):
+  1445                                                           default = CreateOnlyDefault(timezone.now)
+  1446                                                       elif getattr(unique_constraint_field, 'auto_now', None):
+  1447                                                           default = timezone.now
+  1448                                                       elif unique_constraint_field.has_default():
+  1449                                                           default = unique_constraint_field.default
+  1450                                                       else:
+  1451                                                           default = empty
+  1452                                           
+  1453                                                       if unique_constraint_name in model_fields:
+  1454                                                           # The corresponding field is present in the serializer
+  1455                                                           if default is empty:
+  1456                                                               uniqueness_extra_kwargs[unique_constraint_name] = {'required': True}
+  1457                                                           else:
+  1458                                                               uniqueness_extra_kwargs[unique_constraint_name] = {'default': default}
+  1459                                                       elif default is not empty:
+  1460                                                           # The corresponding field is not present in the
+  1461                                                           # serializer. We have a default to use for it, so
+  1462                                                           # add in a hidden field that populates it.
+  1463                                                           hidden_fields[unique_constraint_name] = HiddenField(default=default)
+  1464                                           
+  1465                                                   # Update `extra_kwargs` with any new options.
+  1466      4318       2687.0      0.6      0.7          for key, value in uniqueness_extra_kwargs.items():
+  1467                                                       if key in extra_kwargs:
+  1468                                                           value.update(extra_kwargs[key])
+  1469                                                       extra_kwargs[key] = value
+  1470                                           
+  1471      4318       1957.0      0.5      0.5          return extra_kwargs, hidden_fields
+
+Total time: 0.139871 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/serializers.py
+Function: _get_model_fields at line 1473
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+  1473                                               def _get_model_fields(self, field_names, declared_fields, extra_kwargs):
+  1474                                                   """
+  1475                                                   Returns all the model fields that are being mapped to by fields
+  1476                                                   on the serializer class.
+  1477                                                   Returned as a dict of 'model field name' -> 'model field'.
+  1478                                                   Used internally by `get_uniqueness_field_options`.
+  1479                                                   """
+  1480      4318       1709.0      0.4      1.2          model = getattr(self.Meta, 'model')
+  1481      4318       1316.0      0.3      0.9          model_fields = {}
+  1482                                           
+  1483     33640       8880.0      0.3      6.3          for field_name in field_names:
+  1484     29322       8534.0      0.3      6.1              if field_name in declared_fields:
+  1485                                                           # If the field is declared on the serializer
+  1486      9793       2912.0      0.3      2.1                  field = declared_fields[field_name]
+  1487      9793       3970.0      0.4      2.8                  source = field.source or field_name
+  1488                                                       else:
+  1489     19529       5259.0      0.3      3.8                  try:
+  1490     19529      20211.0      1.0     14.4                      source = extra_kwargs[field_name]['source']
+  1491     19529      17186.0      0.9     12.3                  except KeyError:
+  1492     19529       6217.0      0.3      4.4                      source = field_name
+  1493                                           
+  1494     29322      11094.0      0.4      7.9              if '.' in source or source == '*':
+  1495                                                           # Model fields will always have a simple source mapping,
+  1496                                                           # they can't be nested attribute lookups.
+  1497      4452       1347.0      0.3      1.0                  continue
+  1498                                           
+  1499     24602       6171.0      0.3      4.4              try:
+  1500     24602      20666.0      0.8     14.8                  field = model._meta.get_field(source)
+  1501     23776       8113.0      0.3      5.8                  if isinstance(field, DjangoModelField):
+  1502     23642      14484.0      0.6     10.4                      model_fields[source] = field
+  1503       826        265.0      0.3      0.2              except FieldDoesNotExist:
+  1504       826        496.0      0.6      0.4                  pass
+  1505                                           
+  1506      4318       1041.0      0.2      0.7          return model_fields
+
+Total time: 2e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: get_renderer_context at line 205
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   205                                               def get_renderer_context(self):
+   206                                                   """
+   207                                                   Returns a dict that is passed through to Renderer.render(),
+   208                                                   as the `renderer_context` keyword argument.
+   209                                                   """
+   210                                                   # Note: Additionally 'response' will also be added to the context,
+   211                                                   #       by the Response object.
+   212         1          0.0      0.0      0.0          return {
+   213         1          1.0      1.0     50.0              'view': self,
+   214         1          0.0      0.0      0.0              'args': getattr(self, 'args', ()),
+   215         1          0.0      0.0      0.0              'kwargs': getattr(self, 'kwargs', {}),
+   216         1          1.0      1.0     50.0              'request': getattr(self, 'request', None)
+   217                                                   }
+
+Total time: 1e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: get_format_suffix at line 249
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   249                                               def get_format_suffix(self, **kwargs):
+   250                                                   """
+   251                                                   Determine if the request includes a '.json' style format suffix
+   252                                                   """
+   253         1          1.0      1.0    100.0          if self.settings.FORMAT_SUFFIX_KWARG:
+   254         1          0.0      0.0      0.0              return kwargs.get(self.settings.FORMAT_SUFFIX_KWARG)
+
+Total time: 2e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: get_renderers at line 256
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   256                                               def get_renderers(self):
+   257                                                   """
+   258                                                   Instantiates and returns the list of renderers that this view can use.
+   259                                                   """
+   260         1          2.0      2.0    100.0          return [renderer() for renderer in self.renderer_classes]
+
+Total time: 1e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: get_permissions at line 274
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   274                                               def get_permissions(self):
+   275                                                   """
+   276                                                   Instantiates and returns the list of permissions that this view requires.
+   277                                                   """
+   278         1          1.0      1.0    100.0          return [permission() for permission in self.permission_classes]
+
+Total time: 1e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: get_throttles at line 280
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   280                                               def get_throttles(self):
+   281                                                   """
+   282                                                   Instantiates and returns the list of throttles that this view uses.
+   283                                                   """
+   284         1          1.0      1.0    100.0          return [throttle() for throttle in self.throttle_classes]
+
+Total time: 1e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: get_content_negotiator at line 286
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   286                                               def get_content_negotiator(self):
+   287                                                   """
+   288                                                   Instantiate and return the content negotiation class to use.
+   289                                                   """
+   290         1          1.0      1.0    100.0          if not getattr(self, '_negotiator', None):
+   291                                                       self._negotiator = self.content_negotiation_class()
+   292         1          0.0      0.0      0.0          return self._negotiator
+
+Total time: 0.000158 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: perform_content_negotiation at line 302
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   302                                               def perform_content_negotiation(self, request, force=False):
+   303                                                   """
+   304                                                   Determine which renderer and media type to use render the response.
+   305                                                   """
+   306         1          3.0      3.0      1.9          renderers = self.get_renderers()
+   307         1          2.0      2.0      1.3          conneg = self.get_content_negotiator()
+   308                                           
+   309         1          0.0      0.0      0.0          try:
+   310         1        153.0    153.0     96.8              return conneg.select_renderer(request, renderers, self.format_kwarg)
+   311                                                   except Exception:
+   312                                                       if force:
+   313                                                           return (renderers[0], renderers[0].media_type)
+   314                                                       raise
+
+Total time: 0.104706 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: perform_authentication at line 316
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   316                                               def perform_authentication(self, request):
+   317                                                   """
+   318                                                   Perform authentication on the incoming request.
+   319                                           
+   320                                                   Note that if you override this and simply 'pass', then authentication
+   321                                                   will instead be performed lazily, the first time either
+   322                                                   `request.user` or `request.auth` is accessed.
+   323                                                   """
+   324         1     104706.0 104706.0    100.0          request.user
+
+Total time: 0.056813 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: check_permissions at line 326
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   326                                               def check_permissions(self, request):
+   327                                                   """
+   328                                                   Check if the request should be permitted.
+   329                                                   Raises an appropriate exception if the request is not permitted.
+   330                                                   """
+   331         2          5.0      2.5      0.0          for permission in self.get_permissions():
+   332         1      56808.0  56808.0    100.0              if not permission.has_permission(request, self):
+   333                                                           self.permission_denied(
+   334                                                               request,
+   335                                                               message=getattr(permission, 'message', None),
+   336                                                               code=getattr(permission, 'code', None)
+   337                                                           )
+
+Total time: 4e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: check_throttles at line 352
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   352                                               def check_throttles(self, request):
+   353                                                   """
+   354                                                   Check if request should be throttled.
+   355                                                   Raises an appropriate exception if the request is throttled.
+   356                                                   """
+   357         1          1.0      1.0     25.0          throttle_durations = []
+   358         1          3.0      3.0     75.0          for throttle in self.get_throttles():
+   359                                                       if not throttle.allow_request(request, self):
+   360                                                           throttle_durations.append(throttle.wait())
+   361                                           
+   362         1          0.0      0.0      0.0          if throttle_durations:
+   363                                                       # Filter out `None` values which may happen in case of config / rate
+   364                                                       # changes, see #1438
+   365                                                       durations = [
+   366                                                           duration for duration in throttle_durations
+   367                                                           if duration is not None
+   368                                                       ]
+   369                                           
+   370                                                       duration = max(durations, default=None)
+   371                                                       self.throttled(request, duration)
+
+Total time: 1e-06 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: determine_version at line 373
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   373                                               def determine_version(self, request, *args, **kwargs):
+   374                                                   """
+   375                                                   If versioning is being used, then determine any API version for the
+   376                                                   incoming request. Returns a two-tuple of (version, versioning_scheme)
+   377                                                   """
+   378         1          1.0      1.0    100.0          if self.versioning_class is None:
+   379         1          0.0      0.0      0.0              return (None, None)
+   380                                                   scheme = self.versioning_class()
+   381                                                   return (scheme.determine_version(request, *args, **kwargs), scheme)
+
+Total time: 0.161708 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: initial at line 399
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   399                                               def initial(self, request, *args, **kwargs):
+   400                                                   """
+   401                                                   Runs anything that needs to occur prior to calling the method handler.
+   402                                                   """
+   403         1          3.0      3.0      0.0          self.format_kwarg = self.get_format_suffix(**kwargs)
+   404                                           
+   405                                                   # Perform content negotiation and store the accepted info on the request
+   406         1        161.0    161.0      0.1          neg = self.perform_content_negotiation(request)
+   407         1          1.0      1.0      0.0          request.accepted_renderer, request.accepted_media_type = neg
+   408                                           
+   409                                                   # Determine the API version, if versioning is in use.
+   410         1          3.0      3.0      0.0          version, scheme = self.determine_version(request, *args, **kwargs)
+   411         1          1.0      1.0      0.0          request.version, request.versioning_scheme = version, scheme
+   412                                           
+   413                                                   # Ensure that the incoming request is permitted
+   414         1     104710.0 104710.0     64.8          self.perform_authentication(request)
+   415         1      56819.0  56819.0     35.1          self.check_permissions(request)
+   416         1         10.0     10.0      0.0          self.check_throttles(request)
+
+Total time: 2.8e-05 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: finalize_response at line 418
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   418                                               def finalize_response(self, request, response, *args, **kwargs):
+   419                                                   """
+   420                                                   Returns the final response object.
+   421                                                   """
+   422                                                   # Make the error obvious if a proper response is not returned
+   423         1          1.0      1.0      3.6          assert isinstance(response, HttpResponseBase), (
+   424                                                       'Expected a `Response`, `HttpResponse` or `HttpStreamingResponse` '
+   425                                                       'to be returned from the view, but received a `%s`'
+   426                                                       % type(response)
+   427                                                   )
+   428                                           
+   429         1          1.0      1.0      3.6          if isinstance(response, Response):
+   430         1          1.0      1.0      3.6              if not getattr(request, 'accepted_renderer', None):
+   431                                                           neg = self.perform_content_negotiation(request, force=True)
+   432                                                           request.accepted_renderer, request.accepted_media_type = neg
+   433                                           
+   434         1          0.0      0.0      0.0              response.accepted_renderer = request.accepted_renderer
+   435         1          0.0      0.0      0.0              response.accepted_media_type = request.accepted_media_type
+   436         1          5.0      5.0     17.9              response.renderer_context = self.get_renderer_context()
+   437                                           
+   438                                                   # Add new vary headers to the response instead of overwriting.
+   439         1          0.0      0.0      0.0          vary_headers = self.headers.pop('Vary', None)
+   440         1          0.0      0.0      0.0          if vary_headers is not None:
+   441         1         15.0     15.0     53.6              patch_vary_headers(response, cc_delim_re.split(vary_headers))
+   442                                           
+   443         2          0.0      0.0      0.0          for key, value in self.headers.items():
+   444         1          5.0      5.0     17.9              response[key] = value
+   445                                           
+   446         1          0.0      0.0      0.0          return response
+
+Total time: 5.97505 s
+File: /Users/samuelebonini/.local/share/virtualenvs/backend-tRSrcCVT/lib/python3.8/site-packages/rest_framework/views.py
+Function: dispatch at line 485
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   485                                               def dispatch(self, request, *args, **kwargs):
+   486                                                   """
+   487                                                   `.dispatch()` is pretty much the same as Django's regular dispatch,
+   488                                                   but with extra hooks for startup, finalize, and exception handling.
+   489                                                   """
+   490                                                   self.args = args
+   491                                                   self.kwargs = kwargs
+   492                                                   request = self.initialize_request(request, *args, **kwargs)
+   493         1          1.0      1.0      0.0          self.request = request
+   494         1         10.0     10.0      0.0          self.headers = self.default_response_headers  # deprecate?
+   495                                           
+   496         1          0.0      0.0      0.0          try:
+   497         1     161714.0 161714.0      2.7              self.initial(request, *args, **kwargs)
+   498                                           
+   499                                                       # Get the appropriate handler method
+   500         1          3.0      3.0      0.0              if request.method.lower() in self.http_method_names:
+   501         2          2.0      1.0      0.0                  handler = getattr(self, request.method.lower(),
+   502         1          1.0      1.0      0.0                                    self.http_method_not_allowed)
+   503                                                       else:
+   504                                                           handler = self.http_method_not_allowed
+   505                                           
+   506         1    5813282.0 5813282.0     97.3              response = handler(request, *args, **kwargs)
+   507                                           
+   508                                                   except Exception as exc:
+   509                                                       response = self.handle_exception(exc)
+   510                                           
+   511         1         42.0     42.0      0.0          self.response = self.finalize_response(request, response, *args, **kwargs)
+   512         1          0.0      0.0      0.0          return self.response
+
+Total time: 2.30582 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/serializers.py
+Function: remove_unsatisfied_condition_fields at line 52
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    52                                               def remove_unsatisfied_condition_fields(self):
+    53      4317       2429.0      0.6      0.1          conditional_fields = self.Meta.conditional_fields
+    54                                           
+    55      9591       3723.0      0.4      0.2          for condition, fields in conditional_fields.items():
+    56      5274       7503.0      1.4      0.3              if not self.context.get(condition, False):
+    57     17953       4826.0      0.3      0.2                  for field in fields:
+    58     12814    2287337.0    178.5     99.2                      self.fields.pop(field)
+
+Total time: 0.001411 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/serializers.py
+Function: __init__ at line 550
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   550                                               def __init__(self, *args, **kwargs):
+   551         1         28.0     28.0      2.0          super().__init__(*args, **kwargs)
+   552         1          7.0      7.0      0.5          self.remove_unsatisfied_condition_fields()
+   553                                           
+   554         1          2.0      2.0      0.1          capabilities = self.context.get("capabilities", {})
+   555                                           
+   556         1          1.0      1.0      0.1          if capabilities.get("assessment_fields_read", False):
+   557                                                       # include teacher fields
+   558         1          0.0      0.0      0.0              assessment_fields_write = capabilities.get("assessment_fields_write", False)
+   559         2       1266.0    633.0     89.7              self.fields["score"] = serializers.CharField(
+   560         1          0.0      0.0      0.0                  allow_null=True,
+   561         1          0.0      0.0      0.0                  read_only=(not assessment_fields_write),
+   562                                                       )
+   563         2         19.0      9.5      1.3              self.fields["score_edited"] = serializers.BooleanField(
+   564         1          0.0      0.0      0.0                  read_only=True,
+   565                                                       )
+   566         2         21.0     10.5      1.5              self.fields["assessment_progress"] = serializers.IntegerField(
+   567         1          0.0      0.0      0.0                  read_only=True
+   568                                                       )
+   569         2         44.0     22.0      3.1              self.fields["visibility"] = serializers.IntegerField(
+   570         1          0.0      0.0      0.0                  source="assessment_visibility",
+   571         1          1.0      1.0      0.1                  read_only=(not assessment_fields_write),
+   572                                                       )
+   573                                           
+   574         1          1.0      1.0      0.1          if capabilities.get("submission_fields_read", False):  # student fields
+   575         2         21.0     10.5      1.5              self.fields["assessment_available"] = serializers.BooleanField(
+   576         1          0.0      0.0      0.0                  source="is_assessment_available", read_only=True
+   577                                                       )
+
+Total time: 0.225341 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/serializers.py
+Function: get_event at line 579
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   579                                               def get_event(self, obj):
+   580        67     225341.0   3363.3    100.0          return EventSerializer(obj.event, read_only=True, context=self.context).data
+
+Total time: 4.39365 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/serializers.py
+Function: get_slots at line 582
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   582                                               def get_slots(self, obj):
+   583        67        164.0      2.4      0.0          if self.context.get("capabilities").get("assessment_fields_read", False):
+   584                                                       # accessing outside of active participation - show all slots
+   585        67         38.0      0.6      0.0              slots = obj.prefetched_base_slots
+   586                                                   else:
+   587                                                       slots = obj.current_slots
+   588                                           
+   589        67         25.0      0.4      0.0          ret = (
+   590       134    4393224.0  32785.3    100.0              EventParticipationSlotSerializer(
+   591        67         20.0      0.3      0.0                  slots,
+   592        67         24.0      0.4      0.0                  many=True,
+   593        67         66.0      1.0      0.0                  context=self.context,
+   594                                                       ).data
+   595        67         79.0      1.2      0.0              if self.context.get("include_slots", True)
+   596                                                       else None
+   597                                                   )
+   598        67         13.0      0.2      0.0          return ret
+
+Total time: 0.026606 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/views.py
+Function: get_serializer_context at line 592
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   592                                               def get_serializer_context(self):
+   593         1          2.0      2.0      0.0          context = super().get_serializer_context()
+   594         1          0.0      0.0      0.0          context[EVENT_PARTICIPATION_SHOW_SLOTS] = True
+   595                                           
+   596         1          0.0      0.0      0.0          if self.action != "list":
+   597                                                       context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+   598         1          0.0      0.0      0.0          if self.action == "retrieve":
+   599                                                       # if a participation to a practice is being retrieved, show
+   600                                                       # solution fields
+   601                                                       participation = self.get_object()
+   602                                                       context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
+   603                                                           participation.event.event_type == Event.SELF_SERVICE_PRACTICE
+   604                                                           or participation.is_assessment_available
+   605                                                       )
+   606         1          5.0      5.0      0.0          elif self.request.query_params.get("preview") is not None:
+   607         1          0.0      0.0      0.0              try:
+   608         1         15.0     15.0      0.1                  preview = json.loads(self.request.query_params["preview"])
+   609                                           
+   610                                                           #! TODO FIXME context[EVENT_PARTICIPATION_SHOW_SLOTS] = not preview
+   611                                                           # ! have one parameter to define that you get the first n slots, and one to define
+   612                                                           # ! if you get all fields, for participation monitor you get all but no exercise field,
+   613                                                           # ! for student dashboard you get the first 3 with exercise and answer
+   614                                           
+   615         1          0.0      0.0      0.0                  context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
+   616                                                           # downloading for csv
+   617                                                           # TODO use more explicit conditions (e.g. a "for_csv" query param)
+   618         1          0.0      0.0      0.0                  if not preview and self.action == "list":
+   619                                                               context["trim_images_in_text"] = True
+   620                                                       except Exception:
+   621                                                           pass
+   622                                           
+   623         1      26583.0  26583.0     99.9          context["capabilities"] = self.get_capabilities()
+   624         1          1.0      1.0      0.0          return context
+
+Total time: 0.026569 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/views.py
+Function: get_capabilities at line 626
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   626                                               def get_capabilities(self):
+   627                                                   """
+   628                                                   Returns a dict for usage inside serializers' context in order to decide whether
+   629                                                   to display some fields ans whether to make them writable
+   630                                                   """
+   631         1          2.0      2.0      0.0          force_student = "as_student" in self.request.query_params
+   632         2      19718.0   9859.0     74.2          has_assess_privilege = check_privilege(
+   633         1          1.0      1.0      0.0              self.request.user,
+   634         1          1.0      1.0      0.0              self.kwargs["course_pk"],
+   635         1          0.0      0.0      0.0              privileges.ASSESS_PARTICIPATIONS,
+   636                                                   )
+   637         2       6843.0   3421.5     25.8          has_manage_events_privilege = check_privilege(
+   638         1          2.0      2.0      0.0              self.request.user,
+   639         1          0.0      0.0      0.0              self.kwargs["course_pk"],
+   640         1          0.0      0.0      0.0              privileges.MANAGE_EVENTS,
+   641                                                   )
+   642                                           
+   643         1          0.0      0.0      0.0          ret = {
+   644                                                       # assessment fields are displayed to teachers at all times and to students
+   645                                                       # if the assessments have been published
+   646         1          1.0      1.0      0.0              "assessment_fields_read": not force_student
+   647         1          0.0      0.0      0.0              and (has_assess_privilege or has_manage_events_privilege)
+   648                                                       # accessing as student after the assessments are published
+   649                                                       or self.action == "retrieve" and self.get_object().is_assessment_available,
+   650                                                       # assessment fields are writable by teachers at all times
+   651         1          0.0      0.0      0.0              "assessment_fields_write": has_assess_privilege,
+   652         1          1.0      1.0      0.0              "submission_fields_read": True,
+   653                                                   }
+   654                                           
+   655         1          0.0      0.0      0.0          return ret
+
+Total time: 0.000598 s
+File: /Users/samuelebonini/Desktop/platform/backend/courses/views.py
+Function: get_queryset at line 657
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   657                                               def get_queryset(self):
+   658         1         51.0     51.0      8.5          qs = super().get_queryset()
+   659         1          1.0      1.0      0.2          try:
+   660         1          1.0      1.0      0.2              if self.kwargs.get("event_pk") is not None:
+   661                                                           # accessing as a nested view of event viewset
+   662                                           
+   663         2        545.0    272.5     91.1                  return qs.filter(
+   664         1          0.0      0.0      0.0                      event_id=self.kwargs["event_pk"],
+   665                                                           )
+   666                                                       else:
+   667                                                           # accessing as a nested view of course viewset
+   668                                           
+   669                                                           qs = qs.filter(event__course_id=self.kwargs["course_pk"])
+   670                                                           if self.request.query_params.get("user_id") is not None:
+   671                                                               # only get participations of a specific user to a course
+   672                                                               qs = qs.filter(user_id=self.request.query_params["user_id"])
+   673                                                           else:
+   674                                                               # if user doesn't specify a user id, return their participations
+   675                                                               qs = qs.filter(user=self.request.user)
+   676                                                           return qs
+   677                                                   except ValueError:
+   678                                                       raise Http404
+

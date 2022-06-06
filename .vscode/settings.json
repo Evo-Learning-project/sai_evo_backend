@@ -1,5 +1,10 @@
 {
-  "cSpell.words": ["PARTICIPATIONS"],
+  "cSpell.words": [
+    "filterset",
+    "Hashid",
+    "PARTICIPATIONS",
+    "viewset"
+  ],
   "python.linting.flake8Enabled": false,
   "python.linting.enabled": true,
   "python.linting.mypyEnabled": true
