@@ -463,6 +463,7 @@ class EventParticipationSlotSerializer(
             "answered_at",
             "is_first",
             "is_last",
+            "has_answer",
         ]
         read_only_fields = ["id", "seen_at", "answered_at"]
 
@@ -477,6 +478,7 @@ class EventParticipationSlotSerializer(
             EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS: [
                 "answer_text",
                 "selected_choices",
+                # "has_answer",
             ],
         }
 

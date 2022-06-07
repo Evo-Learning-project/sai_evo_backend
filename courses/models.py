@@ -281,12 +281,14 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         Returns the correct choices - the definition depends on the type of exercise.
         For single selection, the correct choices are those with the maximum score projection
         For multiple selection, they are the choices with score_selected greater than
-        or equal to score_unselected
+        or equal to score_unselected, excluding those with score 0
         """
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
             # return all choices whose score_selected is greater than or equal
             # to their score_unselected
-            return self.choices.filter(score_selected__gte=F("score_unselected"))
+            return self.choices.filter(
+                score_selected__gte=F("score_unselected"), score_selected__gt=0
+            )
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
             # return all choices that maximize the obtained score
             # when chosen as a single selection
@@ -948,6 +950,31 @@ class EventParticipationSlot(models.Model):
         return str(self.participation) + " " + str(self.slot_number)
 
     @property
+    def has_answer(self):
+        """
+        Returns True iff the slot has been given an answer
+        What an answer is, and thus the condition checked, depends
+        on the type of the exercise associated to this slot
+        """
+        e_type = self.exercise.exercise_type
+        if e_type in [
+            Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+            Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+        ]:
+            return self.selected_choices.exists()
+
+        if e_type in [Exercise.OPEN_ANSWER, Exercise.JS, Exercise.C]:
+            return self.answer_text is not None and len(self.answer_text) > 0
+
+        if e_type == Exercise.ATTACHMENT:
+            return bool(self.attachment)
+
+        if e_type in [Exercise.COMPLETION, Exercise.AGGREGATED]:
+            return any(s.has_answer for s in self.sub_slots.all())
+
+        assert False, "Type " + self.exercise.exercise_type + " not implemented"
+
+    @property
     def score(self):
         if self._score is None:
             return get_assessor_class(self.participation.event)(self).assess()
@@ -970,11 +997,7 @@ class EventParticipationSlot(models.Model):
             # TODO clean the m2m field separately
             self.full_clean()
             # TODO use django lifecycle package
-            if (
-                self.selected_choices.exists()
-                or bool(self.attachment)
-                or bool(self.answer_text)
-            ) and self.answered_at is None:
+            if self.answered_at is None and self.has_answer:
                 now = timezone.localtime(timezone.now())
                 self.answered_at = now
                 # update answered time of parent too
