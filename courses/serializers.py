@@ -2,6 +2,7 @@ from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
+    COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
     EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
@@ -57,9 +58,10 @@ class ConditionalFieldsMixin:
                     self.fields.pop(field, None)
 
 
-class CourseSerializer(serializers.ModelSerializer):
+class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     privileges = serializers.SerializerMethodField()
     creator = UserSerializer(read_only=True)
+    public_exercises_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -70,8 +72,16 @@ class CourseSerializer(serializers.ModelSerializer):
             "creator",
             "privileges",
             "hidden",
+            "public_exercises_count",
         ]
         read_only_fields = ["creator"]
+        conditional_fields = {
+            COURSE_SHOW_PUBLIC_EXERCISES_COUNT: ["public_exercises_count"]
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.remove_unsatisfied_condition_fields()
 
     def get_privileges(self, obj):
         return get_user_privileges(self.context["request"].user, obj)
@@ -105,7 +115,7 @@ class TagSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     def get_public_exercises_not_seen(self, obj):
         return len(
             obj.prefetched_public_in_public_exercises
-        )  # ! temporarily disable functionality
+        )  # ! temporarily disable functionality (actual method code below)
 
     # return len(obj.prefetched_public_in_unseen_public_exercises)
 

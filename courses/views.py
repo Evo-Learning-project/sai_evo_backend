@@ -20,6 +20,7 @@ from coding.helpers import get_code_execution_results
 from courses.logic.event_instances import get_exercises_from
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
+    COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
     EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
@@ -186,6 +187,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
     )
     permission_classes = [policies.CoursePolicy]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context[COURSE_SHOW_PUBLIC_EXERCISES_COUNT] = self.action == "retrieve"
+        return context
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -364,16 +370,6 @@ class ExerciseViewSet(BulkCreateMixin, viewsets.ModelViewSet, BulkGetMixin):
             parent_id=self.kwargs.get("exercise_pk"),
             creator=self.request.user,
         )
-
-    # bulk creation
-    # TODO export to mixin
-    # def create(self, request, *args, **kwargs):
-    #     many = isinstance(request.data, list)
-    #     serializer = self.get_serializer(data=request.data, many=many)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
-    #     return Response(serializer.data, headers=headers)
 
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
