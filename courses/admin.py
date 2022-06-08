@@ -73,7 +73,7 @@ class EventTemplateRuleAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    readonly_fields = ("state",)
+    readonly_fields = ("state", "template")
 
 
 @admin.register(EventParticipationSlot)

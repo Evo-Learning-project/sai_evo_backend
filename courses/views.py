@@ -801,7 +801,7 @@ class EventParticipationSlotViewSet(
     permission_classes = [policies.EventParticipationSlotPolicy]
     queryset = (
         EventParticipationSlot.objects.all()
-        .select_related("exercise")
+        .select_related("exercise", "participation", "participation__event")
         .prefetch_related("sub_slots", "selected_choices")
     )
 

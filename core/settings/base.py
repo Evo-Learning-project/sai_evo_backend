@@ -58,10 +58,10 @@ INSTALLED_APPS = [
     # "silk",
 ]
 
-# SILKY_PYTHON_PROFILER = True
+SILKY_PYTHON_PROFILER = True
 
 MIDDLEWARE = [
-    #   "silk.middleware.SilkyMiddleware",
+    # "silk.middleware.SilkyMiddleware",
     "drf_viewset_profiler.middleware.LineProfilerViewSetMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",

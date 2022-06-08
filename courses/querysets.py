@@ -51,6 +51,10 @@ class ExerciseQuerySet(models.QuerySet):
         """
         from courses.models import EventTemplateRule, Exercise
 
+        if rule.rule_type is None:
+            # if rule type is unset, return empty queryset
+            return Exercise.objects.none()
+
         ret_qs = self.exclude(state=Exercise.DRAFT)
 
         if rule.rule_type == EventTemplateRule.ID_BASED:
