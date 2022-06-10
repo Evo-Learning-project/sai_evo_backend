@@ -21,6 +21,7 @@ from courses.logic.event_instances import get_exercises_from
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
     COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
+    EVENT_PARTICIPATION_SHOW_EVENT,
     EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
@@ -674,6 +675,9 @@ class EventParticipationViewSet(
         if MANAGE_EVENTS in self.user_privileges:
             context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
             context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
+
+        if self.action != "list" or "include_event" in self.request.query_params:
+            context[EVENT_PARTICIPATION_SHOW_EVENT] = True
 
         context["capabilities"] = self.get_capabilities()
         return context

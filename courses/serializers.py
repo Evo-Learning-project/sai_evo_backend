@@ -3,6 +3,7 @@ from rest_framework import serializers
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
     COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
+    EVENT_PARTICIPATION_SHOW_EVENT,
     EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
@@ -569,6 +570,7 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
         conditional_fields = {
             EVENT_PARTICIPATION_SHOW_SLOTS: ["slots"],
             EVENT_PARTICIPATION_SHOW_SCORE: ["score"],
+            EVENT_PARTICIPATION_SHOW_EVENT: ["event"],
         }
 
     def __init__(self, *args, **kwargs):
