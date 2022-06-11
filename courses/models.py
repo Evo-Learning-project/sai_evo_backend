@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
 from users.models import User
+from django.db import transaction
 
 from courses.logic import privileges
 from courses.logic.assessment import get_assessor_class
@@ -993,19 +994,26 @@ class EventParticipationSlot(models.Model):
         return self.ASSESSED if self.score is not None else self.NOT_ASSESSED
 
     def save(self, *args, **kwargs):
-        if self.pk is not None:  # can't clean as m2m field won't work without a pk
-            # TODO clean the m2m field separately
-            self.full_clean()
-            # TODO use django lifecycle package
-            if self.answered_at is None and self.has_answer:
+        self.full_clean()
+        super().save(*args, **kwargs)
+        # TODO use django lifecycle package
+
+        # run on transaction commit because, for multiple choice exercises,
+        # it'll check whether a selected choice exists (i.e. a record in the
+        # m2m table exists), but the record won't be visible yet because
+        # this method is executed while still inside a transaction
+        def update_answered_at_if_answer_exists():
+            if self.has_answer:
                 now = timezone.localtime(timezone.now())
                 self.answered_at = now
+                self.save(update_fields=["answered_at"])
                 # update answered time of parent too
                 if self.parent is not None and self.parent.answered_at is None:
                     self.parent.answered_at = now
                     self.parent.save(update_fields=["answered_at"])
 
-        return super().save(*args, **kwargs)
+        if self.answered_at is None:
+            transaction.on_commit(update_answered_at_if_answer_exists)
 
     # TODO clean
 
