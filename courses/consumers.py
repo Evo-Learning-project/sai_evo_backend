@@ -111,7 +111,7 @@ class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
         request = HttpRequest()
         request.user = self.scope["user"]
         context["request"] = request
-        context["show_hidden_fields"] = True  #! keep an eye on this
+        context["show_hidden_fields"] = True  #! remove?
         return context
 
     @classmethod
@@ -206,7 +206,6 @@ class SubmissionSlotConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(
                 "submission_slot_" + str(pk), self.channel_name
             )
-            print("subscribed", "submission_slot_" + str(pk))
 
     async def check_permissions(self, **kwargs):
         try:

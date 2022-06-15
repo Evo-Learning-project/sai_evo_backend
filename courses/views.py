@@ -845,6 +845,8 @@ class EventParticipationSlotViewSet(
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # TODO add ability to filter by exercise to get usages of an exercise
+        # ? TODO prefetch here right before returning instead of up above?
         return qs.filter(participation=self.kwargs["participation_pk"])
 
     @action(detail=True, methods=["post"])

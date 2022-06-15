@@ -996,7 +996,6 @@ class EventParticipationSlot(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-        # TODO use django lifecycle package
 
         # run on transaction commit because, for multiple choice exercises,
         # it'll check whether a selected choice exists (i.e. a record in the
