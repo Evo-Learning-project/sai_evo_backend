@@ -178,9 +178,8 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
 
-# tokens expiration
 oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
-    os.environ.get("TOKEN_EXPIRATION_SECONDS", 2592000)
+    os.environ.get("TOKEN_EXPIRE_SECONDS", 2592000)
 )
 
 
