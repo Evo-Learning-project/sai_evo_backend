@@ -518,6 +518,9 @@ class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
         context = super().get_serializer_context()
         # show hidden fields only to privileged users
         context[EVENT_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
+        context[EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD] = (
+            MANAGE_EVENTS in self.user_privileges
+        )
         # tell user if a participation of their own to the
         #  event exists if they retrieve a specific event
         context[EVENT_SHOW_PARTICIPATION_EXISTS] = self.action == "retrieve"
