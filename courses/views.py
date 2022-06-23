@@ -522,7 +522,7 @@ class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
             MANAGE_EVENTS in self.user_privileges
         )
         # tell user if a participation of their own to the
-        #  event exists if they retrieve a specific event
+        # event exists if they retrieve a specific event
         context[EVENT_SHOW_PARTICIPATION_EXISTS] = self.action == "retrieve"
         # don't show events' templates if they are shown in
         # a list in order to save queries
