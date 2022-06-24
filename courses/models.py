@@ -443,9 +443,6 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         (ALLOW_ACCESS, "Allow"),
         (DENY_ACCESS, "Deny"),
     )
-
-    name = models.TextField(blank=True)
-    instructions = models.TextField(blank=True)
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
@@ -458,10 +455,7 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         related_name="created_events",
         on_delete=models.SET_NULL,
     )
-    begin_timestamp = models.DateTimeField(null=True, blank=True)
-    end_timestamp = models.DateTimeField(null=True, blank=True)
-    open_automatically = models.BooleanField(default=True)
-    close_automatically = models.BooleanField(default=False)
+    name = models.TextField(blank=True)
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
     _event_state = models.PositiveIntegerField(
         choices=EVENT_STATES, default=DRAFT, db_column="state"
@@ -472,12 +466,18 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         null=True,
         blank=True,
     )
+    # exam specific settings
+    instructions = models.TextField(blank=True)
+    begin_timestamp = models.DateTimeField(null=True, blank=True)
+    end_timestamp = models.DateTimeField(null=True, blank=True)
+    open_automatically = models.BooleanField(default=True)
+    close_automatically = models.BooleanField(default=False)
     users_allowed_past_closure = models.ManyToManyField(User, blank=True)
     exercises_shown_at_a_time = models.PositiveIntegerField(null=True, blank=True)
     allow_going_back = models.BooleanField(default=True)
     access_rule = models.PositiveIntegerField(
         choices=ACCESS_RULES, default=ALLOW_ACCESS
-    )
+    )  # ! if you move this to ExamSettings, make sure to not check it if it's a practice event
     access_rule_exceptions = models.JSONField(default=list, blank=True)
     randomize_rule_order = models.BooleanField(default=False)
 
