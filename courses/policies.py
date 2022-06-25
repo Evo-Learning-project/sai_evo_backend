@@ -1,4 +1,5 @@
 from rest_access_policy import AccessPolicy
+from courses.logic.participations import is_time_up
 
 from courses.logic.privileges import check_privilege
 
@@ -297,6 +298,8 @@ class EventParticipationPolicy(BaseAccessPolicy):
         from courses.models import Event, EventParticipation
 
         participation = view.get_object()
+
+        # TODO extract bookmarking to a separate method
         if participation.state == EventParticipation.TURNED_IN and (
             # allow bookmarking even after participation has been turned in
             "bookmarked" not in request.data
@@ -304,6 +307,12 @@ class EventParticipationPolicy(BaseAccessPolicy):
         ):
             return False
 
+        # check that there is time left for the participation
+        if is_time_up(participation):
+            print("TIMES'UP")
+            return False
+
+        # TODO change to event = participation.event ?
         try:
             event = Event.objects.get(pk=view.kwargs["event_pk"])
         except ValueError:
@@ -362,6 +371,11 @@ class EventParticipationSlotPolicy(BaseAccessPolicy):
 
         participation = view.get_object().participation
         if participation.state == EventParticipation.TURNED_IN:
+            return False
+
+        # check that there is time left for the participation
+        if is_time_up(participation):
+            print("TIMES'UP")
             return False
 
         try:

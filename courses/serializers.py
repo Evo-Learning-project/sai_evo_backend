@@ -1,5 +1,6 @@
 from django.db.models import Exists, OuterRef
 from rest_framework import serializers
+from courses.logic.participations import get_effective_time_limit
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
     COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
@@ -389,6 +390,9 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "randomize_rule_order",
             "access_rule",
             "access_rule_exceptions",
+            "time_limit_rule",
+            "time_limit_seconds",
+            "time_limit_exceptions",
         ]
 
         conditional_fields = {
@@ -398,6 +402,7 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
                 "randomize_rule_order",
                 "access_rule",
                 "access_rule_exceptions",
+                "time_limit_exceptions",
             ],
             EVENT_SHOW_TEMPLATE: ["template"],
             EVENT_SHOW_PARTICIPATION_EXISTS: ["participation_exists"],
@@ -406,6 +411,15 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.remove_unsatisfied_condition_fields()
+
+        if not self.context.get(EVENT_SHOW_HIDDEN_FIELDS, False):
+            # if user is a student, replace field with a read-only
+            # method field that displays the effective time limit for
+            # them taking into account exceptions
+            self.fields["time_limit_seconds"] = serializers.SerializerMethodField()
+
+    def get_time_limit_seconds(self, obj):
+        return get_effective_time_limit(self.context["request"].user, obj)
 
     def get_state(self, obj):
         state = obj.state
