@@ -413,7 +413,6 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     EXAM = 2
     HOME_ASSIGNMENT = 3
     EXTERNAL = 4
-
     EVENT_TYPES = (
         (SELF_SERVICE_PRACTICE, "Self-service practice"),
         (IN_CLASS_PRACTICE, "In-class practice"),
@@ -427,7 +426,6 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     OPEN = 2
     CLOSED = 3
     RESTRICTED = 4
-
     EVENT_STATES = (
         (DRAFT, "Draft"),
         (PLANNED, "Planned"),
@@ -438,11 +436,18 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
 
     ALLOW_ACCESS = 0
     DENY_ACCESS = 1
-
     ACCESS_RULES = (
         (ALLOW_ACCESS, "Allow"),
         (DENY_ACCESS, "Deny"),
     )
+
+    NO_TIME_LIMIT = 0
+    TIME_LIMIT = 1
+    TIME_LIMIT_RULES = (
+        (NO_TIME_LIMIT, "No time limit"),
+        (TIME_LIMIT, "Time limit"),
+    )
+
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
@@ -475,10 +480,15 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     users_allowed_past_closure = models.ManyToManyField(User, blank=True)
     exercises_shown_at_a_time = models.PositiveIntegerField(null=True, blank=True)
     allow_going_back = models.BooleanField(default=True)
-    access_rule = models.PositiveIntegerField(
+    access_rule = models.PositiveIntegerField(  # TODO positive small integer
         choices=ACCESS_RULES, default=ALLOW_ACCESS
-    )  # ! if you move this to ExamSettings, make sure to not check it if it's a practice event
+    )
     access_rule_exceptions = models.JSONField(default=list, blank=True)
+    time_limit_rule = models.PositiveSmallIntegerField(
+        choices=TIME_LIMIT_RULES, default=NO_TIME_LIMIT
+    )
+    time_limit_seconds = models.PositiveIntegerField(null=True, blank=True)
+    time_limit_exceptions = models.JSONField(default=list, blank=True)
     randomize_rule_order = models.BooleanField(default=False)
 
     objects = EventManager()
@@ -556,6 +566,8 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         return super().save(*args, **kwargs)
 
     def clean(self, *args, **kwargs):
+        # TODO clean time_limit_exceptions
+
         if not isinstance(self.access_rule_exceptions, list):
             raise ValidationError(
                 f"access_rule_exception must be a list, not {self.access_rule_exceptions}"
