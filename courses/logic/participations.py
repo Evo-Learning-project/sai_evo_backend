@@ -49,7 +49,7 @@ def is_time_up(
 
     Args:
         participation (EventParticipation): the participation for which
-        to check whether the time is up
+        to check whether time is up
 
     Returns:
         bool: True if time has run out for the participation, False otherwise
