@@ -685,6 +685,7 @@ class EventTemplateRuleClause(models.Model):
 class EventParticipation(models.Model):
     IN_PROGRESS = 0
     TURNED_IN = 1
+    # TODO implement ABANDONED state
     PARTICIPATION_STATES = (
         (IN_PROGRESS, "In progress"),
         (TURNED_IN, "Turned in"),
