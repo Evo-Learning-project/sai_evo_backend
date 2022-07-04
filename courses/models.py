@@ -566,13 +566,31 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         return super().save(*args, **kwargs)
 
     def clean(self, *args, **kwargs):
-        # TODO clean time_limit_exceptions
+        if not isinstance(self.time_limit_exceptions, list):
+            raise ValidationError(
+                f"time_limit_exceptions must be a list, not {self.access_rule_exceptions}"
+            )
+        for item in self.time_limit_exceptions:
+            # time_limit_exceptions must be a list of lists, each with
+            # length 2, where the first element is a string (the email
+            # address of a student) and the second a string or number
+            # (the number of seconds amounting to the time limit for
+            # that student)
+            if not isinstance(item, list):
+                raise ValidationError(
+                    f"time_limit_exceptions members must be lists, not {item}"
+                )
+            if len(item) != 2:
+                raise ValidationError(f"{item} must have length 2")
+            if not isinstance(item[0], str):
+                raise ValidationError(f"{item[0]} must be a string")
+            if type(item[1]) not in (str, int, float):
+                raise ValidationError(f"{item[1]} must be a string or number")
 
         if not isinstance(self.access_rule_exceptions, list):
             raise ValidationError(
                 f"access_rule_exception must be a list, not {self.access_rule_exceptions}"
             )
-
         for item in self.access_rule_exceptions:
             if not isinstance(item, str):
                 raise ValidationError(
