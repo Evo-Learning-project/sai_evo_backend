@@ -169,18 +169,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         Course.objects.all()
         .select_related("creator")
         .prefetch_related(
-            # "exercises",
-            # "exercises__public_tags",
-            # "exercises__private_tags",
-            # "exercises__choices",
-            # "exercises__testcases",
-            # "exercises__sub_exercises",
-            # "events",
-            # "events__template",
-            # "events__template__rules",
-            # "events__template__rules__clauses",
-            # "events__template__rules__clauses__tags",
-            # "events__template__rules__exercises",
             "roles",
             "roles__users",
             "privileged_users",
@@ -196,6 +184,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # TODO use scope_queryset https://rsinger86.github.io/drf-access-policy/multi_tenacy/
         if not self.request.user.is_teacher:
             qs = qs.public()
 
@@ -337,7 +326,6 @@ class ExerciseViewSet(BulkCreateMixin, viewsets.ModelViewSet, BulkGetMixin):
     ]
     filterset_class = ExerciseFilter
     search_fields = ["label", "text"]
-    # filter_fields = ["exercise_type", "state"]
 
     def get_permissions(self):
         if self.kwargs.get("exercise_pk"):
@@ -475,6 +463,7 @@ class TagViewSet(
 
         # students can only access public tags
         if MANAGE_EXERCISES not in self.user_privileges:
+            # TODO use scope_queryset
             qs = qs.public()
 
         return qs
@@ -713,13 +702,11 @@ class EventParticipationViewSet(
         try:
             if self.kwargs.get("event_pk") is not None:
                 # accessing as a nested view of event viewset
-
                 return qs.filter(
                     event_id=self.kwargs["event_pk"],
                 )
             else:
                 # accessing as a nested view of course viewset
-
                 qs = qs.filter(event__course_id=self.kwargs["course_pk"])
                 if self.request.query_params.get("user_id") is not None:
                     # only get participations of a specific user to a course

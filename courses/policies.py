@@ -140,8 +140,6 @@ class EventTemplatePolicy(BaseAccessPolicy):
             EventTemplateRuleViewSet,
         )
 
-        # template = view.get_object()
-
         if isinstance(view, EventTemplateRuleViewSet) or isinstance(
             view, EventTemplateRuleClauseViewSet
         ):
@@ -158,10 +156,9 @@ class EventTemplatePolicy(BaseAccessPolicy):
 class TagPolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list", "retrieve"],  # "create"
+            "action": ["list", "retrieve"],
             "principal": ["authenticated"],
             "effect": "allow",
-            # "condition": "has_teacher_privileges:access_exercises",
         },
     ]
 
@@ -187,12 +184,6 @@ class ExercisePolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_exercises",
         },
-        # {
-        #     "action": ["update", "partial_update", "destroy", "tags"],
-        #     "principal": ["authenticated"],
-        #     "effect": "allow",
-        #     "condition": "has_teacher_privileges:modify_exercises",
-        # },
     ]
 
 
@@ -215,25 +206,73 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
     ]
 
 
-class EventParticipationPolicy(BaseAccessPolicy):
+class EventParticipationPolicyMixin:
+    def is_own_participation(self, request, view, action):
+        from courses.views import (
+            EventParticipationSlotViewSet,
+            EventParticipationViewSet,
+        )
+
+        if isinstance(view, EventParticipationViewSet):
+            participation = view.get_object()
+        elif isinstance(view, EventParticipationSlotViewSet):
+            participation = view.get_object().participation
+        else:
+            assert False, f"View {view} isn't of correct type"
+
+        return request.user == participation.user
+
+    def can_update_participation(self, request, view, action):
+        from courses.models import Event, EventParticipation
+        from courses.views import (
+            EventParticipationSlotViewSet,
+            EventParticipationViewSet,
+        )
+
+        if isinstance(view, EventParticipationViewSet):
+            participation = view.get_object()
+        elif isinstance(view, EventParticipationSlotViewSet):
+            participation = view.get_object().participation
+        else:
+            assert False, f"View {view} isn't of correct type"
+
+        if participation.state == EventParticipation.TURNED_IN:
+            return False
+
+        # check that there is time left for the participation
+        if is_time_up(participation):
+            return False
+
+        event = participation.event  # Event.objects.get(pk=view.kwargs["event_pk"])
+
+        return event.state == Event.OPEN or (
+            event.state == Event.RESTRICTED
+            and request.user in event.users_allowed_past_closure.all()
+        )
+
+
+class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
     statements = [
         {
             "action": ["list"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "has_teacher_privileges:manage_events or requested_own_participations",
+            "condition_expression": "has_teacher_privileges:manage_events\
+                or requested_own_participations",
         },
         {
             "action": ["retrieve"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_own_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "is_own_participation\
+                or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["create"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "can_participate or has_teacher_privileges:manage_events",
+            "condition_expression": "can_participate\
+                or has_teacher_privileges:manage_events",
         },
         {
             "action": ["go_back"],
@@ -245,25 +284,33 @@ class EventParticipationPolicy(BaseAccessPolicy):
             "action": ["update", "partial_update", "go_forward", "go_back"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_own_participation and can_update_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "\
+                is_own_participation and \
+                    (can_update_participation or is_bookmark_request)\
+                        or has_teacher_privileges:assess_participations",
+        },
+        {
+            "action": ["go_forward", "go_back"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "\
+                is_own_participation and can_update_participation\
+                        or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["bulk_patch"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "has_teacher_privileges:assess_participations",
+            "condition_expression": "\
+                has_teacher_privileges:assess_participations",
         },
         {
             "action": ["go_forward"],
             "principal": ["authenticated"],
-            "effect": "allow",
-            "condition": "can_go_forward",
+            "effect": "deny",
+            "condition_expression": "not can_go_forward",
         },
     ]
-
-    def is_own_participation(self, request, view, action):
-        participation = view.get_object()
-        return request.user == participation.user
 
     def requested_own_participations(self, request, view, action):
         """
@@ -294,34 +341,11 @@ class EventParticipationPolicy(BaseAccessPolicy):
         else:  # default is DENY_ACCESS
             return request.user.email in event.access_rule_exceptions
 
-    def can_update_participation(self, request, view, action):
-        from courses.models import Event, EventParticipation
-
-        participation = view.get_object()
-
-        # TODO extract bookmarking to a separate method
-        if participation.state == EventParticipation.TURNED_IN and (
-            # allow bookmarking even after participation has been turned in
-            "bookmarked" not in request.data
-            or len(request.data.keys()) > 1
-        ):
-            return False
-
-        # check that there is time left for the participation
-        if is_time_up(participation):
-            print("TIMES'UP")
-            return False
-
-        # TODO change to event = participation.event ?
-        try:
-            event = Event.objects.get(pk=view.kwargs["event_pk"])
-        except ValueError:
-            return False
-
-        return event.state == Event.OPEN or (
-            event.state == Event.RESTRICTED
-            and request.user in event.users_allowed_past_closure.all()
-        )
+    def is_bookmark_request(self, request, view, action):
+        # users are allowed to update a participation after it's
+        # turned in as long as their request only involves updating
+        # the `bookmarked` field
+        return "bookmarked" in request.data and len(request.data.keys()) == 1
 
     def can_go_forward(self, request, view, action):
         participation = view.get_object()
@@ -331,62 +355,37 @@ class EventParticipationPolicy(BaseAccessPolicy):
         from courses.models import Event
 
         participation = view.get_object()
-        try:
-            event = Event.objects.get(pk=view.kwargs["event_pk"])
-        except ValueError:
-            return False
+        event = participation.event
 
         return not participation.is_cursor_first_position and event.allow_going_back
 
 
-class EventParticipationSlotPolicy(BaseAccessPolicy):
+class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
     statements = [
         {
             "action": ["list", "retrieve"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_in_own_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "is_own_participation\
+                or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["update", "partial_update", "run", "attachment"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_in_own_participation and can_update_parent_participation or has_teacher_privileges:assess_participations",
+            "condition_expression": "\
+                is_own_participation and can_update_participation\
+                    or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["retrieve", "update", "partial_update"],
             "principal": ["authenticated"],
             "effect": "deny",
-            "condition_expression": "not has_teacher_privileges:assess_participations and not is_slot_in_scope",
+            "condition_expression": "\
+                not has_teacher_privileges:assess_participations\
+                and not is_slot_in_scope",
         },
     ]
-
-    def is_in_own_participation(self, request, view, action):
-        participation = view.get_object().participation
-        return request.user == participation.user
-
-    def can_update_parent_participation(self, request, view, action):
-        # TODO refactor to get rid of duplicated code
-        from courses.models import Event, EventParticipation
-
-        participation = view.get_object().participation
-        if participation.state == EventParticipation.TURNED_IN:
-            return False
-
-        # check that there is time left for the participation
-        if is_time_up(participation):
-            print("TIMES'UP")
-            return False
-
-        try:
-            event = Event.objects.get(pk=view.kwargs["event_pk"])
-        except ValueError:
-            return False
-
-        return event.state == Event.OPEN or (
-            event.state == Event.RESTRICTED
-            and request.user in event.users_allowed_past_closure.all()
-        )
 
     def is_slot_in_scope(self, request, view, action):
         slot = view.get_object()
