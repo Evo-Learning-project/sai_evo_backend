@@ -163,6 +163,18 @@ class BulkGetMixin:
         return Response(serializer.data)
 
 
+class ScopeQuerySetByCourseMixin(viewsets.ModelViewSet):
+    """
+    Filters its queryset by the course_pk
+    kwarg. Used by all sub-routes of /courses/<course_pk> to get
+    the appropriate querysets
+    """
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(course_id=self.kwargs["course_pk"])
+
+
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     queryset = (
@@ -256,14 +268,10 @@ class CourseViewSet(viewsets.ModelViewSet):
         return EventSerializer(practice_events, many=True, context=self.context).data
 
 
-class CourseRoleViewSet(viewsets.ModelViewSet):
+class CourseRoleViewSet(ScopeQuerySetByCourseMixin):
     serializer_class = CourseRoleSerializer
     queryset = CourseRole.objects.all()
     permission_classes = [policies.CourseRolePolicy]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["course_pk"])
 
     @action(detail=True, methods=["get"])
     def add_to_user(self, request, **kwargs):
@@ -304,7 +312,11 @@ class ExerciseFilter(FilterSet):
         return queryset
 
 
-class ExerciseViewSet(BulkCreateMixin, viewsets.ModelViewSet, BulkGetMixin):
+class ExerciseViewSet(
+    BulkCreateMixin,
+    ScopeQuerySetByCourseMixin,
+    BulkGetMixin,
+):
     serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().prefetch_related(
         "private_tags",
@@ -344,7 +356,6 @@ class ExerciseViewSet(BulkCreateMixin, viewsets.ModelViewSet, BulkGetMixin):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        qs = qs.filter(course_id=self.kwargs["course_pk"])
         if self.kwargs.get("exercise_pk") is not None:
             # using the viewset for sub-exercises
             qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
@@ -444,19 +455,14 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
 
 class TagViewSet(
     RequestingUserPrivilegesMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet,
+    ScopeQuerySetByCourseMixin,
 ):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
     permission_classes = [policies.TagPolicy]
 
-    # TODO abstract this behavior (filtering on course)
     def get_queryset(self):
         qs = super().get_queryset()
-        qs = qs.filter(course_id=self.kwargs["course_pk"])
-
         qs = qs.with_prefetched_public_exercises().with_prefetched_public_unseen_exercises(
             self.request.user
         )
@@ -481,7 +487,7 @@ class TagViewSet(
         )
 
 
-class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
+class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
     serializer_class = EventSerializer
     queryset = (
         Event.objects.all()
@@ -498,10 +504,6 @@ class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     permission_classes = [policies.EventPolicy]
     filter_backends = [DjangoFilterBackend]
     filter_fields = ["event_type"]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["course_pk"])
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -543,14 +545,10 @@ class EventViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
 
 # TODO disallow actions and make read-only
-class EventTemplateViewSet(viewsets.ModelViewSet):
+class EventTemplateViewSet(ScopeQuerySetByCourseMixin):
     serializer_class = EventTemplateSerializer
     queryset = EventTemplate.objects.all()
     permission_classes = [policies.EventTemplatePolicy]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["course_pk"])
 
     def perform_create(self, serializer):
         serializer.save(

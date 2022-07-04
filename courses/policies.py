@@ -243,7 +243,7 @@ class EventParticipationPolicyMixin:
         if is_time_up(participation):
             return False
 
-        event = participation.event  # Event.objects.get(pk=view.kwargs["event_pk"])
+        event = participation.event
 
         return event.state == Event.OPEN or (
             event.state == Event.RESTRICTED
