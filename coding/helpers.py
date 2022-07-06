@@ -35,6 +35,7 @@ def run_c_code_in_vm(code, testcases):
                         "language_id": "c",
                         "input": testcase.stdin,
                         "sourcecode": code,
+                        "parameters": {"linkargs": ["-lm"]},
                     }
                 }
             ),
