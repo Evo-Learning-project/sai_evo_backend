@@ -27,10 +27,10 @@ from .managers import (
 )
 
 
-def get_attachment_path(instance, filename):
-    event = instance.submission.participation.event_instance.event
+def get_attachment_path(slot, filename):
+    event = slot.participation.event
     course = event.course
-    return f"{course.pk}/{event.pk}/{instance.slot_number}/{filename}"
+    return f"{course.pk}/{event.pk}/{slot.slot_number}/{filename}"
 
 
 class Course(TimestampableModel):

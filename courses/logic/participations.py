@@ -23,7 +23,7 @@ def get_effective_time_limit(user: User, event: Event) -> Optional[int]:
         if no time limit applies
     """
 
-    if event.time_limit_rule != Event.TIME_LIMIT:
+    if event.time_limit_rule != Event.TIME_LIMIT or event.time_limit_seconds is None:
         return None
 
     # if user has a time limit exception, return that time
