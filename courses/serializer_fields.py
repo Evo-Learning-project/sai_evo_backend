@@ -142,11 +142,17 @@ class ReadWriteSerializerMethodField(SerializerMethodField):
 
 
 class FileWithPreviewField(serializers.FileField):
+    def __init__(self, *args, **kwargs):
+        self.extras = kwargs.pop("extras", {})
+        super().__init__(*args, **kwargs)
+
     def to_representation(self, value):
         if not value:
             return None
 
+        print("extras", self.extras)
         return {
             "name": os.path.split(value.name)[1],
             "size": value.size,
+            "extras": self.extras,
         }

@@ -531,8 +531,21 @@ class EventParticipationSlotSerializer(
             self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
                 many=True, **selected_choices_kwargs
             )
+
+            # TODO find a better way to handle attachment
+            # pass slot and participation id's to file field's extras
+            attachment_extras = {}
+            if self.instance is not None:
+                instance = (
+                    self.instance
+                    if not isinstance(self.instance, list)
+                    else self.instance[0]
+                )
+                attachment_extras["slot_id"] = instance.pk
+                attachment_extras["participation_id"] = instance.participation.pk
+
             self.fields["attachment"] = FileWithPreviewField(
-                read_only=(not submission_fields_write),
+                read_only=(not submission_fields_write), extras=attachment_extras
             )
             if self.context.get("trim_images_in_text", False):
                 self.fields["answer_text"] = serializers.SerializerMethodField()

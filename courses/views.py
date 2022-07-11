@@ -487,6 +487,12 @@ class TagViewSet(
         )
 
 
+class EventFilter(FilterSet):
+    class Meta:
+        model = Event
+        fields = ["event_type"]
+
+
 class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
     serializer_class = EventSerializer
     queryset = (
@@ -503,7 +509,9 @@ class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
     # TODO disallow list view for non-teachers (only allow students to retrieve an exam if they know the id)
     permission_classes = [policies.EventPolicy]
     filter_backends = [DjangoFilterBackend]
-    filter_fields = ["event_type"]
+    filterset_class = EventFilter
+
+    # filter_fields = ["event_type"]
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
