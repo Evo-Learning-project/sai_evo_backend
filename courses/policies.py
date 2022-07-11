@@ -207,7 +207,7 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
 
 
 class EventParticipationPolicyMixin:
-    def is_own_participation(self, request, view, action):
+    def get_participation(self, view):
         from courses.views import (
             EventParticipationSlotViewSet,
             EventParticipationViewSet,
@@ -219,22 +219,16 @@ class EventParticipationPolicyMixin:
             participation = view.get_object().participation
         else:
             assert False, f"View {view} isn't of correct type"
+        return participation
 
+    def is_own_participation(self, request, view, action):
+        participation = self.get_participation(view)
         return request.user == participation.user
 
     def can_update_participation(self, request, view, action):
         from courses.models import Event, EventParticipation
-        from courses.views import (
-            EventParticipationSlotViewSet,
-            EventParticipationViewSet,
-        )
 
-        if isinstance(view, EventParticipationViewSet):
-            participation = view.get_object()
-        elif isinstance(view, EventParticipationSlotViewSet):
-            participation = view.get_object().participation
-        else:
-            assert False, f"View {view} isn't of correct type"
+        participation = self.get_participation(view)
 
         if participation.state == EventParticipation.TURNED_IN:
             return False
@@ -287,7 +281,7 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
             "condition_expression": "\
                 is_own_participation and \
                     (can_update_participation or is_bookmark_request)\
-                        or has_teacher_privileges:assess_participations",
+                or has_teacher_privileges:assess_participations",
         },
         {
             "action": ["go_forward", "go_back"],
