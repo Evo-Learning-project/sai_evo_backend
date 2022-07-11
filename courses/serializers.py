@@ -539,10 +539,11 @@ class EventParticipationSlotSerializer(
                 instance = (
                     self.instance
                     if not isinstance(self.instance, list)
-                    else self.instance[0]
+                    else (self.instance[0] if len(self.instance) > 0 else None)
                 )
-                attachment_extras["slot_id"] = instance.pk
-                attachment_extras["participation_id"] = instance.participation.pk
+                if instance is not None:
+                    attachment_extras["slot_id"] = instance.pk
+                    attachment_extras["participation_id"] = instance.participation.pk
 
             self.fields["attachment"] = FileWithPreviewField(
                 read_only=(not submission_fields_write), extras=attachment_extras
