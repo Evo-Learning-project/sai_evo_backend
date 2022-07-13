@@ -212,6 +212,13 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         related_name="sub_exercises",
         on_delete=models.CASCADE,
     )
+    # how much the sub-exercise weighs in scoring the parent exercise
+    # TODO enforce that the sum is 100
+    child_weight = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+    )
     public_tags = models.ManyToManyField(
         Tag,
         related_name="public_in_exercises",
@@ -332,16 +339,17 @@ class ExerciseChoice(OrderableModel):
         on_delete=models.CASCADE,
     )
     text = models.TextField(blank=True)
-    score_selected = models.DecimalField(
+    # TODO convert score_selected to correctness_percentage
+    correctness_percentage = models.DecimalField(
         decimal_places=2,
         max_digits=5,
         default=0,
     )
-    score_unselected = models.DecimalField(
-        decimal_places=2,
-        max_digits=5,
-        default=0,
-    )
+    # score_unselected = models.DecimalField(
+    #     decimal_places=2,
+    #     max_digits=5,
+    #     default=0,
+    # )
     # correct = models.BooleanField()
 
     ORDER_WITH_RESPECT_TO_FIELD = "exercise"
@@ -365,6 +373,19 @@ class ExerciseChoice(OrderableModel):
             + str(self._ordering)
             + ")"
         )
+
+    def save(self, *args, **kwargs):
+        # TODO resolve conflict with _ordering field, which is non-nullable
+        # self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def clean(self, *args, **kwargs):
+        if self.correctness_percentage is not None and (
+            self.correctness_percentage > 100 or self.correctness_percentage < -100
+        ):
+            raise ValidationError(
+                f"invalid correctness_percentage value {self.access_rule_exceptions}"
+            )
 
 
 class ExerciseTestCase(OrderableModel):
@@ -648,7 +669,13 @@ class EventTemplateRule(OrderableModel):
         "courses.Exercise",
         blank=True,
     )
-
+    # weight of the targeted slot(s), i.e. the maximum score for the related exercise(s)
+    max_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     # how many exercises need to be retrieved using this rule's criteria
     amount = models.PositiveIntegerField(default=1)
 
@@ -938,6 +965,13 @@ class EventParticipationSlot(models.Model):
         blank=True,
         related_name="sub_slots",
         on_delete=models.CASCADE,
+    )
+    populating_rule = models.ForeignKey(
+        EventTemplateRule,
+        null=True,  # TODO make non-nullable when transition is complete
+        blank=True,
+        related_name="populated_slots",
+        on_delete=models.PROTECT,
     )
 
     # bookkeeping fields

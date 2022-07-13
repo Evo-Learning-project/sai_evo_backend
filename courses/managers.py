@@ -150,7 +150,7 @@ class EventParticipationManager(models.Manager):
             event_template = event.template
 
             # use event template to get a list of exercises for this participation
-            exercises = get_exercises_from(
+            exercises_with_rules = get_exercises_from(
                 event_template,
                 public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
                 exclude_seen_in_practice=(
@@ -159,7 +159,7 @@ class EventParticipationManager(models.Manager):
             )
 
         slot_number = 0
-        for exercise in exercises:
+        for exercise, populating_rule in exercises_with_rules:
             now = timezone.localtime(timezone.now())
             # mark first slot as seen
             seen_at_kwarg = {"seen_at": now} if slot_number == 0 else {}
@@ -167,6 +167,7 @@ class EventParticipationManager(models.Manager):
             EventParticipationSlot.objects.create(
                 participation=participation,
                 exercise=exercise,
+                populating_rule=populating_rule,
                 slot_number=slot_number,
                 **seen_at_kwarg,
             )
