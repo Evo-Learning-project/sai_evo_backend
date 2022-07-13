@@ -133,10 +133,17 @@ class ExerciseChoiceSerializer(serializers.ModelSerializer, ConditionalFieldsMix
 
     class Meta:
         model = ExerciseChoice
-        fields = ["id", "text", "_ordering", "score_selected", "score_unselected"]
+        fields = [
+            "id",
+            "text",
+            "_ordering",
+            "correctness_percentage",
+        ]
 
         conditional_fields = {
-            CHOICE_SHOW_SCORE_FIELDS: ["score_selected", "score_unselected"]
+            CHOICE_SHOW_SCORE_FIELDS: [
+                "correctness_percentage",
+            ]
         }
 
     def __init__(self, *args, **kwargs):
@@ -218,6 +225,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "solution",
             "correct_choices",
             "locked_by",
+            "child_weight",
         ]
 
         conditional_fields = {
@@ -326,6 +334,7 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFields
             "amount",
             "_ordering",
             "satisfying",
+            "max_score",
         ]
 
         conditional_fields = {
