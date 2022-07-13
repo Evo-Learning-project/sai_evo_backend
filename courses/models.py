@@ -263,73 +263,8 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     def __str__(self):
         return self.text[:100]
 
-    @property
-    def max_score(self):
-        # TODO add field to make this writable?
-        if self.exercise_type in [Exercise.JS, Exercise.C]:
-            return self.testcases.count()
-
-        if self.choices.count() == 0:
-            return 0
-
-        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
-            return sum(
-                [max(c.score_selected, c.score_unselected) for c in self.choices.all()]
-            )
-        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            return max([p for (_, p) in self.get_choices_score_projection().items()])
-
-        return 0
-
     def clean(self):
         pass
-
-    def get_correct_choices(self):
-        """
-        Returns the correct choices - the definition depends on the type of exercise.
-        For single selection, the correct choices are those with the maximum score projection
-        For multiple selection, they are the choices with score_selected greater than
-        or equal to score_unselected, excluding those with score 0
-        """
-        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
-            # return all choices whose score_selected is greater than or equal
-            # to their score_unselected
-            return self.choices.filter(
-                score_selected__gte=F("score_unselected"), score_selected__gt=0
-            )
-        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            # return all choices that maximize the obtained score
-            # when chosen as a single selection
-            return [
-                c
-                for (c, p) in self.get_choices_score_projection().items()
-                if p == self.max_score
-            ]
-        if self.exercise_type == Exercise.COMPLETION:
-            return [
-                c
-                for c in [s.get_correct_choices() for s in self.sub_exercises.all()]
-                for c in c
-            ]
-
-        return []
-
-    def get_choices_score_projection(self):
-        """
-        Returns a dictionary in which, to each choice for this exercise, corresponds
-        the score obtained by selecting only that choice, i.e. the score_selected attribute
-        of that choice plus the sum of the score_unselected attributes for the other choices
-        """
-        ret = {}
-        choices = self.choices.all()
-        for c in choices:
-            ret[c] = c.score_selected + sum(
-                [
-                    d.score_unselected
-                    for d in [e for e in choices if e.pk != c.pk]  # all other choices
-                ]
-            )
-        return ret
 
 
 class ExerciseChoice(OrderableModel):
@@ -339,18 +274,11 @@ class ExerciseChoice(OrderableModel):
         on_delete=models.CASCADE,
     )
     text = models.TextField(blank=True)
-    # TODO convert score_selected to correctness_percentage
     correctness_percentage = models.DecimalField(
         decimal_places=2,
         max_digits=5,
         default=0,
     )
-    # score_unselected = models.DecimalField(
-    #     decimal_places=2,
-    #     max_digits=5,
-    #     default=0,
-    # )
-    # correct = models.BooleanField()
 
     ORDER_WITH_RESPECT_TO_FIELD = "exercise"
 
@@ -797,16 +725,17 @@ class EventParticipation(models.Model):
             base_slots = self.slots.base_slots()
         return len(base_slots) - 1
 
-    @property
-    def max_score(self):
-        slots = (
-            self.prefetched_base_slots
-            if hasattr(self, "prefetched_base_slots")
-            else self.slots.base_slots()
-        )
-        return sum(
-            [s.exercise.max_score for s in slots if s.exercise.max_score is not None]
-        )
+    # TODO this becomes a property of Event
+    # @property
+    # def max_score(self):
+    #     slots = (
+    #         self.prefetched_base_slots
+    #         if hasattr(self, "prefetched_base_slots")
+    #         else self.slots.base_slots()
+    #     )
+    #     return sum(
+    #         [s.exercise.max_score for s in slots if s.exercise.max_score is not None]
+    #     )
 
     @property
     def assessment_progress(self):

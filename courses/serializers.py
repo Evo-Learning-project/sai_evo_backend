@@ -206,7 +206,6 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     public_tags = TagSerializer(many=True, required=False)
     private_tags = TagSerializer(many=True, required=False)
     text = serializers.CharField(trim_whitespace=False, allow_blank=True)
-    correct_choices = serializers.SerializerMethodField()
     locked_by = UserSerializer(read_only=True)
 
     class Meta:
@@ -218,18 +217,16 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "label",
             "public_tags",
             "private_tags",
-            "max_score",
             "initial_code",
             "state",
             "requires_typescript",
             "solution",
-            "correct_choices",
             "locked_by",
             "child_weight",
         ]
 
         conditional_fields = {
-            EXERCISE_SHOW_SOLUTION_FIELDS: ["solution", "correct_choices"],
+            EXERCISE_SHOW_SOLUTION_FIELDS: ["solution"],
             EXERCISE_SHOW_HIDDEN_FIELDS: [
                 "locked_by",
                 "private_tags",
@@ -304,13 +301,6 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
         validated_data.pop("public_tags", [])
 
         return super().update(instance, validated_data)
-
-    def get_correct_choices(self, obj):
-        # workaround for drf bug https://github.com/encode/django-rest-framework/issues/6084
-        if isinstance(obj, Exercise):
-            return [c.pk for c in obj.get_correct_choices()]
-
-        return []
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
@@ -596,7 +586,6 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
             "user",
             "begin_timestamp",
             "end_timestamp",
-            "max_score",
             "event",
             "last_slot_number",
             "current_slot_cursor",
