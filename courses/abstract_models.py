@@ -45,6 +45,7 @@ class OrderableModel(TrackFieldsMixin):
 
         if (
             self.pk is not None
+            and hasattr(self, "_old__ordering")
             and self._old__ordering != self._ordering
             and not force_no_swap
         ):

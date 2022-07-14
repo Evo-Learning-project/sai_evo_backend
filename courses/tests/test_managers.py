@@ -168,9 +168,27 @@ class ExerciseManagerTestCase(TestCase):
             ],
         ]
 
+        sub_exercises = [
+            {
+                "text": "",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "choices": choices[0],
+            },
+            {
+                "text": "",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "choices": choices[1],
+            },
+            {
+                "text": "",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "choices": choices[2],
+            },
+        ]
+
         e1 = Exercise.objects.create(
             text=self.e1_text,
-            choices=choices,
+            sub_exercises=sub_exercises,
             exercise_type=Exercise.COMPLETION,
             course=self.course,
         )

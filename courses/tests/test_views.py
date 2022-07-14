@@ -105,8 +105,8 @@ class ExerciseViewSetTestCase(BaseTestCase):
         # show the course creator can CRUD exercises and their
         # choices/test cases/sub-exercises
         exercise_text = "abc"
-        choice1 = {"text": "c1", "score_selected": "-1.0", "score_unselected": "0.0"}
-        choice2 = {"text": "c2", "score_selected": "1.5", "score_unselected": "0.0"}
+        choice1 = {"text": "c1", "correctness_percentage": "-70"}
+        choice2 = {"text": "c2", "correctness_percentage": "100"}
         choices = [choice1, choice2]
         exercise_post_body = {
             "text": exercise_text,
@@ -363,7 +363,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
 
         response = self.client.post(
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/",
-            {"text": "new choice", "score_selected": "1.0", "score_unselected": "0.0"},
+            {"text": "new choice", "correctness_percentage": "100"},
         )
         self.assertEquals(response.status_code, 201)
         choice_pk = response.data["id"]
@@ -372,8 +372,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/exercises/{exercise_pk}/choices/{choice_pk}/",
             {
                 "text": "new choice text",
-                "score_selected": "21.0",
-                "score_unselected": "0.0",
+                "correctness_percentage": "50",
             },
         )
         self.assertEquals(response.status_code, 200)
@@ -575,8 +574,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
-        self.assertNotIn("score_selected", exercise["choices"][0])
-        self.assertNotIn("score_unselected", exercise["choices"][0])
+        self.assertNotIn("correctness_percentage", exercise["choices"][0])
 
         """
         Moving forward one slot
@@ -597,8 +595,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
-        self.assertNotIn("score_selected", exercise["choices"][0])
-        self.assertNotIn("score_unselected", exercise["choices"][0])
+        self.assertNotIn("correctness_percentage", exercise["choices"][0])
 
         # show moving back is only possible when allowed in the Event
         self.event.allow_going_back = False
@@ -631,8 +628,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
-        self.assertNotIn("score_selected", exercise["choices"][0])
-        self.assertNotIn("score_unselected", exercise["choices"][0])
+        self.assertNotIn("correctness_percentage", exercise["choices"][0])
 
         slot_pk = response.data["id"]
 
@@ -653,8 +649,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
-        self.assertNotIn("score_selected", exercise["choices"][0])
-        self.assertNotIn("score_unselected", exercise["choices"][0])
+        self.assertNotIn("correctness_percentage", exercise["choices"][0])
 
         """
         Show failure in updating an out-of-scope slot
@@ -756,8 +751,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("solution", exercise)
         self.assertNotIn("correct_choices", exercise)
         self.assertNotIn("private_tags", exercise)
-        self.assertNotIn("score_selected", exercise["choices"][0])
-        self.assertNotIn("score_unselected", exercise["choices"][0])
+        self.assertNotIn("correctness_percentage", exercise["choices"][0])
 
         """
         Show failure to access someone else's participation as a student
@@ -823,9 +817,8 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertIn("comment", slots[0])
 
         self.assertIn("solution", slots[0]["exercise"])
-        self.assertIn("correct_choices", slots[0]["exercise"])
-        self.assertIn("score_selected", slots[0]["exercise"]["choices"][0])
-        self.assertIn("score_unselected", slots[0]["exercise"]["choices"][0])
+
+        self.assertIn("correctness_percentage", slots[0]["exercise"]["choices"][0])
 
         """
         Show a user with `assess_participations` permission can update the assessment
@@ -855,9 +848,8 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertIn("comment", slots[0])
 
         self.assertIn("solution", slots[0]["exercise"])
-        self.assertIn("correct_choices", slots[0]["exercise"])
-        self.assertIn("score_selected", slots[0]["exercise"]["choices"][0])
-        self.assertIn("score_unselected", slots[0]["exercise"]["choices"][0])
+
+        self.assertIn("correctness_percentage", slots[0]["exercise"]["choices"][0])
 
         slot_0_pk = slots[0]["id"]
         """
@@ -906,9 +898,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertIn("score", slots[0])
         self.assertIn("comment", slots[0])
         self.assertIn("solution", exercise)
-        self.assertIn("correct_choices", exercise)
-        self.assertIn("score_selected", exercise["choices"][0])
-        self.assertIn("score_unselected", exercise["choices"][0])
+        self.assertIn("correctness_percentage", exercise["choices"][0])
 
     def test_view_queryset(self):
         # show that, for each event, you can only access that events's

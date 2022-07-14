@@ -472,14 +472,14 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     @property
     def max_score(self):
         rules = self.template.rules.all()
-        return sum([r.max_score or 0 for r in rules])
+        return sum([(r.max_score or 0) * r.amount for r in rules])
 
     @max_score.setter
     def max_score(self, value):
         # divides the given value evenly among the template
         # rules and sets it as their max_score property
         rules = self.template.rules.all()
-        per_rule_value = value / rules.count()
+        per_rule_value = value / sum([r.amount for r in rules])
         rules.update(max_score=per_rule_value)
 
     @property
