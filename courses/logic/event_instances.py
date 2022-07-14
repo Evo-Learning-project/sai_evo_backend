@@ -39,7 +39,7 @@ def get_exercises_from(
         rule_qs = exercises.satisfying(rule)
 
         rule_picked_exercises = rule_qs.exclude(
-            pk__in=[e.pk for e in picked_exercises]  # don't pick same exercise again
+            pk__in=[e.pk for e, _ in picked_exercises]  # don't pick same exercise again
         ).get_random(amount=rule.amount)
 
         for picked_exercise in rule_picked_exercises:
