@@ -1,3 +1,7 @@
+from decimal import Decimal
+from unicodedata import decimal
+
+
 def get_assessor_class(event):
     from courses.models import Event
 
@@ -15,7 +19,7 @@ class SubmissionAssessor:
     def get_multiple_choice_submission_correctness(self, slot):
         selected_choices = slot.selected_choices.all()
         # TODO review behavior of checkbox questions: here you could go over 100%
-        return sum([c.correctness_percentage for c in selected_choices])
+        return sum([c.correctness_percentage for c in selected_choices]) / 100
 
     def get_programming_submission_correctness(self, slot):
         if slot.execution_results is None:
@@ -45,13 +49,14 @@ class SubmissionAssessor:
             return None
 
         weighted_sub_slots_correctness = [
-            c * s.exercise.child_weight for s, c in sub_slots_correctness
+            c * s.exercise.child_weight / 100 for s, c in sub_slots_correctness
         ]
 
         correctness = sum(weighted_sub_slots_correctness)
         assert (
-            weighted_sub_slots_correctness <= 1 and weighted_sub_slots_correctness >= -1
-        )
+            correctness <= 1 and correctness >= -1
+        ), f"invalid sub-slot correctness {correctness}"
+
         return correctness
 
     def get_manual_submission_correctness(self, slot):
@@ -88,9 +93,11 @@ class SubmissionAssessor:
         correctness = self.get_submission_correctness(self.participation_slot)
 
         if correctness is not None:
-            assert correctness <= 1 and correctness >= -1
+            assert (
+                correctness <= 1 and correctness >= -1
+            ), f"invalid correctness {correctness}"
 
-            return correctness * (self.max_score or 0)  #! TODO sane default
+            return Decimal(correctness * (self.max_score or 0))  #! TODO sane default
 
         return None
 

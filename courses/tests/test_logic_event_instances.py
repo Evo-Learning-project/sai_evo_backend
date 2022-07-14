@@ -154,7 +154,7 @@ class GetExercisesFromTemplateTestCase(TestCase):
         # of the supplied template to retrieve exercises
 
         for _ in range(0, 20):
-            exercises = get_exercises_from(self.template)
+            exercises = [e for e, _ in get_exercises_from(self.template)]
             self.assertIn(exercises[0].pk, [self.e1.pk, self.e2.pk])
             self.assertIn(
                 exercises[1].pk, [self.e1.pk, self.e2.pk, self.e5.pk, self.e6.pk]

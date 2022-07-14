@@ -1,276 +1,236 @@
-# from courses.models import (
-#     Course,
-#     Event,
-#     EventParticipation,
-#     Exercise,
-# )
-# from django.test import TestCase
-# from users.models import User
+from courses.models import (
+    Course,
+    Event,
+    EventParticipation,
+    EventTemplateRule,
+    Exercise,
+)
+from django.test import TestCase
+from users.models import User
+
+from data import users, courses, exercises, events
+
+from django.utils import timezone
 
 
-# class SubmissionAssessorTestCase(TestCase):
-#     def setUp(self):
-#         self.user = User.objects.create(email="aaa@bbb.com")
-#         self.course = Course.objects.create(name="course")
-#         self.event_exam = Event.objects.create(
-#             name="event", event_type=Event.EXAM, course=self.course
-#         )
-#         self.e_multiple_single = Exercise.objects.create(
-#             text="a",
-#             course=self.course,
-#             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-#             choices=[
-#                 {"text": "aa", },
-#                 {"text": "bb", },
-#                 {"text": "cc", },
-#             ],
-#         )
-#         self.e_multiple_multiple = Exercise.objects.create(
-#             text="b",
-#             course=self.course,
-#             exercise_type=Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
-#             choices=[
-#                 {"text": "aa", },
-#                 {"text": "bb", },
-#                 {"text": "cc", },
-#             ],
-#         )
-#         self.e_open = Exercise.objects.create(
-#             text="c",
-#             course=self.course,
-#             exercise_type=Exercise.OPEN_ANSWER,
-#         )
-#         self.e_aggregated = Exercise.objects.create(
-#             text="c",
-#             course=self.course,
-#             exercise_type=Exercise.AGGREGATED,
-#             sub_exercises=[
-#                 {
-#                     "text": "aaa",
-#                     "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-#                     "choices": [
-#                         {"text": "a", },
-#                         {"text": "b", },
-#                     ],
-#                 },
-#                 {
-#                     "text": "bbb",
-#                     "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
-#                     "choices": [
-#                         {"text": "a", },
-#                         {"text": "b", },
-#                     ],
-#                 },
-#             ],
-#         )
-#         self.e_completion = Exercise.objects.create(
-#             text="c",
-#             course=self.course,
-#             exercise_type=Exercise.COMPLETION,
-#             choices=[
-#                 [
-#                     {"text": "1c1", },
-#                     {"text": "1c2", },
-#                 ],
-#                 [
-#                     {"text": "2c1", },
-#                     {"text": "2c2", },
-#                 ],
-#                 [
-#                     {"text": "3c1", },
-#                     {"text": "3c2", },
-#                     {"text": "3c3", },
-#                 ],
-#             ],
-#         )
+class SubmissionAssessorTestCase(TestCase):
+    def setUp(self):
+        self.teacher_1 = User.objects.create(**users.teacher_1)
+        self.course = Course.objects.create(creator=self.teacher_1, **courses.course_1)
 
-#         event_instance = EventInstance.objects.create(
-#             event=self.event_exam,
-#             exercises=[
-#                 self.e_multiple_single,
-#                 self.e_multiple_multiple,
-#                 self.e_open,
-#                 self.e_aggregated,
-#                 self.e_completion,
-#             ],
-#         )
-#         self.participation = EventParticipation.objects.create(
-#             event_instance=event_instance,
-#             user=self.user,
-#         )
+        self.student_1 = User.objects.create(**users.student_1)
+        self.student_2 = User.objects.create(**users.student_2)
 
-#     def test_assessment_multiple_choice_single_possible_exercise(self):
-#         assessment_rule = ExerciseAssessmentRule.objects.create(
-#             event=self.event_exam,
-#             exercise=self.e_multiple_single,
-#             points_for_correct=1,
-#             points_for_blank=0.5,
-#             points_for_incorrect=-1,
-#         )
+        self.mmc = Exercise.objects.create(course=self.course, **exercises.mmc_priv_1)
+        self.msc = Exercise.objects.create(course=self.course, **exercises.msc_priv_1)
+        self.clz = Exercise.objects.create(course=self.course, **exercises.cloze_prv_1)
+        self.open = Exercise.objects.create(course=self.course, **exercises.open_priv_1)
+        self.js = Exercise.objects.create(course=self.course, **exercises.js_prv_1)
 
-#         slots = self.participation.event_instance.slots.all()
-#         e1_slot = slots.get(exercise=self.e_multiple_single)
+        self.event: Event = Event.objects.create(
+            course=self.course, creator=self.teacher_1, **events.exam_1_one_at_a_time
+        )
 
-#         e1_submission = e1_slot.get_submission(self.participation)
-#         e1_assessment = e1_slot.get_assessment(self.participation)
+        self.rule_mmc = EventTemplateRule.objects.create(
+            template=self.event.template,
+            rule_type=EventTemplateRule.ID_BASED,
+            max_score=2,
+        )
+        self.rule_msc = EventTemplateRule.objects.create(
+            template=self.event.template,
+            rule_type=EventTemplateRule.ID_BASED,
+            max_score=2,
+        )
+        self.rule_clz = EventTemplateRule.objects.create(
+            template=self.event.template,
+            rule_type=EventTemplateRule.ID_BASED,
+            max_score=2,
+        )
+        self.rule_open = EventTemplateRule.objects.create(
+            template=self.event.template,
+            rule_type=EventTemplateRule.ID_BASED,
+            max_score=2,
+        )
+        self.rule_js = EventTemplateRule.objects.create(
+            template=self.event.template,
+            rule_type=EventTemplateRule.ID_BASED,
+            max_score=2,
+        )
+        self.rule_mmc.exercises.set([self.mmc])
+        self.rule_msc.exercises.set([self.msc])
+        self.rule_clz.exercises.set([self.clz])
+        self.rule_open.exercises.set([self.open])
+        self.rule_js.exercises.set([self.js])
 
-#         self.assertIsNone(e1_submission.selected_choice)
-#         # no choice was selected and the score wasn't,
-#         # overridden, therefore the score is `points_for_blank`
-#         self.assertEqual(e1_assessment.score, assessment_rule.points_for_blank)
-#         # setting `require_manual_assessment` disegards the rule parameters and returns None as score
-#         assessment_rule.require_manual_assessment = True
-#         assessment_rule.save()
-#         self.assertIsNone(e1_assessment.score)
-#         assessment_rule.require_manual_assessment = False
-#         assessment_rule.save()
+        # open event
+        self.event.state = Event.PLANNED
+        self.event.begin_timestamp = timezone.localdate(timezone.now())
 
-#         e1_submission.selected_choice = self.e_multiple_single.choices.filter(
-#             correct=True
-#         ).first()
-#         e1_submission.save()
-#         # rule for correct selected choice is applied
-#         self.assertEqual(e1_assessment.score, assessment_rule.points_for_correct)
-#         # setting `require_manual_assessment` disegards the rule parameters and returns None as score
-#         assessment_rule.require_manual_assessment = True
-#         assessment_rule.save()
-#         self.assertIsNone(e1_assessment.score)
-#         assessment_rule.require_manual_assessment = False
-#         assessment_rule.save()
+        self.participation = EventParticipation.objects.create(
+            event_id=self.event.pk, user=self.student_1
+        )
+        self.slot_mmc = self.participation.slots.get(populating_rule=self.rule_mmc)
+        self.slot_msc = self.participation.slots.get(populating_rule=self.rule_msc)
+        self.slot_clz = self.participation.slots.get(populating_rule=self.rule_clz)
+        self.slot_open = self.participation.slots.get(populating_rule=self.rule_open)
+        self.slot_js = self.participation.slots.get(populating_rule=self.rule_js)
 
-#         e1_submission.selected_choice = self.e_multiple_single.choices.filter(
-#             correct=False
-#         ).first()
-#         e1_submission.save()
-#         # rule for incorrect selected choice is applied
-#         self.assertEqual(e1_assessment.score, assessment_rule.points_for_incorrect)
-#         # setting `require_manual_assessment` disegards the rule parameters and returns None as score
-#         assessment_rule.require_manual_assessment = True
-#         assessment_rule.save()
-#         self.assertIsNone(e1_assessment.score)
-#         assessment_rule.require_manual_assessment = False
-#         assessment_rule.save()
+    def test_event_max_score(self):
+        """
+        Shows that the max_score property of an event is computed by summing
+        the max_score property of its rules, each multiplied by the rule's
+        amount value
+        """
+        self.assertEqual(self.event.max_score, 10)
 
-#         e1_assessment.score = 22
-#         e1_assessment.save()
+        self.rule_js.amount = 2
+        self.rule_js.save()
+        self.assertEqual(self.event.max_score, 12)
 
-#         # manually setting the score overrides any assessment rules
-#         self.assertEqual(e1_assessment.score, 22)
-#         e1_submission.selected_choice = None
-#         e1_submission.save()
-#         self.assertEqual(e1_assessment.score, 22)
-#         e1_submission.selected_choice = self.e_multiple_single.choices.filter(
-#             correct=True
-#         ).first()
-#         e1_submission.save()
-#         self.assertEqual(e1_assessment.score, 22)
-#         e1_submission.selected_choice = self.e_multiple_single.choices.filter(
-#             correct=False
-#         ).first()
-#         e1_submission.save()
-#         self.assertEqual(e1_assessment.score, 22)
-#         # setting `require_manual_assessment` has no effect if there is a manual score assigned
-#         assessment_rule.require_manual_assessment = True
-#         assessment_rule.save()
-#         self.assertEqual(e1_assessment.score, 22)
+        """
+        Shows that, when wrote to, the max_score property of an event
+        causes all rules to be assigned the same weight to evenly
+        distribute the new value
+        """
 
-#     def test_assessment_multiple_choice_multiple_possible_exercise(self):
-#         assessment_rule = ExerciseAssessmentRule.objects.create(
-#             event=self.event_exam,
-#             exercise=self.e_multiple_multiple,
-#             points_for_correct=1,
-#             points_for_blank=0,
-#             points_for_incorrect=-0.5,
-#             minimum_score_threshold=2,
-#         )
+        self.event.max_score = 21
 
-#         slots = self.participation.event_instance.slots.all()
-#         e2_slot = slots.get(exercise=self.e_multiple_multiple)
-#         e2_subslots = e2_slot.sub_slots.all()
+        self.rule_msc.refresh_from_db()
+        self.rule_mmc.refresh_from_db()
+        self.rule_clz.refresh_from_db()
+        self.rule_open.refresh_from_db()
+        self.rule_js.refresh_from_db()
 
-#         for subslot in e2_subslots:
-#             subslot_submission = subslot.get_submission(self.participation)
-#             subslot_assessment = subslot.get_assessment(self.participation)
-#             self.assertIsNone(subslot_submission.selected_choice)
-#             self.assertEqual(subslot_assessment.score, assessment_rule.points_for_blank)
+        self.assertEqual(self.rule_msc.max_score, 3.5)
+        self.assertEqual(self.rule_mmc.max_score, 3.5)
+        self.assertEqual(self.rule_clz.max_score, 3.5)
+        self.assertEqual(self.rule_open.max_score, 3.5)
+        self.assertEqual(self.rule_js.max_score, 3.5)
 
-#         curr_subslot = e2_subslots[0]
-#         curr_submission = curr_subslot.get_submission(self.participation)
-#         curr_submission.selected_choice = curr_subslot.exercise.choices.first()
-#         curr_submission.save()
-#         curr_assessment = curr_subslot.get_assessment(self.participation)
-#         self.assertEqual(
-#             curr_assessment.score,
-#             assessment_rule.points_for_correct,  # first choice is correct
-#         )
+        # reset rules
+        self.rule_msc.max_score = 2
+        self.rule_msc.save()
+        self.rule_mmc.max_score = 2
+        self.rule_mmc.save()
+        self.rule_clz.max_score = 2
+        self.rule_clz.save()
+        self.rule_open.max_score = 2
+        self.rule_open.save()
+        self.rule_js.max_score = 2
+        self.rule_js.amount = 1
+        self.rule_js.save()
 
-#         # score for the parent slot is still zero because the sum of the scores of the sub-slots
-#         # doesn't exceed the `minimum-score_threshold`
-#         self.assertEqual(e2_slot.get_assessment(self.participation).score, 0)
+        self.rule_msc.refresh_from_db()
+        self.rule_mmc.refresh_from_db()
+        self.rule_clz.refresh_from_db()
+        self.rule_open.refresh_from_db()
+        self.rule_js.refresh_from_db()
 
-#         curr_subslot = e2_subslots[1]
-#         curr_submission = curr_subslot.get_submission(self.participation)
-#         curr_submission.selected_choice = curr_subslot.exercise.choices.first()
-#         curr_submission.save()
-#         curr_assessment = curr_subslot.get_assessment(self.participation)
-#         self.assertEqual(
-#             curr_assessment.score,
-#             assessment_rule.points_for_correct,  # second choice is correct
-#         )
+    def test_multiple_choice_single_selection_assessment(self):
+        choices = self.msc.choices.all()
+        correct_choice = choices.get(correctness_percentage=100)
+        partially_correct_choice = choices.get(correctness_percentage=50)
+        incorrect_choice = choices.get(correctness_percentage=0)
 
-#         # score for the parent slot finally exceeds `minimum_score_threshold`
-#         self.assertEqual(e2_slot.get_assessment(self.participation).score, 2)
+        # selected choices are initially empty
+        self.assertFalse(self.slot_msc.selected_choices.exists())
 
-#         curr_subslot = e2_subslots[2]
-#         curr_submission = curr_subslot.get_submission(self.participation)
-#         curr_submission.selected_choice = curr_subslot.exercise.choices.first()
-#         curr_submission.save()
-#         curr_assessment = curr_subslot.get_assessment(self.participation)
-#         self.assertEqual(
-#             curr_assessment.score,
-#             assessment_rule.points_for_incorrect,  # second choice is incorrect
-#         )
+        max_score = self.slot_msc.populating_rule.max_score
 
-#         # score for the parent slot is 0 again because the sum of the scores of
-#         # the sub-exercises doesn't exceed `minimum_score_threshold` anymore
-#         self.assertEqual(e2_slot.get_assessment(self.participation).score, 0)
+        """
+        Show that selecting a choice with 100% correctness gives the
+        full score of the populating rule
+        """
+        self.slot_msc.selected_choices.set([correct_choice])
+        self.assertEqual(self.slot_msc.score, max_score)
 
-#     def test_assessment_open_answer_exercise(self):
-#         slots = self.participation.event_instance.slots.all()
-#         e3_slot = slots.get(exercise=self.e_open)
+        """
+        Show that selecting a choice with 50% correctness gives
+        half the score of the populating rule
+        """
+        self.slot_msc.selected_choices.set([partially_correct_choice])
+        self.assertEqual(self.slot_msc.score, max_score / 2)
 
-#         # open-answer exercises aren't assessed automatically in events of type EXAM
-#         self.assertIsNone(e3_slot.get_assessment(self.participation).score)
-#         self.assertEqual(
-#             e3_slot.get_assessment(self.participation).assessment_state,
-#             ParticipationAssessmentSlot.NOT_ASSESSED,
-#         )
+        """
+        Show that selecting a choice with 0% correctness gives score 0
+        """
+        self.slot_msc.selected_choices.set([incorrect_choice])
+        self.assertEqual(self.slot_msc.score, 0)
 
-#         # open-answer exercises are assessed automatically in events of type
-#         # SELF_SERVICE_PRACTICE with score 0
-#         self.event_exam.event_type = Event.SELF_SERVICE_PRACTICE
-#         self.event_exam.save()
-#         self.assertEqual(e3_slot.get_assessment(self.participation).score, 0)
-#         self.assertEqual(
-#             e3_slot.get_assessment(self.participation).assessment_state,
-#             ParticipationAssessmentSlot.ASSESSED,
-#         )
+        """
+        Show that selecting a choice with negative correctness
+        gives negative score
+        """
+        incorrect_choice.correctness_percentage = -25
+        incorrect_choice.save()
+        self.slot_msc.selected_choices.set([incorrect_choice])
+        self.assertEqual(self.slot_msc.score, -0.5)
 
-#         self.event_exam.event_type = Event.EXAM
-#         self.event_exam.save()
+        """
+        Changing the populating rule max_score property keeps
+        the slot's score in sync
+        """
+        new_max_score = 10
+        self.slot_msc.selected_choices.set([correct_choice])
+        self.rule_msc.max_score = new_max_score
+        self.rule_msc.save()
 
-#         # open-answer exercises can be assessed manually, resulting in
-#         # their score property being overridden
-#         e3_assessment = e3_slot.get_assessment(self.participation)
-#         self.assertEqual(
-#             e3_slot.get_assessment(self.participation).assessment_state,
-#             ParticipationAssessmentSlot.NOT_ASSESSED,
-#         )
+        self.slot_msc.refresh_from_db()  # apparently need to refetch
 
-#         e3_assessment.score = 22
-#         e3_assessment.save()
-#         self.assertEqual(e3_slot.get_assessment(self.participation).score, 22)
-#         self.assertEqual(
-#             e3_slot.get_assessment(self.participation).assessment_state,
-#             ParticipationAssessmentSlot.ASSESSED,
-#         )
+        self.assertEqual(self.slot_msc.score, new_max_score)
+
+    def test_cloze_assessment(self):
+        sub_exercises = self.clz.sub_exercises.all()
+        sub_weight_50 = sub_exercises.get(_ordering=0)
+        sub_weight_25_1 = sub_exercises.get(_ordering=1)
+        sub_weight_25_2 = sub_exercises.get(_ordering=2)
+
+        sub_1_correct_choice = sub_weight_50.choices.get(correctness_percentage=100)
+        sub_2_correct_choice = sub_weight_25_1.choices.get(correctness_percentage=100)
+        sub_3_correct_choice = sub_weight_25_2.choices.get(correctness_percentage=100)
+        sub_2_partially_correct_choice = sub_weight_25_1.choices.get(
+            correctness_percentage=50
+        )
+        sub_2_incorrect_choice = sub_weight_25_1.choices.get(correctness_percentage=-10)
+        sub_3_incorrect_choice = sub_weight_25_2.choices.get(correctness_percentage=0)
+
+        sub_slot_1 = self.slot_clz.sub_slots.get(exercise=sub_weight_50)
+        sub_slot_2 = self.slot_clz.sub_slots.get(exercise=sub_weight_25_1)
+        sub_slot_3 = self.slot_clz.sub_slots.get(exercise=sub_weight_25_2)
+
+        """
+        Show that, for cloze exercises, the overall correctness is the
+        weighted sum of the correctness of the sub-exercises
+        """
+        sub_slot_1.selected_choices.set([sub_1_correct_choice])
+        sub_slot_2.selected_choices.set([sub_2_partially_correct_choice])
+        sub_slot_3.selected_choices.set([sub_3_incorrect_choice])
+
+        slot_clz_max_score = self.slot_clz.populating_rule.max_score
+
+        # 100% * 50% (first sub-exercise)  + 50% * 25% (second) + 0% * 25% (third)
+        self.assertEqual(self.slot_clz.score / slot_clz_max_score, 0.625)
+
+        # all correct answers
+        sub_slot_1.selected_choices.set([sub_1_correct_choice])
+        sub_slot_2.selected_choices.set([sub_2_correct_choice])
+        sub_slot_3.selected_choices.set([sub_3_correct_choice])
+
+        slot_clz_max_score = self.slot_clz.populating_rule.max_score
+
+        # 100% * 50% (first sub-exercise)  + 100% * 25% (second) + 100% * 25% (third)
+        self.assertEqual(self.slot_clz.score / slot_clz_max_score, 1)
+
+        # one answer has negative score
+        sub_slot_1.selected_choices.set([sub_1_correct_choice])
+        sub_slot_2.selected_choices.set([sub_2_incorrect_choice])
+        sub_slot_3.selected_choices.set([sub_3_correct_choice])
+
+        # 100% * 50% (first sub-exercise)  - 10% * 25% (second) + 100% * 25% (third)
+        self.assertEqual(self.slot_clz.score / slot_clz_max_score, 0.725)
+
+    def test_open_answer_assessment(self):
+        pass
+
+    def test_js_assessment(self):
+        pass

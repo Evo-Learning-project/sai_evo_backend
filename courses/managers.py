@@ -93,19 +93,19 @@ class ExerciseManager(models.Manager):
             for choice in choices:
                 ExerciseChoice.objects.create(exercise=exercise, **choice)
 
-        elif exercise.exercise_type == Exercise.COMPLETION:
-            child_position = 0
-            # for each list of choices in `choices`, create a related
-            # sub-exercise with no text and those choices
-            for choice_group in choices:
-                Exercise.objects.create(
-                    parent=exercise,
-                    course=exercise.course,
-                    exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-                    choices=choice_group,
-                    # child_position=child_position,
-                )
-                child_position += 1
+        # elif exercise.exercise_type == Exercise.COMPLETION:
+        #     child_position = 0
+        #     # for each list of choices in `choices`, create a related
+        #     # sub-exercise with no text and those choices
+        #     for choice_group in choices:
+        #         Exercise.objects.create(
+        #             parent=exercise,
+        #             course=exercise.course,
+        #             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+        #             choices=choice_group,
+        #             # child_position=child_position,
+        #         )
+        #         child_position += 1
         elif (
             exercise.exercise_type == Exercise.JS
             or exercise.exercise_type == Exercise.C
@@ -113,17 +113,14 @@ class ExerciseManager(models.Manager):
             # create ExerciseTestcase objects related to this exercise
             for testcase in testcases:
                 ExerciseTestCase.objects.create(exercise=exercise, **testcase)
-        elif exercise.exercise_type == Exercise.AGGREGATED:
-            child_position = 0
+        elif exercise.exercise_type in [Exercise.AGGREGATED, Exercise.COMPLETION]:
             # create sub-exercises related to this exercise
             for sub_exercise in sub_exercises:
                 Exercise.objects.create(
                     parent=exercise,
                     course=exercise.course,
-                    # child_position=child_position,
                     **sub_exercise,
                 )
-                child_position += 1
 
         return exercise
 
