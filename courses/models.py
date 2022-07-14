@@ -420,6 +420,7 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         null=True,
         blank=True,
     )
+
     # exam specific settings
     instructions = models.TextField(blank=True)
     begin_timestamp = models.DateTimeField(null=True, blank=True)
@@ -467,6 +468,19 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
             #     name="event_unique_name_course",
             # )
         ]
+
+    @property
+    def max_score(self):
+        rules = self.template.rules.all()
+        return sum([r.max_score or 0 for r in rules])
+
+    @max_score.setter
+    def max_score(self, value):
+        # divides the given value evenly among the template
+        # rules and sets it as their max_score property
+        rules = self.template.rules.all()
+        per_rule_value = value / rules.count()
+        rules.update(max_score=per_rule_value)
 
     @property
     def state(self):

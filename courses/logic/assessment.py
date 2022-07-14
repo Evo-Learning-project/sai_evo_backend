@@ -90,7 +90,7 @@ class SubmissionAssessor:
         if correctness is not None:
             assert correctness <= 1 and correctness >= -1
 
-            return correctness * self.max_score
+            return correctness * (self.max_score or 0)  #! TODO sane default
 
         return None
 
@@ -101,7 +101,7 @@ class FullyAutomaticAssessor(SubmissionAssessor):
     is involved (for example, for events of type SELF_SERVICE_PRACTICE)
     """
 
-    def get_manual_submission_correctness(self):
+    def get_manual_submission_correctness(self, slot):
         """
         Submissions for exercises that cannot be assessed automatically (e.g. open questions)
         are assigned 0 points, as this assessor isn't meant to be used in exams but
