@@ -471,6 +471,13 @@ class EventParticipationSlotSerializer(
         read_only=True,
         source="participation.is_cursor_first_position",
     )
+    # TODO instead of explicitly declaring it here, use extra_kwargs to set source
+    max_score = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        read_only=True,
+        source="populating_rule.max_score",
+    )
 
     class Meta:
         model = EventParticipationSlot
@@ -484,8 +491,9 @@ class EventParticipationSlotSerializer(
             "is_first",
             "is_last",
             "has_answer",
+            "max_score",
         ]
-        read_only_fields = ["id", "seen_at", "answered_at"]
+        read_only_fields = ["id", "seen_at", "answered_at", "max_score"]
 
         conditional_fields = {
             EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: [

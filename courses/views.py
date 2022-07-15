@@ -543,7 +543,7 @@ class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
         for _ in range(0, int(instance_count)):
             data.append(
                 ExerciseSerializer(
-                    get_exercises_from(template),
+                    [e for e, _ in get_exercises_from(template)],
                     many=True,
                 ).data
                 # TODO? context to exercise serializer?
