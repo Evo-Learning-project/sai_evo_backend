@@ -30,7 +30,7 @@ class SubmissionAssessor:
             )
 
         try:
-            total_testcases = slot.exercise.testcases.all()
+            total_testcases = slot.exercise.testcases.count()
             passed_testcases = len(
                 [t for t in slot.execution_results["tests"] if t["passed"]]
             )
@@ -49,7 +49,8 @@ class SubmissionAssessor:
             return None
 
         weighted_sub_slots_correctness = [
-            c * s.exercise.child_weight / 100 for s, c in sub_slots_correctness
+            Decimal(c) * Decimal(s.exercise.child_weight) / 100
+            for s, c in sub_slots_correctness
         ]
 
         correctness = sum(weighted_sub_slots_correctness)
@@ -97,7 +98,9 @@ class SubmissionAssessor:
                 correctness <= 1 and correctness >= -1
             ), f"invalid correctness {correctness}"
 
-            return Decimal(correctness * (self.max_score or 0))  #! TODO sane default
+            print("corr", correctness, "max", self.max_score)
+            #! TODO sane default
+            return Decimal(correctness) * Decimal(self.max_score or 0)
 
         return None
 

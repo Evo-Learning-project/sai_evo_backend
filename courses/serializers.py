@@ -373,6 +373,7 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
         max_digits=5,
         decimal_places=1,
         allow_null=True,
+        required=False,
     )
 
     class Meta:
@@ -476,6 +477,7 @@ class EventParticipationSlotSerializer(
         max_digits=5,
         decimal_places=1,
         read_only=True,
+        required=False,
         source="populating_rule.max_score",
     )
 
@@ -525,7 +527,7 @@ class EventParticipationSlotSerializer(
             assessment_fields_write = capabilities.get("assessment_fields_write", False)
             self.fields["score"] = serializers.DecimalField(
                 max_digits=5,
-                decimal_places=1,
+                decimal_places=2,
                 allow_null=True,
                 read_only=(not assessment_fields_write),
             )

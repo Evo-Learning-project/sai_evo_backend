@@ -784,12 +784,15 @@ class EventParticipation(models.Model):
     def score(self):
         if self._score is None:
             return str(
-                sum(
-                    [
-                        s.score if s.score is not None else 0
-                        for s in self.prefetched_base_slots
-                    ]
-                )
+                round(
+                    sum(
+                        [
+                            s.score if s.score is not None else 0
+                            for s in self.prefetched_base_slots
+                        ]
+                    ),
+                    2,
+                ),
             )
         return self._score
 

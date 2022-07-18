@@ -52,6 +52,8 @@ class OrderableModel(TrackFieldsMixin):
             target_ordering, self._ordering = self._ordering, self._old__ordering
 
             while target_ordering != self._ordering:
+                # ! TODO fix endless loop when an item is deleted and there's a "hole" (to reproduce, delete a template rule then try to drag&drop)
+                print("TARGET", target_ordering, "SELF", self._ordering)
                 to_be_swapped = (
                     self.get_next()
                     if target_ordering > self._ordering
