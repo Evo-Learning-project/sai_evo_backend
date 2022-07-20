@@ -84,18 +84,19 @@ class SubmissionAssessor:
         Returns the score that results in applying the given rule with the given answer(s), or
         None if the exercise referenced by the given slot needs to be assessed manually.
         """
+        exercise_max_score = self.participation_slot.exercise.get_max_score()
+        if exercise_max_score is None or exercise_max_score is 0:
+            return 0
+
         submission_correctness = self.get_submission_correctness(
             self.participation_slot
         )
-
         if submission_correctness is None:
             return None
 
         return (
-            Decimal(submission_correctness)  # points scored
-            / Decimal(
-                self.participation_slot.exercise.get_max_score()
-            )  # max score for the exercise
+            Decimal(submission_correctness)
+            / Decimal(exercise_max_score)
             * Decimal(self.slot_weight or 0)
         )
 

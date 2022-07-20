@@ -1,3 +1,4 @@
+from decimal import Decimal
 from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -266,7 +267,10 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
             return None
         if self.exercise_type in [Exercise.AGGREGATED, Exercise.COMPLETION]:
             return sum(
-                [s.get_max_score() * s.child_weight for s in self.sub_exercises.all()]
+                [
+                    Decimal(s.get_max_score() or 0) * Decimal(s.child_weight or 0)
+                    for s in self.sub_exercises.all()
+                ]
             )
         if self.exercise_type in [Exercise.JS, Exercise.C]:
             return self.testcases.count()

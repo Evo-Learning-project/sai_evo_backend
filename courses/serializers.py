@@ -202,6 +202,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     private_tags = TagSerializer(many=True, required=False)
     text = serializers.CharField(trim_whitespace=False, allow_blank=True)
     locked_by = UserSerializer(read_only=True)
+    max_score = serializers.SerializerMethodField()
 
     class Meta:
         model = Exercise
@@ -218,6 +219,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "solution",
             "locked_by",
             "child_weight",
+            "max_score",
         ]
 
         conditional_fields = {
@@ -296,6 +298,9 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
         validated_data.pop("public_tags", [])
 
         return super().update(instance, validated_data)
+
+    def get_max_score(self, obj):
+        return obj.get_max_score()
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
