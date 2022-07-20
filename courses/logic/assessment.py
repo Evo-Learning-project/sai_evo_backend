@@ -85,7 +85,7 @@ class SubmissionAssessor:
         None if the exercise referenced by the given slot needs to be assessed manually.
         """
         exercise_max_score = self.participation_slot.exercise.get_max_score()
-        if exercise_max_score is None or exercise_max_score is 0:
+        if exercise_max_score is None or exercise_max_score == 0:
             return 0
 
         submission_correctness = self.get_submission_correctness(
