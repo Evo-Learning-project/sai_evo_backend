@@ -133,16 +133,11 @@ class ExerciseChoiceSerializer(serializers.ModelSerializer, ConditionalFieldsMix
 
     class Meta:
         model = ExerciseChoice
-        fields = [
-            "id",
-            "text",
-            "_ordering",
-            "correctness_percentage",
-        ]
+        fields = ["id", "text", "_ordering", "correctness"]
 
         conditional_fields = {
             CHOICE_SHOW_SCORE_FIELDS: [
-                "correctness_percentage",
+                "correctness",
             ]
         }
 
@@ -324,7 +319,7 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFields
             "amount",
             "_ordering",
             "satisfying",
-            "max_score",
+            "weight",
         ]
 
         conditional_fields = {
@@ -473,12 +468,12 @@ class EventParticipationSlotSerializer(
         source="participation.is_cursor_first_position",
     )
     # TODO instead of explicitly declaring it here, use extra_kwargs to set source
-    max_score = serializers.DecimalField(
+    weight = serializers.DecimalField(
         max_digits=5,
         decimal_places=1,
         read_only=True,
         required=False,
-        source="populating_rule.max_score",
+        source="populating_rule.weight",
     )
 
     class Meta:
@@ -493,9 +488,9 @@ class EventParticipationSlotSerializer(
             "is_first",
             "is_last",
             "has_answer",
-            "max_score",
+            "weight",
         ]
-        read_only_fields = ["id", "seen_at", "answered_at", "max_score"]
+        read_only_fields = ["id", "seen_at", "answered_at", "weight"]
 
         conditional_fields = {
             EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS: [

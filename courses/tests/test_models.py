@@ -24,15 +24,15 @@ def common_setup(self):
     self.e_multiple_single_choices = [
         {
             "text": "aa",
-            "correctness_percentage": "100",
+            "correctness": "1",
         },
         {
             "text": "bb",
-            "correctness_percentage": "50",
+            "correctness": "0.5",
         },
         {
             "text": "cc",
-            "correctness_percentage": "-20",
+            "correctness": "-0.2",
         },
     ]
     self.e_multiple_single = Exercise.objects.create(
@@ -45,15 +45,15 @@ def common_setup(self):
     self.e_multiple_multiple_choices = [
         {
             "text": "aa",
-            "correctness_percentage": "100",
+            "correctness": "1",
         },
         {
             "text": "bb",
-            "correctness_percentage": "-50",
+            "correctness": "-0.5",
         },
         {
             "text": "cc",
-            "correctness_percentage": "50",
+            "correctness": "0.5",
         },
     ]
     self.e_multiple_multiple = Exercise.objects.create(

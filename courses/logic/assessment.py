@@ -14,12 +14,11 @@ def get_assessor_class(event):
 class SubmissionAssessor:
     def __init__(self, participation_slot):
         self.participation_slot = participation_slot
-        self.max_score = self.participation_slot.populating_rule.max_score
+        self.slot_weight = self.participation_slot.populating_rule.weight
 
     def get_multiple_choice_submission_correctness(self, slot):
         selected_choices = slot.selected_choices.all()
-        # TODO review behavior of checkbox questions: here you could go over 100%
-        return sum([c.correctness_percentage for c in selected_choices]) / 100
+        return sum([c.correctness for c in selected_choices])
 
     def get_programming_submission_correctness(self, slot):
         if slot.execution_results is None:
@@ -28,13 +27,11 @@ class SubmissionAssessor:
                 if slot.answer_text is None or len(slot.answer_text.strip()) == 0
                 else None
             )
-
         try:
-            total_testcases = slot.exercise.testcases.count()
             passed_testcases = len(
                 [t for t in slot.execution_results["tests"] if t["passed"]]
             )
-            return passed_testcases / total_testcases
+            return passed_testcases
         except KeyError:
             # no test cases in execution results (e.g. compilation error in the code)
             return 0
@@ -49,15 +46,11 @@ class SubmissionAssessor:
             return None
 
         weighted_sub_slots_correctness = [
-            Decimal(c) * Decimal(s.exercise.child_weight) / 100
+            Decimal(c) * Decimal(s.exercise.child_weight)
             for s, c in sub_slots_correctness
         ]
 
         correctness = sum(weighted_sub_slots_correctness)
-        assert (
-            correctness <= 1 and correctness >= -1
-        ), f"invalid sub-slot correctness {correctness}"
-
         return correctness
 
     def get_manual_submission_correctness(self, slot):
@@ -91,18 +84,20 @@ class SubmissionAssessor:
         Returns the score that results in applying the given rule with the given answer(s), or
         None if the exercise referenced by the given slot needs to be assessed manually.
         """
-        correctness = self.get_submission_correctness(self.participation_slot)
+        submission_correctness = self.get_submission_correctness(
+            self.participation_slot
+        )
 
-        if correctness is not None:
-            assert (
-                correctness <= 1 and correctness >= -1
-            ), f"invalid correctness {correctness}"
+        if submission_correctness is None:
+            return None
 
-            print("corr", correctness, "max", self.max_score)
-            #! TODO sane default
-            return Decimal(correctness) * Decimal(self.max_score or 0)
-
-        return None
+        return (
+            Decimal(submission_correctness)  # points scored
+            / Decimal(
+                self.participation_slot.exercise.get_max_score()
+            )  # max score for the exercise
+            * Decimal(self.slot_weight or 0)
+        )
 
 
 class FullyAutomaticAssessor(SubmissionAssessor):

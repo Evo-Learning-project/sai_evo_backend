@@ -213,12 +213,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         on_delete=models.CASCADE,
     )
     # how much the sub-exercise weighs in scoring the parent exercise
-    # TODO enforce that the sum is 100
-    child_weight = models.DecimalField(
-        decimal_places=2,
-        max_digits=5,
-        default=0,
-    )
+    child_weight = models.PositiveSmallIntegerField(default=1)
     public_tags = models.ManyToManyField(
         Tag,
         related_name="public_in_exercises",
@@ -266,6 +261,26 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     def clean(self):
         pass
 
+    def get_max_score(self):
+        if self.exercise_type in [Exercise.OPEN_ANSWER, Exercise.ATTACHMENT]:
+            return None
+        if self.exercise_type in [Exercise.AGGREGATED, Exercise.COMPLETION]:
+            return sum(
+                [s.get_max_score() * s.child_weight for s in self.sub_exercises.all()]
+            )
+        if self.exercise_type in [Exercise.JS, Exercise.C]:
+            return self.testcases.count()
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
+            max_score = (self.choices.all().aggregate(Max("correctness")))[
+                "correctness__max"
+            ]
+            return max_score
+        if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
+            correct_choices = self.choices.filter(correctness__gt=0)
+            return sum([c.correctness for c in correct_choices])
+
+        assert False, f"max_score not defined for type {self.exercise_type}"
+
 
 class ExerciseChoice(OrderableModel):
     exercise = models.ForeignKey(
@@ -274,7 +289,7 @@ class ExerciseChoice(OrderableModel):
         on_delete=models.CASCADE,
     )
     text = models.TextField(blank=True)
-    correctness_percentage = models.DecimalField(
+    correctness = models.DecimalField(
         decimal_places=2,
         max_digits=5,
         default=0,
@@ -302,18 +317,18 @@ class ExerciseChoice(OrderableModel):
             + ")"
         )
 
-    def save(self, *args, **kwargs):
-        # TODO resolve conflict with _ordering field, which is non-nullable
-        # self.full_clean()
-        return super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     # TODO resolve conflict with _ordering field, which is non-nullable
+    #     # self.full_clean()
+    #     return super().save(*args, **kwargs)
 
-    def clean(self, *args, **kwargs):
-        if self.correctness_percentage is not None and (
-            self.correctness_percentage > 100 or self.correctness_percentage < -100
-        ):
-            raise ValidationError(
-                f"invalid correctness_percentage value {self.access_rule_exceptions}"
-            )
+    # def clean(self, *args, **kwargs):
+    #     if self.correctness_percentage is not None and (
+    #         self.correctness_percentage > 100 or self.correctness_percentage < -100
+    #     ):
+    #         raise ValidationError(
+    #             f"invalid correctness_percentage value {self.access_rule_exceptions}"
+    #         )
 
 
 class ExerciseTestCase(OrderableModel):
@@ -472,15 +487,15 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     @property
     def max_score(self):
         rules = self.template.rules.all()
-        return sum([(r.max_score or 0) * r.amount for r in rules])
+        return sum([(r.weight or 0) * r.amount for r in rules])
 
     @max_score.setter
     def max_score(self, value):
         # divides the given value evenly among the template
-        # rules and sets it as their max_score property
+        # rules and sets it as their weight property
         rules = self.template.rules.all()
         per_rule_value = value / sum([r.amount for r in rules])
-        rules.update(max_score=per_rule_value)
+        rules.update(weight=per_rule_value)
 
     @property
     def state(self):
@@ -612,7 +627,7 @@ class EventTemplateRule(OrderableModel):
         blank=True,
     )
     # weight of the targeted slot(s), i.e. the maximum score for the related exercise(s)
-    max_score = models.DecimalField(
+    weight = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
@@ -738,18 +753,6 @@ class EventParticipation(models.Model):
         else:
             base_slots = self.slots.base_slots()
         return len(base_slots) - 1
-
-    # TODO this becomes a property of Event
-    # @property
-    # def max_score(self):
-    #     slots = (
-    #         self.prefetched_base_slots
-    #         if hasattr(self, "prefetched_base_slots")
-    #         else self.slots.base_slots()
-    #     )
-    #     return sum(
-    #         [s.exercise.max_score for s in slots if s.exercise.max_score is not None]
-    #     )
 
     @property
     def assessment_progress(self):
