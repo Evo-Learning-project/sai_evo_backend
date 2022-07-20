@@ -9,15 +9,15 @@ msc_priv_1 = {
     "choices": [
         {
             "text": "correct",
-            "correctness_percentage": "100",
+            "correctness": "1",
         },
         {
             "text": "partially correct",
-            "correctness_percentage": "50",
+            "correctness": "0.5",
         },
         {
             "text": "incorrect",
-            "correctness_percentage": "0",
+            "correctness": "0",
         },
     ],
 }
@@ -31,15 +31,15 @@ msc_pub_1 = {
     "choices": [
         {
             "text": "correct",
-            "correctness_percentage": "100",
+            "correctness": "1",
         },
         {
             "text": "partially correct",
-            "correctness_percentage": "50",
+            "correctness": "0.5",
         },
         {
             "text": "incorrect",
-            "correctness_percentage": "0.00",
+            "correctness": 0,
         },
     ],
 }
@@ -51,16 +51,20 @@ mmc_priv_1 = {
     "solution": "solution of multiple choice multiple selection private 1",
     "choices": [
         {
-            "text": "correct",
-            "correctness_percentage": "100",  #! TODO adapt data when you decide what to do with MMC questions and correctness sum
+            "text": "correct 1",
+            "correctness": "1",
+        },
+        {
+            "text": "correct 2",
+            "correctness": "1",
         },
         {
             "text": "partially correct",
-            "correctness_percentage": "50",
+            "correctness": "0.5",
         },
         {
             "text": "incorrect",
-            "correctness_percentage": "0.00",
+            "correctness": -1,
         },
     ],
 }
@@ -73,15 +77,15 @@ mmc_pub_1 = {
     "choices": [
         {
             "text": "correct",
-            "correctness_percentage": "100",
+            "correctness": "1",
         },
         {
             "text": "partially correct",
-            "correctness_percentage": "50",
+            "correctness": "0.5",
         },
         {
             "text": "incorrect",
-            "correctness_percentage": "0.00",
+            "correctness": 0,
         },
     ],
 }
@@ -109,31 +113,31 @@ cloze_prv_1 = {
         {
             "text": "",
             "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            "child_weight": 50,
+            "child_weight": 2,
             "choices": [
-                {"text": "correct", "correctness_percentage": 100},
-                {"text": "partially_correct", "correctness_percentage": 50},
-                {"text": "incorrect", "correctness_percentage": 0},
+                {"text": "correct", "correctness": 1},
+                {"text": "partially_correct", "correctness": 0.5},
+                {"text": "incorrect", "correctness": 0},
             ],
         },
         {
             "text": "",
             "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            "child_weight": 25,
+            "child_weight": 1,
             "choices": [
-                {"text": "correct", "correctness_percentage": 100},
-                {"text": "partially_correct", "correctness_percentage": 50},
-                {"text": "incorrect", "correctness_percentage": -10},
+                {"text": "correct", "correctness": 1},
+                {"text": "partially_correct", "correctness": 0.5},
+                {"text": "incorrect", "correctness": -0.1},
             ],
         },
         {
             "text": "",
             "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
-            "child_weight": 25,
+            "child_weight": 1,
             "choices": [
-                {"text": "correct", "correctness_percentage": 100},
-                {"text": "partially_correct", "correctness_percentage": 50},
-                {"text": "incorrect", "correctness_percentage": 0},
+                {"text": "correct", "correctness": 1},
+                {"text": "partially_correct", "correctness": 0.5},
+                {"text": "incorrect", "correctness": 0},
             ],
         },
     ],
