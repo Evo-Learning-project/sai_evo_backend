@@ -1,5 +1,4 @@
 from decimal import Decimal
-from unicodedata import decimal
 
 
 def get_assessor_class(event):
