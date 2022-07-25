@@ -3,6 +3,7 @@
     "filterset",
     "Hashid",
     "PARTICIPATIONS",
+    "Timestampable",
     "viewset"
   ],
   "python.linting.flake8Enabled": false,

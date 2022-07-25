@@ -137,76 +137,76 @@ def get_default_sibling_cache():
     return {}
 
 
-class SlotNumberedModel(models.Model):
-    parent = models.ForeignKey(
-        "self",
-        null=True,
-        blank=True,
-        related_name="sub_slots",
-        on_delete=models.CASCADE,
-    )
-    slot_number = models.PositiveIntegerField()
+# class SlotNumberedModel(models.Model):
+#     parent = models.ForeignKey(
+#         "self",
+#         null=True,
+#         blank=True,
+#         related_name="sub_slots",
+#         on_delete=models.CASCADE,
+#     )
+#     slot_number = models.PositiveIntegerField()
 
-    class Meta:
-        abstract = True
+#     class Meta:
+#         abstract = True
 
-    @property
-    def event(self):
-        # shortcut to access the slot's event
-        return getattr(self, self.get_container_attribute()).event
+#     @property
+#     def event(self):
+#         # shortcut to access the slot's event
+#         return getattr(self, self.get_container_attribute()).event
 
-    @property
-    def participation(self):
-        # shortcut to access the slot's participation
-        return getattr(self, self.get_container_attribute()).participation
+#     @property
+#     def participation(self):
+#         # shortcut to access the slot's participation
+#         return getattr(self, self.get_container_attribute()).participation
 
-    def get_ancestors(self):
-        # returns the slot numbers of all the ancestors of
-        # `self` up to the ancestor base slot
-        ret = [self.slot_number]
-        curr = self
-        while curr.parent is not None:
-            curr = curr.parent
-            ret.append(curr.slot_number)
+#     def get_ancestors(self):
+#         # returns the slot numbers of all the ancestors of
+#         # `self` up to the ancestor base slot
+#         ret = [self.slot_number]
+#         curr = self
+#         while curr.parent is not None:
+#             curr = curr.parent
+#             ret.append(curr.slot_number)
 
-        return ret
+#         return ret
 
-    def get_container_attribute(self):
-        # returns the name of the foreign key field to the model that contains the
-        # slots (i.e the many-to-one relation with related_name parameter "slots")
-        for field in type(self)._meta.get_fields():
-            if field.remote_field is not None and field.remote_field.name == "slots":
-                return field.name
+#     def get_container_attribute(self):
+#         # returns the name of the foreign key field to the model that contains the
+#         # slots (i.e the many-to-one relation with related_name parameter "slots")
+#         for field in type(self)._meta.get_fields():
+#             if field.remote_field is not None and field.remote_field.name == "slots":
+#                 return field.name
 
-    def get_sibling_slot(self, sibling_entity, participation_pk=None, slot_model=None):
-        container = getattr(self, self.get_container_attribute())
-        participation = (
-            container.participation
-            if participation_pk is None
-            else container.participations.get(pk=participation_pk)
-        )
+#     def get_sibling_slot(self, sibling_entity, participation_pk=None, slot_model=None):
+#         container = getattr(self, self.get_container_attribute())
+#         participation = (
+#             container.participation
+#             if participation_pk is None
+#             else container.participations.get(pk=participation_pk)
+#         )
 
-        # walk up to this slot's base slot and record all the ancestors' slot numbers
-        path = reversed(self.get_ancestors())
+#         # walk up to this slot's base slot and record all the ancestors' slot numbers
+#         path = reversed(self.get_ancestors())
 
-        related_slot = None
-        for step in path:
-            # descend the path of ancestors on the related EventInstance,
-            # object, starting from the corresponding base slot down to
-            # the same level of depth as this slot
-            related_slot = getattr(participation, sibling_entity).slots.get(
-                parent=related_slot, slot_number=step
-            )
-        return related_slot
+#         related_slot = None
+#         for step in path:
+#             # descend the path of ancestors on the related EventInstance,
+#             # object, starting from the corresponding base slot down to
+#             # the same level of depth as this slot
+#             related_slot = getattr(participation, sibling_entity).slots.get(
+#                 parent=related_slot, slot_number=step
+#             )
+#         return related_slot
 
 
-class SideSlotNumberedModel(SlotNumberedModel):
-    class Meta:
-        abstract = True
+# class SideSlotNumberedModel(SlotNumberedModel):
+#     class Meta:
+#         abstract = True
 
-    @property
-    def exercise(self):
-        return self.get_sibling_slot("event_instance").exercise
+#     @property
+#     def exercise(self):
+#         return self.get_sibling_slot("event_instance").exercise
 
 
 class LockableModel(models.Model):

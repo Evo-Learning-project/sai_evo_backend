@@ -35,6 +35,9 @@ from courses.models import (
     EventTemplateRuleClause,
     Exercise,
     ExerciseChoice,
+    ExerciseSolution,
+    ExerciseSolutionComment,
+    ExerciseSolutionVote,
     ExerciseTestCase,
     Tag,
 )
@@ -197,12 +200,47 @@ class ExerciseTestCaseSerializer(serializers.ModelSerializer, ConditionalFieldsM
         )
 
 
+class ExerciseSolutionVoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExerciseSolutionVote
+        fields = ["vote_type"]
+
+
+class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
+    content = serializers.CharField(
+        trim_whitespace=False, source="content.text_content"
+    )
+
+    class Meta:
+        model = ExerciseSolutionComment
+        fields = ["user", "content"]
+
+
+class ExerciseSolutionSerializer(serializers.ModelSerializer):
+    content = serializers.CharField(
+        trim_whitespace=False, source="content.text_content"
+    )
+    votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
+    comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ExerciseSolution
+        fields = [
+            "content",
+            "user",
+            "comments",
+            "votes",
+            "state",
+        ]
+
+
 class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     public_tags = TagSerializer(many=True, required=False)
     private_tags = TagSerializer(many=True, required=False)
     text = serializers.CharField(trim_whitespace=False, allow_blank=True)
     locked_by = UserSerializer(read_only=True)
     max_score = serializers.SerializerMethodField()
+    solutions = ExerciseSolutionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Exercise
@@ -216,14 +254,14 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "initial_code",
             "state",
             "requires_typescript",
-            "solution",
+            "solutions",
             "locked_by",
             "child_weight",
             "max_score",
         ]
 
         conditional_fields = {
-            EXERCISE_SHOW_SOLUTION_FIELDS: ["solution"],
+            EXERCISE_SHOW_SOLUTION_FIELDS: ["solutions"],
             EXERCISE_SHOW_HIDDEN_FIELDS: [
                 "locked_by",
                 "private_tags",

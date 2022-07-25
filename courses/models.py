@@ -1,4 +1,5 @@
 from decimal import Decimal
+from content.models import Content, PostModel, VoteModel
 from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -13,8 +14,6 @@ from courses.logic.assessment import get_assessor_class
 from .abstract_models import (
     LockableModel,
     OrderableModel,
-    SideSlotNumberedModel,
-    SlotNumberedModel,
     TimestampableModel,
 )
 from .managers import (
@@ -228,7 +227,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
     label = models.CharField(max_length=75, blank=True)
     text = models.TextField(blank=True)
-    solution = models.TextField(blank=True)
+    solution = models.TextField(blank=True)  # TODO delete once implemented new feature
     initial_code = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
@@ -284,6 +283,52 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
             return sum([c.correctness for c in correct_choices])
 
         assert False, f"max_score not defined for type {self.exercise_type}"
+
+
+class ExerciseSolution(TimestampableModel):
+    """
+    A solution to an exercise created by a user
+    """
+
+    DRAFT = 0
+    SUBMITTED = 1
+    PUBLISHED = 2
+    REJECTED = 3
+
+    STATES = (
+        (DRAFT, "Draft"),
+        (SUBMITTED, "Submitted"),
+        (PUBLISHED, "Published"),
+        (REJECTED, "Rejected"),
+    )
+
+    exercise = models.ForeignKey(
+        Exercise, related_name="solutions", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(User, related_name="solutions", on_delete=models.PROTECT)
+    content = models.ForeignKey(Content, on_delete=models.PROTECT)
+    state = models.PositiveSmallIntegerField(choices=STATES, default=DRAFT)
+
+    @property
+    def score(self):
+        # TODO implement
+        return 0
+
+
+class ExerciseSolutionComment(PostModel):
+    solution = models.ForeignKey(
+        ExerciseSolution,
+        related_name="comments",
+        on_delete=models.PROTECT,
+    )
+
+
+class ExerciseSolutionVote(VoteModel):
+    solution = models.ForeignKey(
+        ExerciseSolution,
+        related_name="votes",
+        on_delete=models.PROTECT,
+    )
 
 
 class ExerciseChoice(OrderableModel):

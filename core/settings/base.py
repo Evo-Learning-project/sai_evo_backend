@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "courses",
     "users",
+    "content",
     "django_extensions",
     "nested_admin",
     "oauth2_provider",
