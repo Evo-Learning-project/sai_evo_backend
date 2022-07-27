@@ -35,6 +35,16 @@ class ExerciseAdmin(admin.ModelAdmin):
     ]
 
 
+class ContentInline(admin.TabularInline):
+    model = Content
+
+
+@admin.register(ExerciseSolution)
+class ExerciseSolutionAdmin(admin.ModelAdmin):
+    # inlines = [ContentInline]
+    pass
+
+
 @admin.register(ExerciseChoice)
 class ExerciseChoiceAdmin(admin.ModelAdmin):
     pass

@@ -23,6 +23,7 @@ from .managers import (
     EventParticipationSlotManager,
     EventTemplateRuleManager,
     ExerciseManager,
+    ExerciseSolutionManager,
     TagManager,
 )
 
@@ -305,14 +306,40 @@ class ExerciseSolution(TimestampableModel):
     exercise = models.ForeignKey(
         Exercise, related_name="solutions", on_delete=models.CASCADE
     )
-    user = models.ForeignKey(User, related_name="solutions", on_delete=models.PROTECT)
-    content = models.ForeignKey(Content, on_delete=models.PROTECT)
+    user = models.ForeignKey(
+        User,
+        related_name="solutions",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
+    _content = models.ForeignKey(Content, on_delete=models.PROTECT)
     state = models.PositiveSmallIntegerField(choices=STATES, default=DRAFT)
+
+    objects = ExerciseSolutionManager()
+
+    def __str__(self):
+        return (
+            str(self.user or "Anon")
+            + " "
+            + str(self.exercise.pk)
+            + ": "
+            + str(self.content)
+        )
 
     @property
     def score(self):
         # TODO implement
         return 0
+
+    @property
+    def content(self):
+        return self._content.text_content
+
+    @content.setter
+    def content(self, val):
+        self._content.text_content = val
+        self._content.save()
 
 
 class ExerciseSolutionComment(PostModel):

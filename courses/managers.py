@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from content.models import Content
 
 from courses.querysets import (
     CourseQuerySet,
@@ -27,6 +28,16 @@ class TagManager(models.Manager):
 
     def public(self):
         return self.get_queryset().public()
+
+
+class ExerciseSolutionManager(models.Manager):
+    def create(self, *args, **kwargs):
+        # pass kwarg content as text content to a new instance of Content model
+        content = Content.objects.create(text_content=kwargs.pop("content", ""))
+        # associate newly created Content to the ExerciseSolution that's being created
+        kwargs["_content"] = content
+
+        return super().create(*args, **kwargs)
 
 
 class ExerciseManager(models.Manager):

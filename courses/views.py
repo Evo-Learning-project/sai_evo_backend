@@ -377,7 +377,6 @@ class ExerciseViewSet(
         try:
             public = request.data["public"]
             text = request.data["tag"]
-
             tags = exercise.public_tags if public else exercise.private_tags
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -385,14 +384,12 @@ class ExerciseViewSet(
         if request.method == "PUT":
             # create tag if it doesn't exist already
             tag, _ = Tag.objects.get_or_create(course_id=kwargs["course_pk"], name=text)
-
             tags.add(tag)
         elif request.method == "DELETE":
             # remove tag from exercise
             tag = get_object_or_404(
                 Tag.objects.filter(course_id=kwargs["course_pk"]), name=text
             )
-
             tags.remove(tag)
         else:
             assert False

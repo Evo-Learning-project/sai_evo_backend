@@ -46,6 +46,9 @@ class Content(HashIdModel, TimestampableModel):
         upload_to=get_attachment_path,
     )
 
+    def __str__(self):
+        return self.text_content[:100]
+
 
 class PostModel(TimestampableModel):
     """
