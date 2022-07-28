@@ -217,9 +217,9 @@ class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
 
 
 class ExerciseSolutionSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(
-        trim_whitespace=False, source="content.text_content"
-    )
+    # content = serializers.CharField(
+    #     trim_whitespace=False, source="content.text_content"
+    # )
     votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
     comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
 
@@ -232,6 +232,8 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
             "votes",
             "state",
         ]
+
+    # TODO prevent creation or update of status to PUBLISHED or REJECTED for non-authorized users
 
 
 class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):

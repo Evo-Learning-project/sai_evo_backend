@@ -48,6 +48,10 @@ exercise_router.register(r"sub_exercises", views.ExerciseViewSet)
 # `/courses/<pk>/exercises/<pk>/testcases` entry point
 exercise_router.register(r"testcases", views.ExerciseTestCaseViewSet)
 
+# exercise solutions
+# `/courses/<pk>/exercises/<pk>/solutions` entry point
+exercise_router.register(r"solutions", views.ExerciseSolutionViewSet)
+
 # `/courses/<pk>/templates` entry point
 course_router.register(
     r"templates",

@@ -59,6 +59,7 @@ from courses.models import (
     EventTemplateRuleClause,
     Exercise,
     ExerciseChoice,
+    ExerciseSolution,
     ExerciseTestCase,
     Tag,
     UserCoursePrivilege,
@@ -76,6 +77,7 @@ from .serializers import (
     EventTemplateSerializer,
     ExerciseChoiceSerializer,
     ExerciseSerializer,
+    ExerciseSolutionSerializer,
     ExerciseTestCaseSerializer,
     TagSerializer,
 )
@@ -310,6 +312,23 @@ class ExerciseFilter(FilterSet):
             filter_cond = Q(public_tags__in=[tag]) | Q(private_tags__in=[tag])
             queryset = queryset.filter(filter_cond).distinct()
         return queryset
+
+
+class ExerciseSolutionViewSet(viewsets.ModelViewSet):
+    serializer_class = ExerciseSolutionSerializer
+    queryset = ExerciseSolution.objects.all()
+    # TODO add policy
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        if self.kwargs.get("exercise_pk") is not None:
+            # using the viewset as sub-route of exercises/
+            qs = qs.filter(exercise_id=self.kwargs["exercise_pk"])
+
+        # TODO exclude DRAFT or REJECTED solutions, except for their authors and teachers of the course
+
+        return qs.prefetch_related("comments", "votes")
 
 
 class ExerciseViewSet(
