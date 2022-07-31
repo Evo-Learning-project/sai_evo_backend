@@ -60,6 +60,7 @@ from courses.models import (
     Exercise,
     ExerciseChoice,
     ExerciseSolution,
+    ExerciseSolutionComment,
     ExerciseTestCase,
     Tag,
     UserCoursePrivilege,
@@ -77,6 +78,7 @@ from .serializers import (
     EventTemplateSerializer,
     ExerciseChoiceSerializer,
     ExerciseSerializer,
+    ExerciseSolutionCommentSerializer,
     ExerciseSolutionSerializer,
     ExerciseTestCaseSerializer,
     TagSerializer,
@@ -329,6 +331,21 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
         # TODO exclude DRAFT or REJECTED solutions, except for their authors and teachers of the course
 
         return qs.prefetch_related("comments", "votes")
+
+
+class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = ExerciseSolutionCommentSerializer
+    queryset = ExerciseSolutionComment.objects.all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(solution_id=self.kwargs["solution_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            solution_id=self.kwargs.get("solution_pk"),
+            user=self.request.user,
+        )
 
 
 class ExerciseViewSet(

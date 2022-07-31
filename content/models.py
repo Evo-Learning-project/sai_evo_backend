@@ -1,4 +1,5 @@
 from django.db import models
+from content.managers import PostModelManager
 from core.models import HashIdModel
 
 from courses.abstract_models import TimestampableModel
@@ -57,10 +58,23 @@ class PostModel(TimestampableModel):
     """
 
     user = models.ForeignKey(User, on_delete=models.PROTECT)
-    content = models.ForeignKey(Content, on_delete=models.PROTECT)
+    _content = models.ForeignKey(Content, on_delete=models.PROTECT)
+
+    objects = PostModelManager()
 
     class Meta:
         abstract = True
+
+    @property
+    def content(self):
+        print("ACCESSSING GETTER")
+        return self._content.text_content
+
+    @content.setter
+    def content(self, value):
+        print("ACCESSING SETTER WITH VALUE ", value)
+        self._content.text_content = value
+        self._content.save(update_fields=["text_content"])
 
 
 class VoteModel(TimestampableModel):

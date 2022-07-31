@@ -39,9 +39,13 @@ class ContentInline(admin.TabularInline):
     model = Content
 
 
+class ExerciseSolutionCommentInline(admin.TabularInline):
+    model = ExerciseSolutionComment
+
+
 @admin.register(ExerciseSolution)
 class ExerciseSolutionAdmin(admin.ModelAdmin):
-    # inlines = [ContentInline]
+    inlines = [ExerciseSolutionCommentInline]
     pass
 
 

@@ -203,29 +203,30 @@ class ExerciseTestCaseSerializer(serializers.ModelSerializer, ConditionalFieldsM
 class ExerciseSolutionVoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExerciseSolutionVote
-        fields = ["vote_type"]
+        fields = ["id", "vote_type"]
 
 
 class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(
-        trim_whitespace=False, source="content.text_content"
-    )
+    user = UserSerializer(read_only=True)
+    content = serializers.CharField(trim_whitespace=False)
 
     class Meta:
         model = ExerciseSolutionComment
-        fields = ["user", "content"]
+        fields = ["id", "user", "content"]
+
+    def create(self, validated_data):
+        return ExerciseSolutionComment.objects.create(**validated_data)
 
 
 class ExerciseSolutionSerializer(serializers.ModelSerializer):
-    # content = serializers.CharField(
-    #     trim_whitespace=False, source="content.text_content"
-    # )
+    content = serializers.CharField(trim_whitespace=False)
     votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
     comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
 
     class Meta:
         model = ExerciseSolution
         fields = [
+            "id",
             "content",
             "user",
             "comments",

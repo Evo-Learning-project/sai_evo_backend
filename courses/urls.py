@@ -52,6 +52,15 @@ exercise_router.register(r"testcases", views.ExerciseTestCaseViewSet)
 # `/courses/<pk>/exercises/<pk>/solutions` entry point
 exercise_router.register(r"solutions", views.ExerciseSolutionViewSet)
 
+exercise_solution_router = routers.NestedSimpleRouter(
+    exercise_router,
+    r"solutions",
+    lookup="solution",
+)
+
+# `/courses/<pk>/exercises/<pk>/solutions/<pk>/comments` entry point
+exercise_solution_router.register(r"comments", views.ExerciseSolutionCommentViewSet)
+
 # `/courses/<pk>/templates` entry point
 course_router.register(
     r"templates",
@@ -112,6 +121,7 @@ urlpatterns = [
     path("", include(event_router.urls)),
     path("", include(participation_router.urls)),
     path("", include(exercise_router.urls)),
+    path("", include(exercise_solution_router.urls)),
     path("", include(template_router.urls)),
     path("", include(template_rule_router.urls)),
 ]
