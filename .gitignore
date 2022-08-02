@@ -9,3 +9,4 @@ local
 media
 staticfiles
 *.sqlite3.bak
+*.sqlite.bak
