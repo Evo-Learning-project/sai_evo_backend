@@ -219,7 +219,7 @@ class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
 
 
 class ExerciseSolutionSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(trim_whitespace=False)
+    content = serializers.CharField(trim_whitespace=False, allow_blank=True)
     votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
     comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
 
