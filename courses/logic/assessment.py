@@ -87,6 +87,7 @@ class SubmissionAssessor:
         submission_correctness = self.get_submission_correctness(
             self.participation_slot
         )
+
         if submission_correctness is None:
             return None
 
