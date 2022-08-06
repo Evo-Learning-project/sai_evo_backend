@@ -67,12 +67,10 @@ class PostModel(TimestampableModel):
 
     @property
     def content(self):
-        print("ACCESSSING GETTER")
         return self._content.text_content
 
     @content.setter
     def content(self, value):
-        print("ACCESSING SETTER WITH VALUE ", value)
         self._content.text_content = value
         self._content.save(update_fields=["text_content"])
 

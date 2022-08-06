@@ -7,6 +7,8 @@ from django.db.models import F, Max, Q
 from django.utils import timezone
 from users.models import User
 from django.db import transaction
+from django.db.models import Sum, Case, When, Value
+
 
 from courses.logic import privileges
 from courses.logic.assessment import get_assessor_class
@@ -329,8 +331,21 @@ class ExerciseSolution(TimestampableModel):
 
     @property
     def score(self):
-        # TODO implement
-        return 0
+        return sum(
+            [1 if v.vote_type == VoteModel.UP_VOTE else -1 for v in self.votes.all()]
+        )
+        # return (
+        #     self.votes.all()
+        #     .annotate(
+        #         value=Case(
+        #             When(vote_type=VoteModel.DOWN_VOTE, then=Value(-1)),
+        #             When(vote_type=VoteModel.UP_VOTE, then=Value(1)),
+        #             default=Value("0"),
+        #             output_field=models.SmallIntegerField(),
+        #         )
+        #     )
+        #     .aggregate(Sum("value"))["value__sum"]
+        # )
 
     @property
     def content(self):

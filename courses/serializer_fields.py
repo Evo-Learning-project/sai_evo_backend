@@ -150,9 +150,13 @@ class FileWithPreviewField(serializers.FileField):
         if not value:
             return None
 
-        print("extras", self.extras)
-        return {
-            "name": os.path.split(value.name)[1],
-            "size": value.size,
-            "extras": self.extras,
-        }
+        # TODO double check
+        try:
+            return {
+                "name": os.path.split(value.name)[1],
+                "size": value.size,
+                "extras": self.extras,
+            }
+        except FileNotFoundError as e:
+            print(e, "FileNotFound for", self.extras)
+            return {}

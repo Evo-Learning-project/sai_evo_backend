@@ -61,6 +61,7 @@ from courses.models import (
     ExerciseChoice,
     ExerciseSolution,
     ExerciseSolutionComment,
+    ExerciseSolutionVote,
     ExerciseTestCase,
     Tag,
     UserCoursePrivilege,
@@ -80,6 +81,7 @@ from .serializers import (
     ExerciseSerializer,
     ExerciseSolutionCommentSerializer,
     ExerciseSolutionSerializer,
+    ExerciseSolutionVoteSerializer,
     ExerciseTestCaseSerializer,
     TagSerializer,
 )
@@ -321,6 +323,12 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
     queryset = ExerciseSolution.objects.all()
     # TODO add policy
 
+    def perform_create(self, serializer):
+        serializer.save(
+            exercise_id=self.kwargs.get("exercise_pk"),
+            user=self.request.user,
+        )
+
     def get_queryset(self):
         qs = super().get_queryset()
 
@@ -331,6 +339,49 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
         # TODO exclude DRAFT or REJECTED solutions, except for their authors and teachers of the course
 
         return qs.prefetch_related("comments", "votes")
+
+    @action(methods=["put", "delete"], detail=True)
+    def vote(self, *args, **kwargs):
+        solution = self.get_object()
+
+        print("REQUEST\n\n\n\n", self.request.data, "\n\n\n-------\n\n\n")
+
+        if self.request.method == "DELETE":
+            # delete user's vote
+            my_vote = get_object_or_404(solution.votes.all(), user=self.request.user)
+            my_vote.delete()
+        else:
+            # TODO double check
+            # create or update user's vote
+            try:
+                serializer_arg = [
+                    ExerciseSolutionVote.objects.get(
+                        solution=solution,
+                        user=self.request.user,
+                    )
+                ]
+            except ExerciseSolutionVote.DoesNotExist:
+                serializer_arg = []
+            serializer = ExerciseSolutionVoteSerializer(
+                *serializer_arg,
+                data={
+                    **self.request.data,
+                },
+            )
+            serializer.is_valid()
+            serializer.save(
+                **{
+                    "solution_id": solution.pk,
+                    "user": self.request.user,
+                }
+            )
+
+        return Response(
+            data=self.get_serializer_class()(
+                self.get_object(),
+                context=self.get_serializer_context(),
+            ).data
+        )
 
 
 class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):

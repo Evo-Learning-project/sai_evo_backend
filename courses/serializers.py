@@ -1,5 +1,6 @@
 from django.db.models import Exists, OuterRef
 from rest_framework import serializers
+from content.models import VoteModel
 from courses.logic.participations import get_effective_time_limit
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
@@ -220,8 +221,11 @@ class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
 
 class ExerciseSolutionSerializer(serializers.ModelSerializer):
     content = serializers.CharField(trim_whitespace=False, allow_blank=True)
-    votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
+    # votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
     comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
+    user = UserSerializer(read_only=True)
+    has_upvote = serializers.SerializerMethodField()
+    has_downvote = serializers.SerializerMethodField()
 
     class Meta:
         model = ExerciseSolution
@@ -230,11 +234,24 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
             "content",
             "user",
             "comments",
-            "votes",
+            # "votes",
             "state",
+            "score",
+            "has_upvote",
+            "has_downvote",
         ]
 
     # TODO prevent creation or update of status to PUBLISHED or REJECTED for non-authorized users
+
+    def get_has_upvote(self, obj):
+        return obj.votes.filter(
+            vote_type=VoteModel.UP_VOTE, user=self.context["request"].user
+        ).exists()
+
+    def get_has_downvote(self, obj):
+        return obj.votes.filter(
+            vote_type=VoteModel.DOWN_VOTE, user=self.context["request"].user
+        ).exists()
 
 
 class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
