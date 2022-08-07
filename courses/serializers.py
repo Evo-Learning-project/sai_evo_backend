@@ -226,6 +226,7 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     has_upvote = serializers.SerializerMethodField()
     has_downvote = serializers.SerializerMethodField()
+    is_bookmarked = serializers.SerializerMethodField()
 
     class Meta:
         model = ExerciseSolution
@@ -239,6 +240,7 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
             "score",
             "has_upvote",
             "has_downvote",
+            "is_bookmarked",
         ]
 
     # TODO prevent creation or update of status to PUBLISHED or REJECTED for non-authorized users
@@ -252,6 +254,9 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
         return obj.votes.filter(
             vote_type=VoteModel.DOWN_VOTE, user=self.context["request"].user
         ).exists()
+
+    def get_is_bookmarked(self, obj):
+        return self.context["request"].user in obj.bookmarked_by.all()
 
 
 class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):

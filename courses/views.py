@@ -341,10 +341,24 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
         return qs.prefetch_related("comments", "votes")
 
     @action(methods=["put", "delete"], detail=True)
-    def vote(self, *args, **kwargs):
+    def bookmark(self, *args, **kwargs):
         solution = self.get_object()
 
-        print("REQUEST\n\n\n\n", self.request.data, "\n\n\n-------\n\n\n")
+        if self.request.method == "DELETE":
+            solution.bookmarked_by.remove(self.request.user)
+        else:
+            solution.bookmarked_by.add(self.request.user)
+
+        return Response(
+            data=self.get_serializer_class()(
+                self.get_object(),
+                context=self.get_serializer_context(),
+            ).data
+        )
+
+    @action(methods=["put", "delete"], detail=True)
+    def vote(self, *args, **kwargs):
+        solution = self.get_object()
 
         if self.request.method == "DELETE":
             # delete user's vote
