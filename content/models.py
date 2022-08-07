@@ -77,7 +77,7 @@ class PostModel(TimestampableModel):
 
 class VoteModel(TimestampableModel):
     """
-    An abstract model representing a vote that a user ha
+    An abstract model representing a vote that a user has
     cast for a (model containing a) piece of content
     """
 

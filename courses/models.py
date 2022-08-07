@@ -318,6 +318,12 @@ class ExerciseSolution(TimestampableModel):
     _content = models.ForeignKey(Content, on_delete=models.PROTECT)
     state = models.PositiveSmallIntegerField(choices=STATES, default=DRAFT)
 
+    bookmarked_by = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="bookmarked_exercise_solutions",
+    )
+
     objects = ExerciseSolutionManager()
 
     def __str__(self):
