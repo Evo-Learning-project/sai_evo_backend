@@ -321,7 +321,7 @@ class ExerciseFilter(FilterSet):
 class ExerciseSolutionViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSolutionSerializer
     queryset = ExerciseSolution.objects.all()
-    # TODO add policy
+    permission_classes = [policies.ExerciseSolutionPolicy]
 
     def perform_create(self, serializer):
         serializer.save(
@@ -401,6 +401,7 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
 class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSolutionCommentSerializer
     queryset = ExerciseSolutionComment.objects.all()
+    permission_classes = [policies.ExerciseSolutionCommentPolicy]
 
     def get_queryset(self):
         qs = super().get_queryset()

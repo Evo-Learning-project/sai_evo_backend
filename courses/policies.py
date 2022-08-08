@@ -422,3 +422,13 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
     def is_publish_or_reject_request(self, request, view, action):
         request_state = request.data.get("state", None)
         return request_state in (ExerciseSolution.PUBLISHED, ExerciseSolution.REJECTED)
+
+
+class ExerciseSolutionCommentPolicy(BaseAccessPolicy):
+    statements = [
+        {
+            "action": ["create"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+        }
+    ]
