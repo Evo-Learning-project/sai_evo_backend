@@ -3,7 +3,7 @@ from courses.logic.participations import is_time_up
 
 from courses.logic.privileges import check_privilege
 
-from .models import Event, EventTemplate
+from .models import Event, EventTemplate, ExerciseSolution
 
 
 class BaseAccessPolicy(AccessPolicy):
@@ -384,3 +384,41 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
     def is_slot_in_scope(self, request, view, action):
         slot = view.get_object()
         return slot.is_in_scope()
+
+
+class ExerciseSolutionPolicy(BaseAccessPolicy):
+    statements = [
+        {
+            "action": ["create", "update", "partial_update"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "has_teacher_privileges:manage_exercises or \
+                not is_publish_or_reject_request",
+        },
+        {
+            "action": ["partial_update", "update"],
+            "principal": ["authenticated"],
+            "effect": "deny",
+            "condition_expression": "not has_teacher_privileges:manage_exercises and \
+                not is_own_solution",
+        },
+        {
+            "action": ["vote"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "not is_own_solution",
+        },
+        {
+            "action": ["bookmark"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+        },
+    ]
+
+    def is_own_solution(self, request, view, action):
+        solution = view.get_object()
+        return request.user == solution.user
+
+    def is_publish_or_reject_request(self, request, view, action):
+        request_state = request.data.get("state", None)
+        return request_state in (ExerciseSolution.PUBLISHED, ExerciseSolution.REJECTED)
