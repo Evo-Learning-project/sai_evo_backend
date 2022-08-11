@@ -82,18 +82,18 @@ class BulkGetMixin:
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        exercises = []
+        items = []
         try:
             course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
 
             for pk in id_list:
-                exercise = get_object_or_404(self.get_queryset(), pk=pk)
-                exercises.append(exercise)
+                item = get_object_or_404(self.get_queryset(), pk=pk)
+                items.append(item)
         except ValueError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer_class()(
-            data=exercises,
+            data=items,
             many=True,
             context=self.get_serializer_context(),
         )

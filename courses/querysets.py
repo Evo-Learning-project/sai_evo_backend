@@ -113,13 +113,25 @@ class ExerciseQuerySet(models.QuerySet):
 
 
 class ExerciseSolutionQuerySet(models.QuerySet):
-    def exclude_draft_and_rejected(self):
-        # TODO implement
-        pass
+    def exclude_draft_and_rejected_unless_authored_by(self, user):
+        from courses.models import ExerciseSolution
 
-    def order_by_approved_first(self):
-        # TODO implement, put approved first
-        pass
+        return self.exclude(
+            (Q(state=ExerciseSolution.REJECTED) | Q(state=ExerciseSolution.DRAFT))
+            & ~Q(user=user)
+        )
+
+    def order_by_published_first(self):
+        from courses.models import ExerciseSolution
+
+        return self.annotate(
+            state_value=Case(
+                When(state=ExerciseSolution.PUBLISHED, then=Value(2)),
+                When(state=ExerciseSolution.SUBMITTED, then=Value(1)),
+                default=Value(0),
+                output_field=models.PositiveSmallIntegerField(),
+            ),
+        ).order_by("-state_value")
 
     def order_by_score_descending(self):
         return self.annotate(

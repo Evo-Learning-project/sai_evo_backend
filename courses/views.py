@@ -228,7 +228,11 @@ class ExerciseFilter(FilterSet):
 
 class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
     serializer_class = ExerciseSolutionSerializer
-    queryset = ExerciseSolution.objects.all().order_by_score_descending()
+    queryset = (
+        ExerciseSolution.objects.all()
+        .order_by_published_first()
+        .order_by_score_descending()
+    )
     permission_classes = [policies.ExerciseSolutionPolicy]
 
     def perform_create(self, serializer):
@@ -244,6 +248,7 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
         return context
 
     def get_queryset(self):
+        # TODO prevent users from accessing solutions for non-public exercises or disable list view entirely
         qs = super().get_queryset()
 
         if self.kwargs.get("exercise_pk") is not None:
@@ -256,9 +261,13 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
                 exercise__course_id=self.kwargs["course_pk"]
             ).with_prefetched_exercise_and_related_objects()
 
-        # TODO exclude DRAFT or REJECTED solutions, except for their authors and teachers of the course
-
-        return qs.prefetch_related("comments", "votes")
+        return (
+            (qs)
+            .exclude_draft_and_rejected_unless_authored_by(
+                self.request.user  # only show DRAFT and REJECTED solutions to their authors
+            )
+            .prefetch_related("comments", "votes")
+        )
 
     @action(methods=["put", "delete"], detail=True)
     def bookmark(self, *args, **kwargs):
@@ -324,8 +333,8 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
 
     @action(methods=["get"], detail=False)
     def submitted(self, *args, **kwargs):
-        # TODO show submitted solutions with specific ordering
-        pass
+        qs = self.get_queryset().filter(state=ExerciseSolution.SUBMITTED)
+        return self.restricted_list(qs)
 
 
 class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):

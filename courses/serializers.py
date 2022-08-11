@@ -303,7 +303,11 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     text = serializers.CharField(trim_whitespace=False, allow_blank=True)
     locked_by = UserSerializer(read_only=True)
     max_score = serializers.SerializerMethodField()
-    solutions = ExerciseSolutionSerializer(many=True, read_only=True)
+    solutions = serializers.SerializerMethodField()
+    # ExerciseSolutionSerializer(many=True, read_only=True)
+    #    (
+    #     serializers.SerializerMethodField()
+    # )
 
     class Meta:
         model = Exercise
@@ -402,6 +406,24 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
 
     def get_max_score(self, obj):
         return obj.get_max_score()
+
+    def get_solutions(self, obj):
+        # TODO extract filtering & ordering logic
+        solutions = (
+            obj.solutions.all()
+            .order_by_published_first()
+            .order_by_score_descending()
+            .exclude_draft_and_rejected_unless_authored_by(
+                self.context[
+                    "request"
+                ].user  # only show DRAFT and REJECTED solutions to their authors
+            )
+        )
+        return ExerciseSolutionSerializer(
+            solutions,
+            context=self.context,
+            many=True,
+        ).data
 
 
 class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):

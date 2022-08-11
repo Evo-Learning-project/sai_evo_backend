@@ -340,9 +340,6 @@ class ExerciseSolution(TimestampableModel):
 
     @property
     def score(self):
-        # return sum(
-        #     [1 if v.vote_type == VoteModel.UP_VOTE else -1 for v in self.votes.all()]
-        # )
         return (
             self.votes.all()
             .annotate(
