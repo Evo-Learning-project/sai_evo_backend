@@ -389,6 +389,13 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
 class ExerciseSolutionPolicy(BaseAccessPolicy):
     statements = [
         {
+            "action": ["list"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            # TODO assign permissions
+            # "condition_expression": "has_teacher_privileges:manage_exercises",
+        },
+        {
             "action": ["destroy"],
             "principal": ["authenticated"],
             "effect": "allow",

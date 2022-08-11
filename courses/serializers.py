@@ -17,6 +17,7 @@ from courses.logic.presentation import (
     EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
     EXERCISE_SHOW_HIDDEN_FIELDS,
     EXERCISE_SHOW_SOLUTION_FIELDS,
+    EXERCISE_SOLUTION_SHOW_EXERCISE,
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
@@ -219,14 +220,14 @@ class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
         return ExerciseSolutionComment.objects.create(**validated_data)
 
 
-class ExerciseSolutionSerializer(serializers.ModelSerializer):
+class ExerciseSolutionSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     content = serializers.CharField(trim_whitespace=False, allow_blank=True)
-    # votes = ExerciseSolutionVoteSerializer(many=True, read_only=True)
     comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
     user = UserSerializer(read_only=True)
     has_upvote = serializers.SerializerMethodField()
     has_downvote = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()
+    exercise = serializers.SerializerMethodField()
 
     class Meta:
         model = ExerciseSolution
@@ -235,15 +236,21 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
             "content",
             "user",
             "comments",
-            # "votes",
             "state",
             "score",
             "has_upvote",
             "has_downvote",
             "is_bookmarked",
+            "exercise",
         ]
+        conditional_fields = {
+            EXERCISE_SOLUTION_SHOW_EXERCISE: ["exercise"],
+        }
 
     # TODO prevent creation or update of status to PUBLISHED or REJECTED for non-authorized users
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.remove_unsatisfied_condition_fields()
 
     def get_has_upvote(self, obj):
         return obj.votes.filter(
@@ -257,6 +264,38 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
 
     def get_is_bookmarked(self, obj):
         return self.context["request"].user in obj.bookmarked_by.all()
+
+    def get_exercise(self, obj):
+        return ExerciseSerializer(obj.exercise, context={}).data
+
+
+# class ExerciseSolutionThreadSerializer(ExerciseSolutionSerializer):
+#     """
+#     Used when an ExerciseSolution is serialized as a "stand-alone thread";
+#     it holds a reference to the exercise as that is necessary to make sense
+#     of the content, but merely treats as a property instead of sub-ordering
+#     the solution to it
+#     """
+
+#     exercise = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = ExerciseSolution
+#         fields = [
+#             "id",
+#             "content",
+#             "user",
+#             "comments",
+#             "state",
+#             "score",
+#             "has_upvote",
+#             "has_downvote",
+#             "is_bookmarked",
+#             "exercise",
+#         ]
+
+#     def get_exercise(self, obj):
+#         return ExerciseSerializer(obj.exercise, context={}).data
 
 
 class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):

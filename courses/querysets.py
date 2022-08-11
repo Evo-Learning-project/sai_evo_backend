@@ -75,6 +75,20 @@ class ExerciseQuerySet(models.QuerySet):
             )  # if more than one tag match, an item may be returned more than once
         return ret_qs
 
+    def with_prefetched_related_objects(self):
+        return self.prefetch_related(
+            "private_tags",
+            "public_tags",
+            "choices",
+            "testcases",
+            "sub_exercises",
+            "sub_exercises__choices",
+            "sub_exercises__testcases",
+            "sub_exercises__private_tags",
+            "sub_exercises__public_tags",
+            "sub_exercises__sub_exercises",
+        )
+
     def get_random(self, amount=1):
         """
         Returns `amount` random exercise(s) from the queryset
@@ -93,6 +107,22 @@ class ExerciseQuerySet(models.QuerySet):
 
         ret = qs.filter(pk__in=picked_ids)
         return ret
+
+
+class ExerciseSolutionQuerySet(models.QuerySet):
+    def with_prefetched_exercise_and_related_objects(self):
+        return self.select_related("exercise").prefetch_related(
+            "exercise__private_tags",
+            "exercise__public_tags",
+            "exercise__choices",
+            "exercise__testcases",
+            "exercise__sub_exercises",
+            "exercise__sub_exercises__choices",
+            "exercise__sub_exercises__testcases",
+            "exercise__sub_exercises__private_tags",
+            "exercise__sub_exercises__public_tags",
+            "exercise__sub_exercises__sub_exercises",
+        )
 
 
 class EventParticipationQuerySet(models.QuerySet):

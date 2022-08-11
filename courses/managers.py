@@ -7,6 +7,7 @@ from courses.querysets import (
     CourseQuerySet,
     EventParticipationQuerySet,
     ExerciseQuerySet,
+    ExerciseSolutionQuerySet,
     SlotModelQuerySet,
     TagQuerySet,
 )
@@ -31,6 +32,9 @@ class TagManager(models.Manager):
 
 
 class ExerciseSolutionManager(models.Manager):
+    def get_queryset(self):
+        return ExerciseSolutionQuerySet(self.model, using=self._db)
+
     def create(self, *args, **kwargs):
         # pass kwarg content as text content to a new instance of Content model
         content = Content.objects.create(text_content=kwargs.pop("content", ""))

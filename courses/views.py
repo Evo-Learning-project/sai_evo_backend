@@ -33,6 +33,7 @@ from courses.logic.presentation import (
     EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
     EXERCISE_SHOW_HIDDEN_FIELDS,
     EXERCISE_SHOW_SOLUTION_FIELDS,
+    EXERCISE_SOLUTION_SHOW_EXERCISE,
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
@@ -329,12 +330,24 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
             user=self.request.user,
         )
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # TODO show exercise only in specific route actions
+        context[EXERCISE_SOLUTION_SHOW_EXERCISE] = True
+        return context
+
     def get_queryset(self):
         qs = super().get_queryset()
 
         if self.kwargs.get("exercise_pk") is not None:
             # using the viewset as sub-route of exercises/
             qs = qs.filter(exercise_id=self.kwargs["exercise_pk"])
+        else:
+            # getting all the solutions for all exercises of a course
+            # i.e. sub-route of courses/
+            qs = qs.filter(
+                exercise__course_id=self.kwargs["course_pk"]
+            ).with_prefetched_exercise_and_related_objects()
 
         # TODO exclude DRAFT or REJECTED solutions, except for their authors and teachers of the course
 
@@ -397,6 +410,14 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
             ).data
         )
 
+    @action(methods=["get"], detail=False)
+    def popular(self, *args, **kwargs):
+        pass
+
+    @action(methods=["get"], detail=False)
+    def popular(self, *args, **kwargs):
+        pass
+
 
 class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSolutionCommentSerializer
@@ -420,18 +441,7 @@ class ExerciseViewSet(
     BulkGetMixin,
 ):
     serializer_class = ExerciseSerializer
-    queryset = Exercise.objects.all().prefetch_related(
-        "private_tags",
-        "public_tags",
-        "choices",
-        "testcases",
-        "sub_exercises",
-        "sub_exercises__choices",
-        "sub_exercises__testcases",
-        "sub_exercises__private_tags",
-        "sub_exercises__public_tags",
-        "sub_exercises__sub_exercises",
-    )
+    queryset = Exercise.objects.all().with_prefetched_related_objects()
     permission_classes = [policies.ExercisePolicy]
     pagination_class = ExercisePagination
     filter_backends = [

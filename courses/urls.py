@@ -31,6 +31,13 @@ course_router.register(
     basename="course-tags",
 )
 
+# `/courses/<pk>/solutions` entry point
+course_router.register(
+    r"solutions",
+    views.ExerciseSolutionViewSet,
+    basename="course-exercise-solutions",
+)
+
 # `/courses/<pk>/exercises` entry point
 course_router.register(
     r"exercises",
