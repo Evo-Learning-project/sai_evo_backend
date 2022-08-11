@@ -18,6 +18,16 @@ class RequestingUserPrivilegesMixin:
         )
 
 
+class RestrictedListMixin:
+    def restricted_list(self, qs):
+        serializer = self.get_serializer_class()(
+            qs,
+            context=self.get_serializer_context(),
+            many=True,
+        )
+        return Response(serializer.data)
+
+
 class BulkCreateMixin:
     def create(self, request, *args, **kwargs):
         many = isinstance(request.data, list)

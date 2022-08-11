@@ -247,7 +247,6 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer, ConditionalFieldsM
             EXERCISE_SOLUTION_SHOW_EXERCISE: ["exercise"],
         }
 
-    # TODO prevent creation or update of status to PUBLISHED or REJECTED for non-authorized users
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.remove_unsatisfied_condition_fields()

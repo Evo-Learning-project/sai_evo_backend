@@ -4,6 +4,9 @@ from django.db import models
 from django.db.models import Q, aggregates
 from django.db.models.aggregates import Max, Min
 from django.db.models import Prefetch
+from django.db.models import Sum, Case, When, Value
+
+from content.models import VoteModel
 
 
 class ExerciseQuerySet(models.QuerySet):
@@ -110,6 +113,27 @@ class ExerciseQuerySet(models.QuerySet):
 
 
 class ExerciseSolutionQuerySet(models.QuerySet):
+    def exclude_draft_and_rejected(self):
+        # TODO implement
+        pass
+
+    def order_by_approved_first(self):
+        # TODO implement, put approved first
+        pass
+
+    def order_by_score_descending(self):
+        return self.annotate(
+            votes_score=Sum(
+                Case(
+                    When(votes__vote_type=VoteModel.DOWN_VOTE, then=Value(-1)),
+                    When(votes__vote_type=VoteModel.UP_VOTE, then=Value(1)),
+                    default=Value(0),
+                    output_field=models.SmallIntegerField(),
+                ),
+                default=0,
+            )
+        ).order_by("-votes_score")
+
     def with_prefetched_exercise_and_related_objects(self):
         return self.select_related("exercise").prefetch_related(
             "exercise__private_tags",

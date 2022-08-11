@@ -326,6 +326,9 @@ class ExerciseSolution(TimestampableModel):
 
     objects = ExerciseSolutionManager()
 
+    class Meta:
+        ordering = ["exercise_id", "created"]
+
     def __str__(self):
         return (
             str(self.user or "Anon")
@@ -337,21 +340,21 @@ class ExerciseSolution(TimestampableModel):
 
     @property
     def score(self):
-        return sum(
-            [1 if v.vote_type == VoteModel.UP_VOTE else -1 for v in self.votes.all()]
-        )
-        # return (
-        #     self.votes.all()
-        #     .annotate(
-        #         value=Case(
-        #             When(vote_type=VoteModel.DOWN_VOTE, then=Value(-1)),
-        #             When(vote_type=VoteModel.UP_VOTE, then=Value(1)),
-        #             default=Value("0"),
-        #             output_field=models.SmallIntegerField(),
-        #         )
-        #     )
-        #     .aggregate(Sum("value"))["value__sum"]
+        # return sum(
+        #     [1 if v.vote_type == VoteModel.UP_VOTE else -1 for v in self.votes.all()]
         # )
+        return (
+            self.votes.all()
+            .annotate(
+                value=Case(
+                    When(vote_type=VoteModel.DOWN_VOTE, then=Value(-1)),
+                    When(vote_type=VoteModel.UP_VOTE, then=Value(1)),
+                    default=Value(0),
+                    output_field=models.SmallIntegerField(),
+                )
+            )
+            .aggregate(score=Sum("value", default=0))["score"]
+        )
 
     @property
     def content(self):

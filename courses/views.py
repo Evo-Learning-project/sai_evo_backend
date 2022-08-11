@@ -1,19 +1,16 @@
-from functools import cached_property
-import json
 import os
-import time
 from django.db.models import Q
 
 
 from django.db.models import Exists, OuterRef
 from django.db.models import Prefetch
-from drf_viewset_profiler import line_profiler_viewset
 
 from .view_mixins import (
     BulkCreateMixin,
     BulkGetMixin,
     BulkPatchMixin,
     RequestingUserPrivilegesMixin,
+    RestrictedListMixin,
     ScopeQuerySetByCourseMixin,
 )
 import django_filters
@@ -48,12 +45,10 @@ from users.models import User
 from users.serializers import UserSerializer
 from django.http import FileResponse, Http404
 from courses import policies
-from courses.logic import privileges
 from courses.logic.privileges import (
     ASSESS_PARTICIPATIONS,
     MANAGE_EVENTS,
     MANAGE_EXERCISES,
-    get_user_privileges,
 )
 from courses.models import (
     Course,
@@ -231,9 +226,9 @@ class ExerciseFilter(FilterSet):
         return queryset
 
 
-class ExerciseSolutionViewSet(viewsets.ModelViewSet):
+class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
     serializer_class = ExerciseSolutionSerializer
-    queryset = ExerciseSolution.objects.all()
+    queryset = ExerciseSolution.objects.all().order_by_score_descending()
     permission_classes = [policies.ExerciseSolutionPolicy]
 
     def perform_create(self, serializer):
@@ -324,10 +319,12 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet):
 
     @action(methods=["get"], detail=False)
     def popular(self, *args, **kwargs):
-        pass
+        qs = self.get_queryset()  # TODO create popular qs method
+        return self.restricted_list(qs)
 
     @action(methods=["get"], detail=False)
-    def popular(self, *args, **kwargs):
+    def submitted(self, *args, **kwargs):
+        # TODO show submitted solutions with specific ordering
         pass
 
 

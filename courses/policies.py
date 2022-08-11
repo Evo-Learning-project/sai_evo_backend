@@ -389,7 +389,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
 class ExerciseSolutionPolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list"],
+            "action": ["popular", "submitted"],
             "principal": ["authenticated"],
             "effect": "allow",
             # TODO assign permissions
