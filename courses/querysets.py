@@ -8,6 +8,8 @@ from django.db.models import Sum, Case, When, Value
 
 from content.models import VoteModel
 
+from django.db.models import Exists, OuterRef
+
 
 class ExerciseQuerySet(models.QuerySet):
     def base_exercises(self):
@@ -31,6 +33,16 @@ class ExerciseQuerySet(models.QuerySet):
         from courses.models import Exercise
 
         return self.filter(state=Exercise.PUBLIC)
+
+    def with_submitted_solutions(self):
+        from .models import ExerciseSolution
+
+        exists_submitted_solution_subquery = ExerciseSolution.objects.all().filter(
+            state=ExerciseSolution.SUBMITTED, exercise=OuterRef("pk")
+        )
+        return self.annotate(
+            submitted_solution_exists=Exists(exists_submitted_solution_subquery)
+        ).filter(submitted_solution_exists=True)
 
     def not_seen_in_practice_by(self, user):
         """

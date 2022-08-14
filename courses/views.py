@@ -1,9 +1,10 @@
 import os
-from django.db.models import Q
 
 
 from django.db.models import Exists, OuterRef
 from django.db.models import Prefetch
+
+from courses.filters import ExerciseFilter, ExerciseSolutionFilter
 
 from .view_mixins import (
     BulkCreateMixin,
@@ -13,7 +14,6 @@ from .view_mixins import (
     RestrictedListMixin,
     ScopeQuerySetByCourseMixin,
 )
-import django_filters
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
@@ -161,6 +161,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(active_users, many=True)
         return Response(serializer.data)
 
+    # TODO extract query logic
     @action(detail=True, methods=["get"])
     def unstarted_practice_events(self, request, **kwargs):
         # sub-query that retrieves a user's participation to events
@@ -210,23 +211,11 @@ class CourseRoleViewSet(ScopeQuerySetByCourseMixin):
         return Response(status=status.HTTP_200_OK)
 
 
-class ExerciseFilter(FilterSet):
-    tags = django_filters.ModelMultipleChoiceFilter(
-        queryset=Tag.objects.all(), method="tags_filter"
-    )
-
-    class Meta:
-        model = Exercise
-        fields = ["tags", "exercise_type", "state"]
-
-    def tags_filter(self, queryset, name, value):
-        for tag in value:
-            filter_cond = Q(public_tags__in=[tag]) | Q(private_tags__in=[tag])
-            queryset = queryset.filter(filter_cond).distinct()
-        return queryset
-
-
-class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
+class ExerciseSolutionViewSet(
+    viewsets.ModelViewSet,
+    RestrictedListMixin,
+    RequestingUserPrivilegesMixin,
+):
     serializer_class = ExerciseSolutionSerializer
     queryset = (
         ExerciseSolution.objects.all()
@@ -234,6 +223,11 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
         .order_by_score_descending()
     )
     permission_classes = [policies.ExerciseSolutionPolicy]
+    pagination_class = ExercisePagination
+    filter_backends = [
+        DjangoFilterBackend,
+    ]
+    filterset_class = ExerciseSolutionFilter
 
     def perform_create(self, serializer):
         serializer.save(
@@ -260,6 +254,10 @@ class ExerciseSolutionViewSet(viewsets.ModelViewSet, RestrictedListMixin):
             qs = qs.filter(
                 exercise__course_id=self.kwargs["course_pk"]
             ).with_prefetched_exercise_and_related_objects()
+
+        # don't show solutions for non-public exercises to unprivileged users
+        if MANAGE_EXERCISES not in self.user_privileges:
+            qs = qs.filter(exercise__state=Exercise.PUBLIC)
 
         return (
             (qs)
@@ -391,6 +389,9 @@ class ExerciseViewSet(
             qs = qs.filter(parent_id=self.kwargs["exercise_pk"])
         elif self.action == "list":
             qs = qs.base_exercises()
+
+        # if "with_submitted_solutions" in self.request.query_params:
+        #     qs = qs.with_submitted_solutions()
 
         return qs
 
