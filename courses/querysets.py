@@ -133,6 +133,11 @@ class ExerciseSolutionQuerySet(models.QuerySet):
             & ~Q(user=user)
         )
 
+    def exclude_draft_unless_authored_by(self, user):
+        from courses.models import ExerciseSolution
+
+        return self.exclude(Q(state=ExerciseSolution.DRAFT) & ~Q(user=user))
+
     def order_by_published_first(self):
         from courses.models import ExerciseSolution
 

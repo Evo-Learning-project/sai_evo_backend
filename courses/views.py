@@ -256,16 +256,18 @@ class ExerciseSolutionViewSet(
             ).with_prefetched_exercise_and_related_objects()
 
         # don't show solutions for non-public exercises to unprivileged users
-        if MANAGE_EXERCISES not in self.user_privileges:
-            qs = qs.filter(exercise__state=Exercise.PUBLIC)
-
-        return (
-            (qs)
-            .exclude_draft_and_rejected_unless_authored_by(
+        if MANAGE_EXERCISES in self.user_privileges:
+            qs = qs.exclude_draft_unless_authored_by(
+                self.request.user  # only show DRAFT solutions to their authors
+            )
+        else:
+            qs = qs.filter(
+                exercise__state=Exercise.PUBLIC
+            ).exclude_draft_and_rejected_unless_authored_by(
                 self.request.user  # only show DRAFT and REJECTED solutions to their authors
             )
-            .prefetch_related("comments", "votes")
-        )
+
+        return (qs).prefetch_related("comments", "votes")
 
     @action(methods=["put", "delete"], detail=True)
     def bookmark(self, *args, **kwargs):
