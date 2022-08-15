@@ -4,7 +4,7 @@ import os
 from django.db.models import Exists, OuterRef
 from django.db.models import Prefetch
 
-from courses.filters import ExerciseFilter, ExerciseSolutionFilter
+from courses.filters import EventFilter, ExerciseFilter, ExerciseSolutionFilter
 
 from .view_mixins import (
     BulkCreateMixin,
@@ -46,6 +46,7 @@ from users.serializers import UserSerializer
 from django.http import FileResponse, Http404
 from courses import policies
 from courses.logic.privileges import (
+    ACCESS_EXERCISES,
     ASSESS_PARTICIPATIONS,
     MANAGE_EVENTS,
     MANAGE_EXERCISES,
@@ -357,6 +358,7 @@ class ExerciseViewSet(
     BulkCreateMixin,
     ScopeQuerySetByCourseMixin,
     BulkGetMixin,
+    RequestingUserPrivilegesMixin,
 ):
     serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().with_prefetched_related_objects()
@@ -378,10 +380,20 @@ class ExerciseViewSet(
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        # TODO review, below comment isn't true anymore
+
         # this viewset is meant to be accessed by privileged users, therefore
         # they need to be able to access the hidden serializer fields
-        context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
-        context[EXERCISE_SHOW_HIDDEN_FIELDS] = True
+
+        # context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
+        context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
+            MANAGE_EXERCISES in self.user_privileges
+            or ACCESS_EXERCISES in self.user_privileges
+        )
+        context[EXERCISE_SHOW_HIDDEN_FIELDS] = (
+            MANAGE_EXERCISES in self.user_privileges
+            or ACCESS_EXERCISES in self.user_privileges
+        )
         return context
 
     def get_queryset(self):
@@ -513,12 +525,6 @@ class TagViewSet(
             course_id=self.kwargs["course_pk"],
             creator=self.request.user,
         )
-
-
-class EventFilter(FilterSet):
-    class Meta:
-        model = Event
-        fields = ["event_type"]
 
 
 class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):

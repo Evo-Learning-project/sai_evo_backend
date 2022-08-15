@@ -1,11 +1,7 @@
 import django_filters
 from django_filters.rest_framework import FilterSet
 
-from courses.models import (
-    Exercise,
-    ExerciseSolution,
-    Tag,
-)
+from courses.models import Exercise, ExerciseSolution, Tag, Event
 from django.db.models import Q
 
 
@@ -37,3 +33,9 @@ class ExerciseSolutionFilter(FilterSet):
     class Meta:
         model = ExerciseSolution
         fields = ["state"]
+
+
+class EventFilter(FilterSet):
+    class Meta:
+        model = Event
+        fields = ["event_type"]
