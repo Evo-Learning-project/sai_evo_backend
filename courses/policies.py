@@ -3,7 +3,7 @@ from courses.logic.participations import is_time_up
 
 from courses.logic.privileges import check_privilege
 
-from .models import Event, EventTemplate, ExerciseSolution
+from .models import Event, EventTemplate, Exercise, ExerciseSolution
 
 
 class BaseAccessPolicy(AccessPolicy):
@@ -169,7 +169,7 @@ class ExercisePolicy(BaseAccessPolicy):
             "action": ["list", "retrieve", "bulk_get"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:access_exercises",
+            # "condition": "has_teacher_privileges:access_exercises",
         },
         {
             "action": [
@@ -389,11 +389,10 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
 class ExerciseSolutionPolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list"],
+            "action": ["list", "retrieve", "bookmark"],
             "principal": ["authenticated"],
             "effect": "allow",
-            # TODO assign permissions
-            # "condition_expression": "has_teacher_privileges:manage_exercises",
+            "condition_expression": "is_solution_visible_to_user",
         },
         {
             "action": ["destroy"],
@@ -421,12 +420,19 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition_expression": "not is_own_solution",
         },
-        {
-            "action": ["bookmark"],
-            "principal": ["authenticated"],
-            "effect": "allow",
-        },
     ]
+
+    def is_solution_visible_to_user(self, request, view, action):
+        try:
+            # allow access only if the requested exercise is among those for
+            # which the requesting user has permission to see the solutions
+            Exercise.objects.all().with_solutions_visible_by(
+                course_id=view.kwargs.get("course_pk"),
+                user=request.user,
+            ).get(pk=view.kwargs.get("exercise_pk"))
+            return True
+        except Exercise.DoesNotExist:
+            return False
 
     def is_own_solution(self, request, view, action):
         solution = view.get_object()

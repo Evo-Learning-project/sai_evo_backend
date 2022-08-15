@@ -267,7 +267,7 @@ class ExerciseSolutionViewSet(
                 self.request.user  # only show DRAFT and REJECTED solutions to their authors
             )
 
-        return (qs).prefetch_related("comments", "votes")
+        return qs.prefetch_related("comments", "votes")
 
     @action(methods=["put", "delete"], detail=True)
     def bookmark(self, *args, **kwargs):
@@ -392,10 +392,8 @@ class ExerciseViewSet(
         elif self.action == "list":
             qs = qs.base_exercises()
 
-        # if "with_submitted_solutions" in self.request.query_params:
-        #     qs = qs.with_submitted_solutions()
-
-        return qs
+        # restrict qs to exercises the requesting user has permission to see
+        return qs.visible_by(course_id=self.kwargs["course_pk"], user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(

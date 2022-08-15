@@ -1,4 +1,5 @@
 import random
+import string
 
 from django.db import models
 from django.db.models import Q, aggregates
@@ -6,12 +7,72 @@ from django.db.models.aggregates import Max, Min
 from django.db.models import Prefetch
 from django.db.models import Sum, Case, When, Value
 
+
+from .logic.privileges import ACCESS_EXERCISES, MANAGE_EXERCISES, get_user_privileges
+
+
+from users.models import User
 from content.models import VoteModel
 
 from django.db.models import Exists, OuterRef
 
 
 class ExerciseQuerySet(models.QuerySet):
+    def with_solutions_visible_by(self, course_id: str, user: User):
+        """Returns the exercises from course with id course_id for which
+        user is allowed to access the solutions.
+
+        If user has ACCESS_EXERCISES or MANAGE_EXERCISES privileges over the course, all
+        exercises are visible to them.
+
+        Otherwise, only exercises with visibility PUBLIC or exercises that are included
+        in at least one EventParticipationSlot whose EventParticipation either belongs
+        to a SELF_SERVICE_PRACTICE Event or has its assessment published are visible
+
+        Args:
+            course_id: Course to which restrict the queryset
+            user (User): User for whom to check permissions
+        """
+        from .models import Exercise, EventParticipationSlot, EventParticipation, Event
+
+        privileges = get_user_privileges(user, course_id)
+
+        if ACCESS_EXERCISES in privileges or MANAGE_EXERCISES in privileges:
+            return self
+
+        eligible_slot_exists_subquery = EventParticipationSlot.objects.filter(
+            Q(participation__event__course_id=course_id)
+            & Q(participation__user=user)
+            & (
+                Q(participation___assessment_state=EventParticipation.PUBLISHED)
+                | Q(participation__event__event_type=Event.SELF_SERVICE_PRACTICE)
+            ),
+            exercise=OuterRef("pk"),
+        )
+
+        return self.annotate(
+            eligible_slot_exists=Exists(eligible_slot_exists_subquery)
+        ).filter(Q(eligible_slot_exists=True) | Q(state=Exercise.PUBLIC))
+
+    def visible_by(self, course_id: str, user: User):
+        from .models import Exercise, EventParticipationSlot, EventParticipation, Event
+
+        privileges = get_user_privileges(user, course_id)
+
+        if ACCESS_EXERCISES in privileges or MANAGE_EXERCISES in privileges:
+            return self
+
+        eligible_slot_exists_subquery = EventParticipationSlot.objects.filter(
+            participation__event__course_id=course_id,
+            participation__user=user,
+            # TODO verify that slot is in scope
+            exercise=OuterRef("pk"),
+        )
+
+        return self.annotate(
+            eligible_slot_exists=Exists(eligible_slot_exists_subquery)
+        ).filter(Q(eligible_slot_exists=True) | Q(state=Exercise.PUBLIC))
+
     def base_exercises(self):
         """
         Returns the exercises that don't have a parent foreign key
