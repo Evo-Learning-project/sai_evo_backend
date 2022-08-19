@@ -70,9 +70,30 @@ mmc_priv_1 = {
 }
 
 mmc_pub_1 = {
-    "text": "multiple choice multiple selection private 1",
+    "text": "multiple choice multiple selection public 1",
     "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
     "state": Exercise.PUBLIC,
+    "solution": "solution of multiple choice multiple selection public 1",
+    "choices": [
+        {
+            "text": "correct",
+            "correctness": "1",
+        },
+        {
+            "text": "partially correct",
+            "correctness": "0.5",
+        },
+        {
+            "text": "incorrect",
+            "correctness": 0,
+        },
+    ],
+}
+
+mmc_draft_1 = {
+    "text": "multiple choice multiple selection draft 1",
+    "exercise_type": Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
+    "state": Exercise.DRAFT,
     "solution": "solution of multiple choice multiple selection public 1",
     "choices": [
         {

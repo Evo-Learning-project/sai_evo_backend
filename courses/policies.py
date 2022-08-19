@@ -415,6 +415,12 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
                 not is_own_solution",
         },
         {
+            "action": ["create", "update", "partial_update"],
+            "principal": ["authenticated"],
+            "effect": "deny",
+            "condition_expression": "not is_solution_visible_to_user",
+        },
+        {
             "action": ["vote"],
             "principal": ["authenticated"],
             "effect": "allow",
@@ -427,6 +433,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
             # allow access only if the requested exercise is among those for
             # which the requesting user has permission to see the solutions
             # TODO optimize (use exists() or values())
+
             Exercise.objects.all().with_solutions_visible_by(
                 course_id=view.kwargs.get("course_pk"),
                 user=request.user,

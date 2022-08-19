@@ -55,14 +55,19 @@ class ExerciseQuerySet(models.QuerySet):
             return self
 
         eligible_slot_exists_subquery = EventParticipationSlot.objects.filter(
-            Q(participation__event__course_id=course_id)
-            & Q(participation__user=user)
-            & (
-                Q(participation___assessment_state=EventParticipation.PUBLISHED)
-                | Q(participation__event__event_type=Event.SELF_SERVICE_PRACTICE)
-            ),
+            Q(participation___assessment_state=EventParticipation.PUBLISHED)
+            | Q(participation__event__event_type=Event.SELF_SERVICE_PRACTICE),
+            participation__event__course_id=course_id,
+            participation__user=user,
             exercise=OuterRef("pk"),
         )
+
+        # print(
+        #     "----QUERY\n\n",
+        #     self.annotate(eligible_slot_exists=Exists(eligible_slot_exists_subquery))
+        #     .filter(Q(eligible_slot_exists=True) | Q(state=Exercise.PUBLIC))
+        #     .query,
+        # )
 
         return self.annotate(
             eligible_slot_exists=Exists(eligible_slot_exists_subquery)

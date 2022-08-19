@@ -1,4 +1,5 @@
 from decimal import Decimal
+from time import sleep
 from django.utils import timezone
 from courses.logic import privileges
 from courses.models import (
@@ -8,6 +9,7 @@ from courses.models import (
     EventParticipationSlot,
     EventTemplateRule,
     Exercise,
+    ExerciseSolution,
     UserCoursePrivilege,
 )
 from django.test import TestCase
@@ -280,42 +282,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
 
         # end CRUD on exercise children
 
-        # self.client.force_authenticate(user=self.teacher2)
-        # response = self.client.get(f"/courses/{course_pk}/exercises/")
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
-        # self.assertEquals(response.status_code, 403)
-
         self.client.force_authenticate(user=self.student1)
-        # response = self.client.get(f"/courses/{course_pk}/exercises/")
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(f"/courses/{course_pk}/exercises/{exercise_pk}/")
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(f"/courses/{course_pk}/exercises/2222/")
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(
-        #     f"/courses/{course_pk}/exercises/{exercise_pk}/choices/"
-        # )
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(
-        #     f"/courses/{course_pk}/exercises/{exercise_pk}/choices/1/"
-        # )
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(
-        #     f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/"
-        # )
-        # self.assertEquals(response.status_code, 403)
-
-        # response = self.client.get(
-        #     f"/courses/{course_pk}/exercises/{exercise_pk}/sub_exercises/1/"
-        # )
-        # self.assertEquals(response.status_code, 403)
 
         # show a user with `create_exercises` permission can create exercises
         UserCoursePrivilege.objects.create(
@@ -457,10 +424,205 @@ class ExerciseViewSetTestCase(BaseTestCase):
         )
         self.assertEquals(response.status_code, 204)
 
-    def test_view_queryset(self):
-        # show that, for each course, you can only access that course's
-        # exercises from the course's endpoint
-        pass
+    def test_exercise_access_policy(self):
+        """
+        Shows that, for a given course, unprivileged users can only access exercises
+        that are either PUBLIC or that are included in a slot of a participation of
+        the requesting user
+        """
+        from data.exercises import mmc_pub_1, mmc_priv_1, msc_priv_1, mmc_draft_1
+
+        course = Course.objects.create(name="test_policy_course", creator=self.teacher1)
+
+        mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
+        mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
+        msc_priv = Exercise.objects.create(course=course, **msc_priv_1)
+        mmc_draft = Exercise.objects.create(course=course, **mmc_draft_1)
+
+        # unprivileged student
+        self.client.force_authenticate(user=self.student1)
+
+        """
+        Shows that, in list view, only exercises that are either PUBLIC or that
+        are included in a slot of a participation of the requesting user are
+        shown in the response
+        """
+        response = self.client.get(f"/courses/{course.pk}/exercises/")
+        self.assertEquals(response.status_code, 200)
+        # response is paginated, access "results" to get the exercises
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertIn(mmc_pub.pk, [e["id"] for e in response.data["results"]])
+        self.assertNotIn(mmc_priv.pk, [e["id"] for e in response.data["results"]])
+        self.assertNotIn(msc_priv.pk, [e["id"] for e in response.data["results"]])
+        self.assertNotIn(mmc_draft.pk, [e["id"] for e in response.data["results"]])
+
+        mmc_priv.state = Exercise.PUBLIC
+        mmc_priv.save()
+
+        # mmc_priv has been made PUBLIC, so it's now included in the list response
+        response = self.client.get(f"/courses/{course.pk}/exercises/")
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertIn(mmc_pub.pk, [e["id"] for e in response.data["results"]])
+        self.assertIn(mmc_priv.pk, [e["id"] for e in response.data["results"]])
+        self.assertNotIn(msc_priv.pk, [e["id"] for e in response.data["results"]])
+
+        """
+        Shows that accessing individual exercises works as long as they are
+        accessible per the same criteria as above
+        """
+        response = self.client.get(f"/courses/{course.pk}/exercises/{mmc_pub.pk}/")
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(f"/courses/{course.pk}/exercises/{msc_priv.pk}/")
+        self.assertEquals(response.status_code, 404)
+
+        response = self.client.get(f"/courses/{course.pk}/exercises/{mmc_priv.pk}/")
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(f"/courses/{course.pk}/exercises/{mmc_draft.pk}/")
+        self.assertEquals(response.status_code, 404)
+
+        mmc_priv.state = Exercise.PRIVATE
+        mmc_priv.save()
+
+        response = self.client.get(f"/courses/{course.pk}/exercises/{mmc_priv.pk}/")
+        self.assertEquals(response.status_code, 404)
+
+        """
+        Shows that, if an exercise is included in an EventParticipationSlot of
+        an EventParticipation of the requesting user, it is accessible even
+        when not PUBLIC
+        """
+        event = Event.objects.create(
+            course=course, name="test_event", event_type=Event.EXAM
+        )
+        rule = EventTemplateRule.objects.create(
+            template=event.template, rule_type=EventTemplateRule.ID_BASED
+        )
+        rule.exercises.set([msc_priv])
+
+        # with no active participation with a slot that references it, exercise
+        # isn't visible
+        response = self.client.get(f"/courses/{course.pk}/exercises/{msc_priv.pk}/")
+        self.assertEquals(response.status_code, 404)
+
+        EventParticipation.objects.create(user=self.student1, event_id=event.pk)
+
+        self.assertTrue(
+            EventParticipationSlot.objects.filter(
+                participation__user=self.student1, exercise=msc_priv
+            ).exists()
+        )
+
+        # since it's included in a slot of the user, it's now visible
+        response = self.client.get(f"/courses/{course.pk}/exercises/{msc_priv.pk}/")
+        self.assertEquals(response.status_code, 200)
+
+
+class ExerciseSolutionViewSetTestCase(BaseTestCase):
+    def test_crud_solutions(self):
+        """
+        Shows that unprivileged users can only access solutions of exercises that:
+        1. are visible to them
+        2.1 are either PUBLIC, or
+        2.2 are included in an EventParticipationSlot of an EventParticipation of the
+        requesting user which either:
+        2.2.1 is to an Event of event_type SELF_SERVICE_PRACTICE or
+        2.2.2 which has its assessment_visibility set to PUBLISHED
+        """
+        from data.exercises import mmc_pub_1, mmc_priv_1, msc_priv_1, mmc_draft_1
+
+        course = Course.objects.create(
+            name="test_solution_policy_course", creator=self.teacher1
+        )
+
+        mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
+        mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
+        msc_priv = Exercise.objects.create(course=course, **msc_priv_1)
+        mmc_draft = Exercise.objects.create(course=course, **mmc_draft_1)
+
+        # create solutions for exercises
+        mmc_pub_sol_1 = ExerciseSolution.objects.create(
+            user=self.teacher1,
+            content="solution1",
+            exercise=mmc_pub,
+            state=ExerciseSolution.PUBLISHED,
+        )
+        mmc_priv_sol_1 = ExerciseSolution.objects.create(
+            user=self.teacher1,
+            content="solution2",
+            exercise=mmc_priv,
+            state=ExerciseSolution.PUBLISHED,
+        )
+
+        # unprivileged student
+        self.client.force_authenticate(user=self.student1)
+
+        # can access a PUBLIC exercise's solutions
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/",
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # cannot access a PRIVATE exercise's solution which doesn't meet
+        # the above criteria
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/",
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/{mmc_priv_sol_1}/",
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # create an event participation for the user with mmc_priv in one of the slots
+        event = Event.objects.create(
+            course=course, name="test_event", event_type=Event.EXAM
+        )
+        rule = EventTemplateRule.objects.create(
+            template=event.template, rule_type=EventTemplateRule.ID_BASED
+        )
+        rule.exercises.set([mmc_priv])
+        participation = EventParticipation.objects.create(
+            event_id=event.pk, user=self.student1
+        )
+        self.assertTrue(
+            EventParticipationSlot.objects.filter(
+                participation__user=self.student1, exercise=mmc_priv
+            ).exists()
+        )
+
+        # still cannot access the solutions as the assessment isn't PUBLISHED
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/",
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/{mmc_priv_sol_1}/",
+        )
+        self.assertEquals(response.status_code, 403)
+
+        participation.assessment_visibility = EventParticipation.PUBLISHED
+        participation.save()
+
+        # assessment for the participation is PUBLISHED; solutions are now visible
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/",
+        )
+        self.assertEquals(response.status_code, 200)
+        response = self.client.get(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/{mmc_priv_sol_1.pk}/",
+        )
+        self.assertEquals(response.status_code, 200)
+
+        """
+        Shows that users can create ExerciseSolutions for exercises whose solutions
+        are accessible to them
+        """
+
+        # unprivileged users cannot create solutions with state PUBLISHED or REJECTED,
+        # nor update solutions to have those states
 
 
 class EventViewSetTestCase(BaseTestCase):
@@ -935,12 +1097,19 @@ class BulkActionsMixinsTestCase(BaseTestCase):
 
         self.student_1 = User.objects.create(**users.student_1)
         self.student_2 = User.objects.create(**users.student_2)
+        self.student_3 = User.objects.create(**users.student_3)
 
         self.exercise_1 = Exercise.objects.create(
             course=self.course, **exercises.mmc_priv_1
         )
         self.exercise_2 = Exercise.objects.create(
             course=self.course, **exercises.msc_priv_1
+        )
+        self.exercise_3 = Exercise.objects.create(
+            course=self.course, **exercises.mmc_pub_1
+        )
+        self.exercise_4 = Exercise.objects.create(
+            course=self.course, **exercises.msc_pub_1
         )
         self.event = Event.objects.create(
             course=self.course, creator=self.teacher_1, **events.exam_1_one_at_a_time
@@ -964,17 +1133,33 @@ class BulkActionsMixinsTestCase(BaseTestCase):
 
     def test_bulk_get(self):
         """
-        Show students cannot bulk get exercises and users
-        with `access_exercises` privilege can
+        Show unprivileged users can bulk get exercises only if visible to them, whereas
+        users with `access_exercises` privilege can bulk get all exercises in the course
         """
         course_pk = self.course.pk
 
-        self.client.force_authenticate(self.student_1)
+        # unprivileged user
+        self.client.force_authenticate(self.student_3)
+
+        # all not_visible_by
         response = self.client.get(
             f"/courses/{course_pk}/exercises/bulk_get/?ids={self.exercise_1.pk},{self.exercise_2.pk}",
         )
-        # FIXME self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
+        # one of the two is not visible
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/bulk_get/?ids={self.exercise_3.pk},{self.exercise_2.pk}",
+        )
+        self.assertEqual(response.status_code, 404)
+
+        # all exercises visible
+        response = self.client.get(
+            f"/courses/{course_pk}/exercises/bulk_get/?ids={self.exercise_3.pk},{self.exercise_4.pk}",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # privileged user
         self.client.force_authenticate(self.teacher_1)
         response = self.client.get(
             f"/courses/{course_pk}/exercises/bulk_get/?ids={self.exercise_1.pk},{self.exercise_2.pk}",

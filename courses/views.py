@@ -261,9 +261,8 @@ class ExerciseSolutionViewSet(
                 self.request.user  # only show DRAFT solutions to their authors
             )
         else:
-            qs = qs.filter(
-                exercise__state=Exercise.PUBLIC
-            ).exclude_draft_and_rejected_unless_authored_by(
+            # TODO is .visible_by(course_id=self.kwargs["course_pk"], user=self.request.user) necessary?
+            qs = qs.exclude_draft_and_rejected_unless_authored_by(
                 self.request.user  # only show DRAFT and REJECTED solutions to their authors
             )
 
