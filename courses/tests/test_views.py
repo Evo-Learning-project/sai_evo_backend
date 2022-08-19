@@ -10,6 +10,7 @@ from courses.models import (
     EventTemplateRule,
     Exercise,
     ExerciseSolution,
+    ExerciseSolutionVote,
     UserCoursePrivilege,
 )
 from django.test import TestCase
@@ -620,9 +621,150 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
         Shows that users can create ExerciseSolutions for exercises whose solutions
         are accessible to them
         """
+        course = Course.objects.create(
+            name="test_solution_policy_course_2", creator=self.teacher1
+        )
 
-        # unprivileged users cannot create solutions with state PUBLISHED or REJECTED,
-        # nor update solutions to have those states
+        mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
+        mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
+        msc_priv = Exercise.objects.create(course=course, **msc_priv_1)
+        mmc_draft = Exercise.objects.create(course=course, **mmc_draft_1)
+
+        # unprivileged student
+        self.client.force_authenticate(user=self.student1)
+
+        # cannot create solutions for exercises whose solutions aren't visible
+        response = self.client.post(
+            f"/courses/{course.pk}/exercises/{mmc_priv.pk}/solutions/",
+            {"content": "abc"},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # if exercise's solutions are visible, creating them is allowed
+        response = self.client.post(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/",
+            {"content": "abc"},
+        )
+        self.assertEquals(response.status_code, 201)
+        solution_1_pk = response.data["id"]
+
+        response = self.client.post(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/",
+            {"content": "abc", "state": ExerciseSolution.SUBMITTED},
+        )
+        self.assertEquals(response.status_code, 201)
+
+        # unprivileged users cannot create solutions in states other than DRAFT or SUBMITTED
+        response = self.client.post(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/",
+            {"content": "abc", "state": ExerciseSolution.PUBLISHED},
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.post(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/",
+            {"content": "abc", "state": ExerciseSolution.REJECTED},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # a user can update their solutions
+        response = self.client.patch(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_1_pk}/",
+            {"content": "abcd", "state": ExerciseSolution.SUBMITTED},
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # an unprivileged user cannot update their solution to be PUBLISHED or REJECTED
+        response = self.client.patch(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_1_pk}/",
+            {"state": ExerciseSolution.PUBLISHED},
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_1_pk}/",
+            {"state": ExerciseSolution.REJECTED},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        solution_2_pk = ExerciseSolution.objects.create(
+            content="abcabc",
+            exercise=mmc_pub,
+            user=self.student2,
+            state=ExerciseSolution.SUBMITTED,
+        ).pk
+
+        # an unprivileged user cannot update or delete somebody else's solutions
+        response = self.client.patch(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_2_pk}/",
+            {"content": "abc"},
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.put(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_2_pk}/",
+            {"content": "abc", "state": ExerciseSolution.DRAFT},
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_2_pk}/",
+        )
+        self.assertEquals(response.status_code, 403)
+
+        """
+        Shows that users can vote others' solutions and there can only be
+        at most one vote per solution per user
+        """
+        self.assertEqual(
+            ExerciseSolution.objects.get(pk=solution_2_pk)
+            .votes.filter(user=self.student1)
+            .count(),
+            0,
+        )
+        response = self.client.put(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_2_pk}/vote/",
+            {"vote_type": ExerciseSolutionVote.UP_VOTE},
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # first time a user votes, an ExerciseSolutionVote is created
+        self.assertEqual(
+            ExerciseSolution.objects.get(pk=solution_2_pk)
+            .votes.filter(user=self.student1)
+            .count(),
+            1,
+        )
+
+        response = self.client.put(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_2_pk}/vote/",
+            {"vote_type": ExerciseSolutionVote.DOWN_VOTE},
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # if same user votes again, the existing vote is updated and no new votes are created
+        self.assertEqual(
+            ExerciseSolution.objects.get(pk=solution_2_pk)
+            .votes.filter(user=self.student1)
+            .count(),
+            1,
+        )
+
+        response = self.client.delete(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_2_pk}/vote/",
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # vote is deleted
+        self.assertEqual(
+            ExerciseSolution.objects.get(pk=solution_2_pk)
+            .votes.filter(user=self.student1)
+            .count(),
+            0,
+        )
+
+        # a user cannot vote their own solutions
+        response = self.client.put(
+            f"/courses/{course.pk}/exercises/{mmc_pub.pk}/solutions/{solution_1_pk}/vote/",
+            {"vote_type": ExerciseSolutionVote.UP_VOTE},
+        )
+        self.assertEquals(response.status_code, 403)
 
 
 class EventViewSetTestCase(BaseTestCase):

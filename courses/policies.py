@@ -389,7 +389,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
 class ExerciseSolutionPolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list", "retrieve", "bookmark"],
+            "action": ["list", "retrieve", "bookmark", "vote"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_solution_visible_to_user",
@@ -423,8 +423,8 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
         {
             "action": ["vote"],
             "principal": ["authenticated"],
-            "effect": "allow",
-            "condition_expression": "not is_own_solution",
+            "effect": "deny",
+            "condition_expression": "is_own_solution",
         },
     ]
 
@@ -453,6 +453,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
 
 class ExerciseSolutionCommentPolicy(BaseAccessPolicy):
     statements = [
+        # TODO allow only if parent solution is visible
         {
             "action": ["create"],
             "principal": ["authenticated"],

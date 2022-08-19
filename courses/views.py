@@ -435,11 +435,15 @@ class ExerciseViewSet(
     @action(detail=True, methods=["post"])
     def solution_execution_results(self, request, **kwargs):
         exercise = self.get_object()
-        results = get_code_execution_results(
-            exercise=exercise,
-            code=exercise.solution,
-        )
-        return Response(results)
+        # TODO this is temporary, find a more robust solution
+        solutions = exercise.solutions.filter(state=ExerciseSolution.PUBLISHED)
+        res = {}
+        for solution in solutions:
+            res[solution.pk] = get_code_execution_results(
+                exercise=exercise,
+                code=solution.content,
+            )
+        return Response(res)
 
 
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
