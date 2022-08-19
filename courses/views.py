@@ -239,11 +239,10 @@ class ExerciseSolutionViewSet(
     def get_serializer_context(self):
         context = super().get_serializer_context()
         # TODO show exercise only in specific route actions
-        context[EXERCISE_SOLUTION_SHOW_EXERCISE] = True
+        # context[EXERCISE_SOLUTION_SHOW_EXERCISE] = True
         return context
 
     def get_queryset(self):
-        # TODO prevent users from accessing solutions for non-public exercises or disable list view entirely
         qs = super().get_queryset()
 
         if self.kwargs.get("exercise_pk") is not None:
@@ -380,12 +379,7 @@ class ExerciseViewSet(
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        # TODO review, below comment isn't true anymore
 
-        # this viewset is meant to be accessed by privileged users, therefore
-        # they need to be able to access the hidden serializer fields
-
-        # context[EXERCISE_SHOW_SOLUTION_FIELDS] = True
         context[EXERCISE_SHOW_SOLUTION_FIELDS] = (
             MANAGE_EXERCISES in self.user_privileges
             or ACCESS_EXERCISES in self.user_privileges
@@ -778,7 +772,7 @@ class EventParticipationViewSet(
 
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
-        # TODO make this idempotent (e.g. include the target slot number in request)
+        # TODO make this idempotent (e.g. include the target slot number in request) or add a few seconds throttle
         participation = self.get_queryset().get(pk=kwargs["pk"])
         participation.move_current_slot_cursor_forward()
 
@@ -833,11 +827,7 @@ class EventParticipationSlotViewSet(
 
     serializer_class = EventParticipationSlotSerializer
     permission_classes = [policies.EventParticipationSlotPolicy]
-    queryset = (
-        EventParticipationSlot.objects.all()
-        .select_related("exercise", "participation", "participation__event")
-        .prefetch_related("sub_slots", "selected_choices")
-    )
+    queryset = EventParticipationSlot.objects.all()
 
     def get_capabilities(self):
         """
@@ -876,8 +866,11 @@ class EventParticipationSlotViewSet(
     def get_queryset(self):
         qs = super().get_queryset()
         # TODO add ability to filter by exercise to get usages of an exercise
-        # ? TODO prefetch here right before returning instead of up above?
-        return qs.filter(participation=self.kwargs["participation_pk"])
+        return (
+            qs.filter(participation=self.kwargs["participation_pk"])
+            .select_related("exercise", "participation", "participation__event")
+            .prefetch_related("sub_slots", "selected_choices")
+        )
 
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):

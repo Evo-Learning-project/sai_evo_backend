@@ -426,6 +426,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
         try:
             # allow access only if the requested exercise is among those for
             # which the requesting user has permission to see the solutions
+            # TODO optimize (use exists() or values())
             Exercise.objects.all().with_solutions_visible_by(
                 course_id=view.kwargs.get("course_pk"),
                 user=request.user,

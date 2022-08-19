@@ -12,6 +12,10 @@ class ExerciseFilter(FilterSet):
     with_submitted_solutions = django_filters.BooleanFilter(
         method="with_submitted_solutions_filter"
     )
+    with_bookmarked_solutions = django_filters.BooleanFilter(
+        method="with_bookmarked_solutions_filter"
+    )
+    by_popularity = django_filters.BooleanFilter(method="order_by_popularity")
 
     class Meta:
         model = Exercise
@@ -28,11 +32,28 @@ class ExerciseFilter(FilterSet):
             queryset = queryset.with_submitted_solutions()
         return queryset
 
+    def with_bookmarked_solutions_filter(self, queryset, name, value):
+        if value:
+            queryset = queryset.with_solutions_bookmarked_by(self.request.user)
+        return queryset
+
+    def order_by_popularity(self, queryset, name, value):
+        if value:
+            queryset = queryset.order_by_popularity()
+        return queryset
+
 
 class ExerciseSolutionFilter(FilterSet):
+    bookmarked = django_filters.BooleanFilter(method="bookmarked_filter")
+
     class Meta:
         model = ExerciseSolution
         fields = ["state"]
+
+    def bookmarked_filter(self, queryset, name, value):
+        if value:
+            queryset = queryset.bookmarked_by(self.request.user)
+        return queryset
 
 
 class EventFilter(FilterSet):

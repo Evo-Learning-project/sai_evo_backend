@@ -3,7 +3,7 @@ import string
 
 from django.db import models
 from django.db.models import Q, aggregates
-from django.db.models.aggregates import Max, Min
+from django.db.models.aggregates import Max, Min, Count
 from django.db.models import Prefetch
 from django.db.models import Sum, Case, When, Value
 
@@ -18,6 +18,20 @@ from django.db.models import Exists, OuterRef
 
 
 class ExerciseQuerySet(models.QuerySet):
+    def with_solutions_bookmarked_by(self, user: User):
+        from .models import ExerciseSolution
+
+        bookmarked_solution_exists_query = (
+            ExerciseSolution.objects.all()
+            .bookmarked_by(user)
+            .filter(
+                exercise=OuterRef("pk"),
+            )
+        )
+        return self.annotate(
+            bookmarked_solution_exists=Exists(bookmarked_solution_exists_query)
+        ).filter(bookmarked_solution_exists=True)
+
     def with_solutions_visible_by(self, course_id: str, user: User):
         """Returns the exercises from course with id course_id for which
         user is allowed to access the solutions.
@@ -72,6 +86,11 @@ class ExerciseQuerySet(models.QuerySet):
         return self.annotate(
             eligible_slot_exists=Exists(eligible_slot_exists_subquery)
         ).filter(Q(eligible_slot_exists=True) | Q(state=Exercise.PUBLIC))
+
+    def order_by_popularity(self):
+        return self.annotate(solution_count=Count("solutions")).order_by(
+            "-solution_count"
+        )
 
     def base_exercises(self):
         """
@@ -186,6 +205,9 @@ class ExerciseQuerySet(models.QuerySet):
 
 
 class ExerciseSolutionQuerySet(models.QuerySet):
+    def bookmarked_by(self, user):
+        return self.filter(bookmarked_by__in=[user])
+
     def exclude_draft_and_rejected_unless_authored_by(self, user):
         from courses.models import ExerciseSolution
 

@@ -343,7 +343,6 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
 
         self.remove_unsatisfied_condition_fields()
 
-        # TODO you might only show this to teachers (students will always only see exercises through slots)
         self.fields["sub_exercises"] = RecursiveField(
             many=True,
             required=False,
