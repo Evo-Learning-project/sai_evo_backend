@@ -94,6 +94,12 @@ class SubmissionAssessor:
         if exercise_max_score is None or exercise_max_score == 0:
             return 0
 
+        # all or nothing exercise with partially incorrect answer
+        if self.participation_slot.exercise.all_or_nothing and Decimal(
+            submission_correctness
+        ) < Decimal(exercise_max_score):
+            return 0
+
         return (
             Decimal(submission_correctness)
             / Decimal(exercise_max_score)

@@ -276,3 +276,7 @@ class SubmissionAssessorTestCase(TestCase):
     def test_js_assessment(self):
         # TODO implement
         pass
+
+    def test_all_or_nothing_exercises(self):
+        # TODO test
+        pass

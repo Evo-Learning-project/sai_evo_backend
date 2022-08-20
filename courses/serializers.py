@@ -303,11 +303,6 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     text = serializers.CharField(trim_whitespace=False, allow_blank=True)
     locked_by = UserSerializer(read_only=True)
     max_score = serializers.SerializerMethodField()
-    # solutions = serializers.SerializerMethodField()
-    # ExerciseSolutionSerializer(many=True, read_only=True)
-    #    (
-    #     serializers.SerializerMethodField()
-    # )
 
     class Meta:
         model = Exercise
@@ -321,14 +316,13 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "initial_code",
             "state",
             "requires_typescript",
-            # "solutions",
             "locked_by",
             "child_weight",
             "max_score",
+            "all_or_nothing",
         ]
 
         conditional_fields = {
-            # EXERCISE_SHOW_SOLUTION_FIELDS: ["solutions"],
             EXERCISE_SHOW_HIDDEN_FIELDS: [
                 "locked_by",
                 "private_tags",

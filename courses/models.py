@@ -236,6 +236,8 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
     skip_if_timeout = models.BooleanField(default=False)
     requires_typescript = models.BooleanField(default=False)
+    # if True, an answer that gets a score less than the max score for the exercise gets 0 instead
+    all_or_nothing = models.BooleanField(default=False)
 
     objects = ExerciseManager()
 
