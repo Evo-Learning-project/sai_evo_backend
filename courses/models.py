@@ -1079,7 +1079,7 @@ class EventParticipationSlot(models.Model):
         ]:
             return self.selected_choices.exists()
 
-        if e_type in [Exercise.OPEN_ANSWER, Exercise.JS, Exercise.C]:
+        if e_type in [Exercise.OPEN_ANSWER, Exercise.JS, Exercise.C, Exercise.PYTHON]:
             return self.answer_text is not None and len(self.answer_text) > 0
 
         if e_type == Exercise.ATTACHMENT:
@@ -1088,7 +1088,7 @@ class EventParticipationSlot(models.Model):
         if e_type in [Exercise.COMPLETION, Exercise.AGGREGATED]:
             return any(s.has_answer for s in self.sub_slots.all())
 
-        assert False, "Type " + self.exercise.exercise_type + " not implemented"
+        assert False, "Type " + str(self.exercise.exercise_type) + " not implemented"
 
     @property
     def score(self):
