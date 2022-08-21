@@ -46,9 +46,17 @@ def run_python_code_in_vm(code, testcases):
     print("RESPONSE", response)
     response_body = response.json()
     outcome_code = response_body["outcome"]
+
+    # compilation errors
+    if outcome_code == 11:
+        return {
+            "compilation_errors": response_body["cmpinfo"],
+            "state": "completed",
+        }
+
     print("RES BODY", response_body, "OUTCOME CODE", outcome_code)
 
-    return {**response_body["stdout"], "state": "completed"}
+    return {**json.loads(response_body["stdout"]), "state": "completed"}
 
 
 def run_c_code_in_vm(code, testcases):
@@ -73,6 +81,7 @@ def run_c_code_in_vm(code, testcases):
         )
         response_body = response.json()
         outcome_code = response_body["outcome"]
+        # compilation errors
         if outcome_code == 11:
             return {
                 "compilation_errors": response_body["cmpinfo"],

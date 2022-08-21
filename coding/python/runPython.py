@@ -22,7 +22,7 @@ def get_testcase_execution_block(
         + f"    trace_back = traceback.extract_tb(ex_traceback)\n"
         + f"    stack_trace = list()\n"
         + f"    for trace in trace_back:\n"
-        + f'        stack_trace.append("File : %s , Line : %d, Func.Name : %s, Message : %s" % (trace[0], trace[1], trace[2], trace[3]))'
+        + f'        stack_trace.append("File : %s , Line : %d, Func.Name : %s, Message : %s" % (trace[0], trace[1], trace[2], trace[3]))\n'
         + f"    {results_dict} = {{'passed': False, 'id': {testcase.pk}, 'error': ex_type.__name__ + ': ' + ex_value + ' (' + stack_trace +')'}}\n"
         + f"{execution_results_list_identifier}.append({results_dict})\n"
     )
