@@ -58,7 +58,7 @@ def run_python_code_in_vm(code, testcases):
 
     results = {}
     if response_body["stdout"]:
-        results = json.loads(response_body["stdout"])
+        results["tests"] = json.loads(response_body["stdout"])
 
     if response_body["stderr"]:
         results["execution_error"] = response_body["stderr"]
