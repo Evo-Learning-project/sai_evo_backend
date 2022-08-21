@@ -173,6 +173,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     JS = 5
     ATTACHMENT = 6
     C = 7
+    PYTHON = 8
     # ATTACHMENT_WITH_OPEN_ANSWER
 
     EXERCISE_TYPES = (
@@ -184,6 +185,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         (JS, "JavaScript"),
         (ATTACHMENT, "Attachment"),
         (C, "C"),
+        (PYTHON, "Python"),
     )
 
     DRAFT = 0

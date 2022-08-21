@@ -3,25 +3,55 @@ import os
 import subprocess
 from django.core.exceptions import ValidationError
 import requests
+from coding.python.runPython import get_python_program_for_vm
 from courses.models import Exercise
 from courses.serializers import ExerciseTestCaseSerializer
+
+JOBE_OUTCOMES = {
+    11: "compilation_error",
+    12: "runtime_error",
+    13: "timeout",
+    15: "ok",
+    17: "memory_limit_exceeded",
+    19: "illegal_system_call",
+    20: "internal_error",
+    21: "overload",
+}
 
 
 def program_stdout_matches_expected(stdout, expected_stdout):
     return stdout.rstrip("\n").rstrip(" ") == expected_stdout.rstrip("\n").rstrip(" ")
 
 
+def run_python_code_in_vm(code, testcases):
+    code_to_run = get_python_program_for_vm(code, testcases)
+    print("CODE TO RUN\n", code_to_run)
+    response = requests.post(
+        os.environ.get(
+            "JOBE_POST_RUN_URL",
+            "http://192.168.1.14:4001/jobe/index.php/restapi/runs",
+        ),
+        data=json.dumps(
+            {
+                "run_spec": {
+                    "language_id": "python3",
+                    # "input": testcase.stdin,
+                    "sourcecode": code_to_run,
+                    # "parameters": {"linkargs": ["-lm"]},
+                }
+            }
+        ),
+        headers={"content-type": "application/json"},
+    )
+    print("RESPONSE", response)
+    response_body = response.json()
+    outcome_code = response_body["outcome"]
+    print("RES BODY", response_body, "OUTCOME CODE", outcome_code)
+
+    return {"state": "internal_error"}
+
+
 def run_c_code_in_vm(code, testcases):
-    outcomes = {
-        11: "compilation_error",
-        12: "runtime_error",
-        13: "timeout",
-        15: "ok",
-        17: "memory_limit_exceeded",
-        19: "illegal_system_call",
-        20: "internal_error",
-        21: "overload",
-    }
     ret = {}
     for testcase in testcases:
         response = requests.post(
@@ -61,7 +91,7 @@ def run_c_code_in_vm(code, testcases):
                 ),
                 "stdout": response_body.get("stdout"),
                 "stderr": response_body.get("stderr"),
-                "error": outcomes[outcome_code] if outcome_code != 15 else None,
+                "error": JOBE_OUTCOMES[outcome_code] if outcome_code != 15 else None,
             }
         )
 
@@ -74,7 +104,7 @@ def run_js_code_in_vm(code, testcases, use_ts):
     virtual machine and returns the outputs given by the code in JSON format
     """
 
-    node_vm_path = os.environ.get("NODE_VM_PATH", "coding/runJs.js")
+    node_vm_path = os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
 
     testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
 
@@ -119,5 +149,8 @@ def get_code_execution_results(slot=None, **kwargs):
 
     if exercise.exercise_type == Exercise.C:
         return run_c_code_in_vm(code, testcases)
+
+    if exercise.exercise_type == Exercise.PYTHON:
+        return run_python_code_in_vm(code, testcases)
 
     raise ValidationError("Non-coding exercise " + str(exercise.pk))
