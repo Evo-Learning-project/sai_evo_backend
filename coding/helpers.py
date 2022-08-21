@@ -48,7 +48,7 @@ def run_python_code_in_vm(code, testcases):
     outcome_code = response_body["outcome"]
     print("RES BODY", response_body, "OUTCOME CODE", outcome_code)
 
-    return {"state": "internal_error"}
+    return {**response_body["stdout"], "state": "completed"}
 
 
 def run_c_code_in_vm(code, testcases):

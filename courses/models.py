@@ -283,7 +283,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
             max_score = (self.choices.all().aggregate(Max("correctness")))[
                 "correctness__max"
-            ]
+            ]  # TODO `or 0`?
             return max_score
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
             correct_choices = self.choices.filter(correctness__gt=0)
