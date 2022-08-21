@@ -56,7 +56,14 @@ def run_python_code_in_vm(code, testcases):
 
     print("RES BODY", response_body, "OUTCOME CODE", outcome_code)
 
-    return {**json.loads(response_body["stdout"]), "state": "completed"}
+    results = {}
+    if response_body["stdout"]:
+        results = json.loads(response_body["stdout"])
+
+    if response_body["stderr"]:
+        results["execution_error"] = response_body["stderr"]
+
+    return {**results, "state": "completed"}
 
 
 def run_c_code_in_vm(code, testcases):
