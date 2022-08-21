@@ -39,8 +39,9 @@ def get_python_program_for_vm(code: str, testcases: ExerciseTestCase) -> str:
     return (
         "import sys\n"
         + "import traceback\n"
+        + "import json\n"
         + f"{execution_results_list_identifier}=[]\n"  # declare list to hold test case results
         + f"{code}\n"  # inline submitted code
         + f"{testcases_str}\n"  # run test cases in try - except blocks
-        + f"print({execution_results_list_identifier})"  # print out the result list
+        + f"print(json.dumps({execution_results_list_identifier}))"  # print out the result list
     )
