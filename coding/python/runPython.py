@@ -19,19 +19,21 @@ def get_testcase_execution_block(
         + f"    {results_dict} = {{'passed': True, 'id': {testcase.pk}}}\n"
         + f"except Exception as {exception_identifier}:\n"
         + f"    {results_dict} = {{'passed': False, 'id': {testcase.pk}, 'error': {exception_identifier}}}\n"
-        + f"{execution_results_list_identifier}.append({results_dict})"
+        + f"{execution_results_list_identifier}.append({results_dict})\n"
     )
 
 
 def get_python_program_for_vm(code: str, testcases: ExerciseTestCase) -> str:
     execution_results_list_identifier = get_random_identifier()
-    testcases_str = [
-        get_testcase_execution_block(t, execution_results_list_identifier)
-        for t in testcases
-    ]
+    testcases_str = "".join(
+        [
+            get_testcase_execution_block(t, execution_results_list_identifier)
+            for t in testcases
+        ]
+    )
     return (
         f"{execution_results_list_identifier}=[]\n"  # declare list to hold test case results
         + f"{code}\n"  # inline submitted code
         + f"{testcases_str}\n"  # run test cases in try - except blocks
-        + f"{execution_results_list_identifier}"  # print out the result list
+        + f"print({execution_results_list_identifier})"  # print out the result list
     )

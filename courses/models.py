@@ -278,7 +278,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
                     for s in self.sub_exercises.all()
                 ]
             )
-        if self.exercise_type in [Exercise.JS, Exercise.C]:
+        if self.exercise_type in [Exercise.JS, Exercise.C, Exercise.PYTHON]:
             return self.testcases.count()
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
             max_score = (self.choices.all().aggregate(Max("correctness")))[
