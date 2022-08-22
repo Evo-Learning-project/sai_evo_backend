@@ -33,7 +33,7 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
         },
         {
-            "action": ["set_permissions"],
+            "action": ["set_permissions", "jobe"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_permissions",

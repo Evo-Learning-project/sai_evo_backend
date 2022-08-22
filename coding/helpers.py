@@ -19,6 +19,21 @@ JOBE_OUTCOMES = {
 }
 
 
+def send_jobe_request(body, headers, req_method, url=""):
+    call_func = getattr(requests, req_method)
+    response = call_func(
+        url
+        or os.environ.get(
+            "JOBE_POST_RUN_URL",
+            "http://192.168.1.14:4001/jobe/index.php/restapi/runs",
+        ),
+        data=body,
+        headers=headers or {"content-type": "application/json"},
+    )
+
+    return response.json()
+
+
 def program_stdout_matches_expected(stdout, expected_stdout):
     return stdout.rstrip("\n").rstrip(" ") == expected_stdout.rstrip("\n").rstrip(" ")
 

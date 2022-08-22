@@ -19,7 +19,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from coding.helpers import get_code_execution_results
+from coding.helpers import get_code_execution_results, send_jobe_request
 from courses.logic.event_instances import get_exercises_from
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
@@ -134,6 +134,17 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(
             creator=self.request.user,
         )
+
+    @action(detail=True, methods=["post"])
+    def jobe(self, request, **kwargs):
+        data = request.data
+        body = request.data["body"]
+        headers = request.data["headers"]
+        url = request.data["url"]
+        req_method = request.data["method"]
+        res = send_jobe_request(body, headers, req_method, url)
+
+        return Response(res)
 
     @action(detail=True, methods=["post"])
     def set_permissions(self, request, **kwargs):
