@@ -31,7 +31,12 @@ def send_jobe_request(body, headers, req_method, url=""):
         headers=headers or {"content-type": "application/json"},
     )
 
-    return response.json()
+    try:
+        ret = response.json()
+    except Exception:
+        ret = str(response)
+
+    return ret
 
 
 def program_stdout_matches_expected(stdout, expected_stdout):
