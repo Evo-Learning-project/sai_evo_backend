@@ -27,7 +27,7 @@ def send_jobe_request(body, headers, req_method, url=""):
             "JOBE_POST_RUN_URL",
             "http://192.168.1.14:4001/jobe/index.php/restapi/runs",
         ),
-        data=body,
+        data=json.dumps(body),
         headers=headers or {"content-type": "application/json"},
     )
 

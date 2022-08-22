@@ -138,10 +138,10 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def jobe(self, request, **kwargs):
         data = request.data
-        body = request.data["body"]
-        headers = request.data["headers"]
-        url = request.data["url"]
-        req_method = request.data["method"]
+        body = request.data.get("body")
+        headers = request.data.get("headers")
+        url = request.data.get("url")
+        req_method = request.data.get("method") or "post"
         res = send_jobe_request(body, headers, req_method, url)
 
         return Response(res)
