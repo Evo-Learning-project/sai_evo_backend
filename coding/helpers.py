@@ -141,38 +141,38 @@ def run_js_code_in_vm(code, exercise, testcases, use_ts):
     virtual machine and returns the outputs given by the code in JSON format
     """
 
-    return JavaScriptCodeRunner(exercise, code).run()
+    # return JavaScriptCodeRunner(exercise, code).run()
 
-    # node_vm_path = os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
+    node_vm_path = os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
 
-    # testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
+    testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
 
     # call node subprocess and run user code against test cases
-    # try:
-    #     res = subprocess.check_output(
-    #         [
-    #             "node",
-    #             node_vm_path,
-    #             code,
-    #             json.dumps(testcases_json),
-    #             json.dumps(use_ts),
-    #         ]
-    #     )
-    #     return {**json.loads(res), "state": "completed"}
-    # except subprocess.CalledProcessError as e:
-    #     print(
-    #         "-----\n\n\n",
-    #         e.returncode,
-    #         "\n\n",
-    #         e.output,
-    #         "\n\n",
-    #         e.stdout,
-    #         "\n\n",
-    #         e.cmd,
-    #         "\n\n",
-    #         e.args,
-    #         "\n\n-----",
-    #     )
+    try:
+        res = subprocess.check_output(
+            [
+                "node",
+                node_vm_path,
+                code,
+                json.dumps(testcases_json),
+                json.dumps(use_ts),
+            ]
+        )
+        return {**json.loads(res), "state": "completed"}
+    except subprocess.CalledProcessError as e:
+        print(
+            "-----\n\n\n",
+            e.returncode,
+            "\n\n",
+            e.output,
+            "\n\n",
+            e.stdout,
+            "\n\n",
+            e.cmd,
+            "\n\n",
+            e.args,
+            "\n\n-----",
+        )
 
 
 def get_code_execution_results(slot=None, **kwargs):
@@ -184,8 +184,10 @@ def get_code_execution_results(slot=None, **kwargs):
     testcases = exercise.testcases.all()
 
     if exercise.exercise_type == Exercise.JS:
-        return run_js_code_in_vm(code, exercise, [], False)
-        # return run_js_code_in_vm(code, testcases, exercise.requires_typescript)
+        # return run_js_code_in_vm(code, exercise, [], False)
+        return run_js_code_in_vm(
+            code, exercise, testcases, exercise.requires_typescript
+        )
 
     if exercise.exercise_type == Exercise.C:
         return run_c_code_in_vm(code, testcases)
