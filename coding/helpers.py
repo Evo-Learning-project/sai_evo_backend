@@ -4,6 +4,7 @@ import subprocess
 from django.core.exceptions import ValidationError
 import requests
 from coding.python.runPython import get_python_program_for_vm
+from coding.runner.runner import JavaScriptCodeRunner
 from courses.models import Exercise
 from courses.serializers import ExerciseTestCaseSerializer
 
@@ -134,42 +135,44 @@ def run_c_code_in_vm(code, testcases):
     return {**ret, "state": "completed"}
 
 
-def run_js_code_in_vm(code, testcases, use_ts):
+def run_js_code_in_vm(code, exercise, testcases, use_ts):
     """
     Takes in a string containing JS code and a list of testcases; runs the code in a JS
     virtual machine and returns the outputs given by the code in JSON format
     """
 
-    node_vm_path = os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
+    return JavaScriptCodeRunner(exercise, code).run()
 
-    testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
+    # node_vm_path = os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
+
+    # testcases_json = [{"id": t.id, "assertion": t.code} for t in testcases]
 
     # call node subprocess and run user code against test cases
-    try:
-        res = subprocess.check_output(
-            [
-                "node",
-                node_vm_path,
-                code,
-                json.dumps(testcases_json),
-                json.dumps(use_ts),
-            ]
-        )
-        return {**json.loads(res), "state": "completed"}
-    except subprocess.CalledProcessError as e:
-        print(
-            "-----\n\n\n",
-            e.returncode,
-            "\n\n",
-            e.output,
-            "\n\n",
-            e.stdout,
-            "\n\n",
-            e.cmd,
-            "\n\n",
-            e.args,
-            "\n\n-----",
-        )
+    # try:
+    #     res = subprocess.check_output(
+    #         [
+    #             "node",
+    #             node_vm_path,
+    #             code,
+    #             json.dumps(testcases_json),
+    #             json.dumps(use_ts),
+    #         ]
+    #     )
+    #     return {**json.loads(res), "state": "completed"}
+    # except subprocess.CalledProcessError as e:
+    #     print(
+    #         "-----\n\n\n",
+    #         e.returncode,
+    #         "\n\n",
+    #         e.output,
+    #         "\n\n",
+    #         e.stdout,
+    #         "\n\n",
+    #         e.cmd,
+    #         "\n\n",
+    #         e.args,
+    #         "\n\n-----",
+    #     )
 
 
 def get_code_execution_results(slot=None, **kwargs):
@@ -181,7 +184,8 @@ def get_code_execution_results(slot=None, **kwargs):
     testcases = exercise.testcases.all()
 
     if exercise.exercise_type == Exercise.JS:
-        return run_js_code_in_vm(code, testcases, exercise.requires_typescript)
+        return run_js_code_in_vm(code, exercise, [], False)
+        # return run_js_code_in_vm(code, testcases, exercise.requires_typescript)
 
     if exercise.exercise_type == Exercise.C:
         return run_c_code_in_vm(code, testcases)

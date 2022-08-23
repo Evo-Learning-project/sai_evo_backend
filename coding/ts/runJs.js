@@ -107,6 +107,6 @@ try {
   const outcome = safeVm.run(machineProgram); // run program
   console.log(JSON.stringify({ tests: outcome })); // output outcome so Django can collect it
 } catch (e) {
-  // an error occurred before any test cases could be ran
+  // an error occurred before any test cases could be run
   console.log(JSON.stringify({ execution_error: utils.prettyPrintError(e) }));
 }

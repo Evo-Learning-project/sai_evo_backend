@@ -9,11 +9,7 @@ try {
     {{ ID_3 }}.passed = true // no exception thrown by test; test passed
 } catch(e) {
     {{ ID_3 }}.passed = false
-    if(e instanceof {{ ID_4 }}) { // assertion error
-         {{ ID_3 }}.error = {{ ID_4 }}(e)
-    } else {
-        {{ ID_3 }}.error = {{ ID_5 }}(e)
-    }
+    {{ ID_3 }}.error = {{ PRINT_ERROR_ID }}(e)
 } finally {
     {{ ID_1 }}[{{ ID_2 }}++] = {{ ID_3 }}
 }

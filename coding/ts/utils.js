@@ -10,6 +10,14 @@ const getRandomIdentifier = (length) => {
 
 const SANDBOX_TIMEOUT = 1000;
 
+function printError(e) {
+  const AssertionError = require("assert").AssertionError;
+  if (e instanceof AssertionError) {
+    return prettyPrintAssertionError(e);
+  }
+  return prettyPrintError(e);
+}
+
 function prettyPrintError(e) {
   // removes information about the stack of the vm from the error message and only
   // shows the info relevant to the user code
@@ -54,4 +62,5 @@ module.exports = {
   prettyPrintAssertionError,
   escapeBackTicks,
   SANDBOX_TIMEOUT,
+  printError,
 };
