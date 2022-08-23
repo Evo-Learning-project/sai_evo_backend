@@ -64,7 +64,7 @@ const assertionString =
         } catch(e) {
             ${testDetailsObjIdentifier}.passed = false
             if(e instanceof ${assertionErrorIdentifier}) {
-                ${testDetailsObjIdentifier}.error = ${prettyPrintAssertionErrorIdentifier}(e) // test case failed but cose threw no errors
+                ${testDetailsObjIdentifier}.error = ${prettyPrintAssertionErrorIdentifier}(e) // test case failed but code threw no errors
             } else {
                 ${testDetailsObjIdentifier}.error = ${prettyPrintErrorIdentifier}(e) // code threw an error during test case execution
             }
