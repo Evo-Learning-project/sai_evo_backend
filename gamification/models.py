@@ -51,7 +51,12 @@ class GoalLevel(models.Model):
     # dict where keys are gamification actions and values are integers
     # representing the amount of times the action must be performed
     # in order to satisfy that requirement
-    requirements = models.JSONField(default=dict, blank=False)
+    # requirements = models.JSONField(default=dict, blank=False)
+
+    requirements = models.ManyToManyField(
+        "ActionDefinition",
+        through="GoalLevelActionDefinitionRequirement",
+    )
 
     level_value = models.PositiveIntegerField()
     points_awarded = models.PositiveIntegerField()
@@ -77,7 +82,7 @@ class ActionDefinition(models.Model):
         on_delete=models.CASCADE,
     )
     action = models.CharField(choices=ACTIONS, max_length=100)
-    parameters = models.JSONField(default=dict)
+    parameters = models.JSONField(default=dict, blank=True)
 
     points_awarded = models.PositiveIntegerField()
     badges_awarded = models.ManyToManyField(
@@ -133,3 +138,9 @@ class Badge(TimestampableModel):
         related_name="badges",
         on_delete=models.CASCADE,
     )
+
+
+class GoalLevelActionDefinitionRequirement(models.Model):
+    goal_level = models.ForeignKey(GoalLevel, on_delete=models.CASCADE)
+    action_definition = models.ForeignKey(ActionDefinition, on_delete=models.CASCADE)
+    amount = models.PositiveIntegerField()

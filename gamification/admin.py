@@ -28,11 +28,19 @@ class ActionDefinitionAdmin(admin.ModelAdmin):
     pass
 
 
+class GoalLevelInline(admin.TabularInline):
+    model = GoalLevel
+
+
 @admin.register(Goal)
 class GoalAdmin(admin.ModelAdmin):
-    pass
+    inlines = [GoalLevelInline]
+
+
+class GoalLevelActionDefinitionRequirementInline(admin.TabularInline):
+    model = GoalLevelActionDefinitionRequirement
 
 
 @admin.register(GoalLevel)
 class GoalLevelAdmin(admin.ModelAdmin):
-    pass
+    inlines = [GoalLevelActionDefinitionRequirementInline]
