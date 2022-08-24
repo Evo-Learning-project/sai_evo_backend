@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
+from gamification.actions import SUBMIT_EXERCISE_SOLUTION
+from gamification.entry import get_gamification_engine
 from users.models import User
 from django.db import transaction
 from django.db.models import Sum, Case, When, Value
@@ -376,8 +378,15 @@ class ExerciseSolution(LifecycleModelMixin, TimestampableModel):
 
     @hook(AFTER_UPDATE, when="state", was=DRAFT, is_now=SUBMITTED)
     def on_submit(self):
-        # TODO implement
-        ...
+        get_gamification_engine().dispatch_action(
+            {
+                "action": SUBMIT_EXERCISE_SOLUTION,
+                "main_object": self,
+                "related_objects": [self.exercise.course, self.exercise],
+                "user": self.user,
+                "extras": {},
+            }
+        )
 
     @hook(AFTER_UPDATE, when="state", changes_to=PUBLISHED)
     def on_approve(self):

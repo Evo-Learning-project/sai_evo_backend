@@ -82,7 +82,8 @@ class ActionDefinition(models.Model):
         on_delete=models.CASCADE,
     )
     action = models.CharField(choices=ACTIONS, max_length=100)
-    parameters = models.JSONField(default=dict, blank=True)
+    # TODO allow parametrizing actions
+    # parameters = models.JSONField(default=dict, blank=True)
 
     points_awarded = models.PositiveIntegerField()
     badges_awarded = models.ManyToManyField(
@@ -107,6 +108,7 @@ class Action(TimestampableModel):
         related_name="actions",
         on_delete=models.CASCADE,
     )
+    # parameters = models.JSONField(default=dict, blank=True)
 
 
 class BadgeDefinition(models.Model):
