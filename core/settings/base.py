@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "channels",
     "django_celery_results",
     "channels_redis",
+    "gamification"
     # "silk",
 ]
 
