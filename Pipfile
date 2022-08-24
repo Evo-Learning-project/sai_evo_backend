@@ -37,6 +37,7 @@ requests = "*"
 django-silk = "*"
 django-auto-prefetching = "*"
 drf-viewset-profiler = "*"
+django-lifecycle = "*"
 
 [dev-packages]
 mypy = "*"

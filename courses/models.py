@@ -8,6 +8,14 @@ from django.utils import timezone
 from users.models import User
 from django.db import transaction
 from django.db.models import Sum, Case, When, Value
+from django_lifecycle import (
+    LifecycleModel,
+    LifecycleModelMixin,
+    hook,
+    BEFORE_UPDATE,
+    AFTER_UPDATE,
+    AFTER_CREATE,
+)
 
 
 from courses.logic import privileges
@@ -292,7 +300,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         assert False, f"max_score not defined for type {self.exercise_type}"
 
 
-class ExerciseSolution(TimestampableModel):
+class ExerciseSolution(LifecycleModelMixin, TimestampableModel):
     """
     A solution to an exercise created by a user
     """
@@ -366,6 +374,16 @@ class ExerciseSolution(TimestampableModel):
         self._content.text_content = val
         self._content.save()
 
+    @hook(AFTER_UPDATE, when="state", was=DRAFT, is_now=SUBMITTED)
+    def on_submit(self):
+        # TODO implement
+        ...
+
+    @hook(AFTER_UPDATE, when="state", changes_to=PUBLISHED)
+    def on_approve(self):
+        # TODO implement
+        ...
+
 
 class ExerciseSolutionComment(PostModel):
     solution = models.ForeignKey(
@@ -374,6 +392,11 @@ class ExerciseSolutionComment(PostModel):
         on_delete=models.PROTECT,
     )
 
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        # TODO implement
+        ...
+
 
 class ExerciseSolutionVote(VoteModel):
     solution = models.ForeignKey(
@@ -381,6 +404,11 @@ class ExerciseSolutionVote(VoteModel):
         related_name="votes",
         on_delete=models.PROTECT,
     )
+
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        # TODO implement
+        ...
 
 
 class ExerciseChoice(OrderableModel):
@@ -448,7 +476,7 @@ class ExerciseTestCase(OrderableModel):
         related_name="testcases",
         on_delete=models.CASCADE,
     )
-    code = models.TextField(blank=True)  # for js exercises
+    code = models.TextField(blank=True)  # for js and python exercises
     stdin = models.TextField(blank=True)  # for c exercises
     expected_stdout = models.TextField(blank=True)  # for c exercises
     text = models.TextField(blank=True)
@@ -954,6 +982,11 @@ class EventParticipation(models.Model):
         if self.state == EventParticipation.TURNED_IN and self.end_timestamp is None:
             self.end_timestamp = timezone.localtime(timezone.now())
         super().save(*args, **kwargs)
+
+    @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
+    def on_turn_in(self):
+        # TODO implement
+        ...
 
     def move_current_slot_cursor_forward(self):
         if self.is_cursor_last_position:
