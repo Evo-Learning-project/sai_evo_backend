@@ -2,10 +2,20 @@
 Entry point to the app from the other apps
 """
 
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import QuerySet
 
 from typing import Any, Dict, List, Optional, TypedDict
 from gamification.actions import SUBMIT_EXERCISE_SOLUTION, VALID_ACTIONS
-from gamification.models import Action, ActionDefinition, GamificationContext
+from gamification.models import (
+    Action,
+    ActionDefinition,
+    GamificationContext,
+    GamificationReputationDelta,
+    Goal,
+    GoalLevel,
+    GoalProgress,
+)
 from users.models import User
 
 
@@ -41,6 +51,7 @@ class ActionPayload(TypedDict):
 
 def dispatch_action(payload: ActionPayload) -> None:
     contexts = get_contexts(payload["main_object"], *payload["related_objects"])
+    user = payload["user"]
 
     # get gamification context(s) for all involved objects
     for context in contexts:
@@ -49,32 +60,70 @@ def dispatch_action(payload: ActionPayload) -> None:
         if action_definition is None:
             continue
         # record action done by user
-        action = record_action(action_definition, payload["user"])
+        action = record_action(action_definition, user)
         # if action has points or badges associated to it, award them
-        award_points_and_badges_for_action(action)
+        award_points_and_badges_for_action(action, user)
         # if user has reached new levels or goals with this action, award them
-        award_points_and_badges_for_progress(payload["user"], context)
+        award_points_and_badges_for_progress(context, user)
 
 
-def get_contexts(*args: List[Any]) -> List[GamificationContext]:
-    ...
+def get_contexts(*args: Any) -> List[GamificationContext]:
+    # TODO optimize
+    ret: List[GamificationContext] = []
+    for obj in args:
+        object_content_type = ContentType.objects.get_for_model(obj)
+        object_contexts: QuerySet[
+            GamificationContext
+        ] = GamificationContext.objects.filter(
+            content_type=object_content_type, object_id=obj.pk
+        )
+        ret.extend([c for c in object_contexts])
+    return ret
 
 
 def get_action_definition(
     action_code: str, context: GamificationContext
 ) -> Optional[ActionDefinition]:
-    ...
+    try:
+        return context.action_definitions.get(action_code=action_code)  # type: ignore
+    except ActionDefinition.DoesNotExist:
+        return None
 
 
 def record_action(action_definition: ActionDefinition, user: User) -> Action:
     return Action.objects.create(user=user, definition=action_definition)
 
 
-def award_points_and_badges_for_action(action: Action) -> None:
-    ...
+def award_points_and_badges_for_action(action: Action, user: User) -> None:
+    GamificationReputationDelta.objects.create(
+        user=user,
+        context=action.definition.context,
+        delta=action.definition.points_awarded,
+    )
 
 
 def award_points_and_badges_for_progress(
-    user: User, context: GamificationContext
+    context: GamificationContext, user: User
 ) -> None:
-    ...
+    # TODO fix type checker to support models' reverse relationships
+    for goal in context.goals.all():  # type: ignore
+        goal_progress: GoalProgress = goal.progresses.get(user=user)
+        highest_level_satisfied: GoalLevel = (
+            # TODO implement qs method
+            goal.levels.all().get_highest_satisfied_by_user(user)
+        )
+        if highest_level_satisfied == goal_progress.current_level:
+            # user hasn't reached a new level
+            continue
+
+        # for all new levels the user has reached for this goal,
+        # award badges and reputation
+        for reached_level in goal.levels.filter(
+            level_value__gt=goal_progress.current_level.level_value,
+            level_value__lte=highest_level_satisfied.level_value,
+        ):
+            # TODO notify a new level has been reached
+            reached_level.award_reputation_and_badges(user)
+
+        # update goal progress to reflect new highest reached level
+        goal_progress.reach_level(highest_level_satisfied)

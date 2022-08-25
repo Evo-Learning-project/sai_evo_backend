@@ -59,14 +59,15 @@ class GoalLevel(models.Model):
     )
 
     level_value = models.PositiveIntegerField()
-    points_awarded = models.PositiveIntegerField()
+    reputation_awarded = models.PositiveIntegerField()
     badges_awarded = models.ManyToManyField(
         "BadgeDefinition",
         related_name="awarded_in_goal_levels",
         blank=True,
     )
 
-    # TODO validate requirements
+    def award_reputation_and_badges(self, to_user: User):
+        pass
 
 
 class ActionDefinition(models.Model):
@@ -78,14 +79,14 @@ class ActionDefinition(models.Model):
 
     context = models.ForeignKey(
         GamificationContext,
-        related_name="actions",
+        related_name="action_definitions",
         on_delete=models.CASCADE,
     )
-    action = models.CharField(choices=ACTIONS, max_length=100)
+    action_code = models.CharField(choices=ACTIONS, max_length=100)
     # TODO allow parametrizing actions
     # parameters = models.JSONField(default=dict, blank=True)
 
-    points_awarded = models.PositiveIntegerField()
+    reputation_awarded = models.PositiveIntegerField()
     badges_awarded = models.ManyToManyField(
         "BadgeDefinition",
         related_name="awarded_in_actions",
@@ -143,6 +144,60 @@ class Badge(TimestampableModel):
 
 
 class GoalLevelActionDefinitionRequirement(models.Model):
+    """
+    A requirement to finish a goal level, i.e. an action and the amount of
+    times it must be performed to satisfy the requirement
+    """
+
     goal_level = models.ForeignKey(GoalLevel, on_delete=models.CASCADE)
     action_definition = models.ForeignKey(ActionDefinition, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField()
+
+
+class GoalProgress(models.Model):
+    """
+    The progress a user has made towards clearing a goal, i.e. their
+    current level of achievement for that goal
+    """
+
+    goal = models.ForeignKey(
+        Goal,
+        related_name="progresses",
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        related_name="goal_progresses",
+        on_delete=models.CASCADE,
+    )
+    current_level = models.ForeignKey(
+        GoalLevel,
+        related_name="current_in_progresses",
+        on_delete=models.CASCADE,
+    )
+
+    # TODO enforce that current_level is child of goal
+
+    def reach_level(self, new_level: GoalLevel):
+        self.current_level = GoalLevel
+        self.save(update_fields=["current_level"])
+
+
+class GamificationReputationDelta(TimestampableModel):
+    """
+    Represents an increase or decrease in the reputation score of a user
+    in a particular gamification context.
+    """
+
+    context = models.ForeignKey(
+        GamificationContext,
+        related_name="reputation_deltas",
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        related_name="reputation_deltas",
+        on_delete=models.CASCADE,
+    )
+    delta = models.IntegerField()
+    data = models.JSONField(default=dict, blank=True)
