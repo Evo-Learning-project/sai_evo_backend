@@ -76,10 +76,15 @@ class GoalLevel(models.Model):
     objects = GoalLevelManager()
 
     def __str__(self) -> str:
-        return str(self.goal) + " level " + self.level_value
+        return str(self.goal) + " level " + str(self.level_value)
 
     def award_reputation_and_badges(self, to_user: User):
-        pass
+        # TODO deal with badges
+        GamificationReputationDelta.objects.create(
+            user=to_user,
+            context=self.goal.context,
+            delta=self.reputation_awarded,
+        )
 
 
 class ActionDefinition(models.Model):
@@ -128,6 +133,13 @@ class Action(TimestampableModel):
 
     def __str__(self) -> str:
         return str(self.pk) + " " + str(self.definition) + " by " + str(self.user)
+
+    def award_reputation_and_badges(self, to_user: User):
+        GamificationReputationDelta.objects.create(
+            user=to_user,
+            context=self.definition.context,
+            delta=self.definition.reputation_awarded,
+        )
 
 
 class BadgeDefinition(models.Model):

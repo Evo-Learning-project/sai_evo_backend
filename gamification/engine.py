@@ -63,7 +63,7 @@ def dispatch_action(payload: ActionPayload) -> None:
         # record action done by user
         action = record_action(action_definition, user)
         # if action has points or badges associated to it, award them
-        award_points_and_badges_for_action(action, user)
+        action.award_reputation_and_badges(user)
         # if user has reached new levels or goals with this action, award them
         award_points_and_badges_for_progress(context, user)
 
@@ -95,12 +95,12 @@ def record_action(action_definition: ActionDefinition, user: User) -> Action:
     return Action.objects.create(user=user, definition=action_definition)
 
 
-def award_points_and_badges_for_action(action: Action, user: User) -> None:
-    GamificationReputationDelta.objects.create(
-        user=user,
-        context=action.definition.context,
-        delta=action.definition.reputation_awarded,
-    )
+# def award_points_and_badges_for_action(action: Action, user: User) -> None:
+#     GamificationReputationDelta.objects.create(
+#         user=user,
+#         context=action.definition.context,
+#         delta=action.definition.reputation_awarded,
+#     )
 
 
 def award_points_and_badges_for_progress(
