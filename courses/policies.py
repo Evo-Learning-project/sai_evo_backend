@@ -28,7 +28,7 @@ class BaseAccessPolicy(AccessPolicy):
 class CoursePolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["list", "unstarted_practice_events"],
+            "action": ["list", "unstarted_practice_events", "gamification_context"],
             "principal": ["authenticated"],
             "effect": "allow",
         },

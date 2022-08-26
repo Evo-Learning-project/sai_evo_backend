@@ -4,6 +4,7 @@ from gamification.managers import GoalLevelManager
 from users.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import Sum, Case, When, Value
 
 from courses.models import TimestampableModel
 
@@ -25,8 +26,15 @@ class GamificationContext(models.Model):
 
     # TODO should context be recursive?
 
+    # TODO enforce uniqueness per content_object
+
     def __str__(self) -> str:
         return "Context " + str(self.pk) + " - " + str(self.content_object)[:50]
+
+    def get_reputation_for(self, user: User):
+        return user.reputation_deltas.all().aggregate(
+            reputation_total=Sum("delta", default=0)
+        )["reputation_total"]
 
 
 class Goal(models.Model):
@@ -55,10 +63,6 @@ class GoalLevel(models.Model):
         related_name="levels",
         on_delete=models.CASCADE,
     )
-    # dict where keys are gamification actions and values are integers
-    # representing the amount of times the action must be performed
-    # in order to satisfy that requirement
-    # requirements = models.JSONField(default=dict, blank=False)
 
     action_requirements = models.ManyToManyField(
         "ActionDefinition",

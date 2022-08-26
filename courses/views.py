@@ -174,25 +174,47 @@ class CourseViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     # TODO extract query logic
-    @action(detail=True, methods=["get"])
-    def unstarted_practice_events(self, request, **kwargs):
-        # sub-query that retrieves a user's participation to events
-        exists_user_participation = (
-            EventParticipation.objects.all()
-            .with_prefetched_base_slots()
-            .filter(user=request.user, event=OuterRef("pk"))
+    # @action(detail=True, methods=["get"])
+    # def unstarted_practice_events(self, request, **kwargs):
+    #     # sub-query that retrieves a user's participation to events
+    #     exists_user_participation = (
+    #         EventParticipation.objects.all()
+    #         .with_prefetched_base_slots()
+    #         .filter(user=request.user, event=OuterRef("pk"))
+    #     )
+
+    #     practice_events = Event.objects.annotate(
+    #         user_participation_exists=Exists(exists_user_participation)
+    #     ).filter(
+    #         creator=request.user,
+    #         course=self.get_object(),
+    #         event_type=Event.SELF_SERVICE_PRACTICE,
+    #         user_participation_exists=False,
+    #     )
+
+    #     return EventSerializer(practice_events, many=True, context=self.context).data
+
+    @action(methods=["get"], detail=True)
+    def gamification_context(self, request, **kwargs):
+        from gamification.models import GamificationContext
+        from gamification.serializers import GamificationContextSerializer
+        from django.contrib.contenttypes.models import ContentType
+
+        # TODO refactor
+        course = self.get_object()
+
+        object_content_type = ContentType.objects.get_for_model(course)
+
+        gamification_context = get_object_or_404(
+            GamificationContext.objects.all(),
+            content_type=object_content_type,
+            object_id=course.pk,
         )
 
-        practice_events = Event.objects.annotate(
-            user_participation_exists=Exists(exists_user_participation)
-        ).filter(
-            creator=request.user,
-            course=self.get_object(),
-            event_type=Event.SELF_SERVICE_PRACTICE,
-            user_participation_exists=False,
+        serializer = GamificationContextSerializer(
+            gamification_context, context={"request": request}
         )
-
-        return EventSerializer(practice_events, many=True, context=self.context).data
+        return Response(serializer.data)
 
 
 class CourseRoleViewSet(ScopeQuerySetByCourseMixin):
