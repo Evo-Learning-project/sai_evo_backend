@@ -36,6 +36,16 @@ class GamificationContext(models.Model):
             reputation_total=Sum("delta", default=0)
         )["reputation_total"]
 
+    def get_users_with_annotated_reputation_total(self):
+        return User.objects.all().annotate(
+            reputation_total=Sum("reputation_deltas__delta", default=0)
+        )
+
+    def get_active_users(self):
+        return self.get_users_with_annotated_reputation_total().filter(
+            reputation_total__gt=0
+        )
+
 
 class Goal(models.Model):
     """

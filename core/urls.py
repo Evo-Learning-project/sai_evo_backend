@@ -51,5 +51,6 @@ urlpatterns = [
         r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"
     ),
     path("users/", include("users.urls")),
+    path("gamification/", include("gamification.urls")),
     #   path(os.environ.get("SILK_PATH", "silk/"), include("silk.urls", namespace="silk")),
 ]

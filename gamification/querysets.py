@@ -4,6 +4,10 @@ from django.db.models.aggregates import Max, Min, Count
 from users.models import User
 
 
+class GamificationContextQuerySet(models.QuerySet):
+    pass
+
+
 class GoalLevelQuerySet(models.QuerySet):
     def get_highest_satisfied_by_user(self, user: User):
         if self.first() is None:
