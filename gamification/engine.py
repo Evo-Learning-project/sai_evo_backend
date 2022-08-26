@@ -50,6 +50,7 @@ class ActionPayload(TypedDict):
 
 
 def dispatch_action(payload: ActionPayload) -> None:
+    print("ENGINE REACHED")
     contexts = get_contexts(payload["main_object"], *payload["related_objects"])
     user = payload["user"]
 
@@ -98,7 +99,7 @@ def award_points_and_badges_for_action(action: Action, user: User) -> None:
     GamificationReputationDelta.objects.create(
         user=user,
         context=action.definition.context,
-        delta=action.definition.points_awarded,
+        delta=action.definition.reputation_awarded,
     )
 
 
@@ -107,7 +108,7 @@ def award_points_and_badges_for_progress(
 ) -> None:
     # TODO fix type checker to support models' reverse relationships
     for goal in context.goals.all():  # type: ignore
-        goal_progress: GoalProgress = goal.progresses.get(user=user)
+        goal_progress: GoalProgress = goal.progresses.get_or_create(user=user)[0]
         highest_level_satisfied: GoalLevel = (
             # TODO implement qs method
             goal.levels.all().get_highest_satisfied_by_user(user)
@@ -119,8 +120,12 @@ def award_points_and_badges_for_progress(
         # for all new levels the user has reached for this goal,
         # award badges and reputation
         for reached_level in goal.levels.filter(
-            level_value__gt=goal_progress.current_level.level_value,
-            level_value__lte=highest_level_satisfied.level_value,
+            level_value__gt=goal_progress.current_level.level_value
+            if goal_progress.current_level is not None
+            else 0,
+            level_value__lte=highest_level_satisfied.level_value
+            if highest_level_satisfied is not None
+            else 0,
         ):
             # TODO notify a new level has been reached
             reached_level.award_reputation_and_badges(user)

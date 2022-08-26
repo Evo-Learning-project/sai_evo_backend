@@ -44,3 +44,13 @@ class GoalLevelActionDefinitionRequirementInline(admin.TabularInline):
 @admin.register(GoalLevel)
 class GoalLevelAdmin(admin.ModelAdmin):
     inlines = [GoalLevelActionDefinitionRequirementInline]
+
+
+@admin.register(GoalProgress)
+class GoalProgressAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(GamificationReputationDelta)
+class GamificationReputationDeltaAdmin(admin.ModelAdmin):
+    pass

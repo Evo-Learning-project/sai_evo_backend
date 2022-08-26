@@ -2,7 +2,7 @@ import random
 import string
 
 from django.db import models
-from django.db.models import Q, aggregates
+from django.db.models import Q
 from django.db.models.aggregates import Max, Min, Count
 from django.db.models import Prefetch
 from django.db.models import Sum, Case, When, Value

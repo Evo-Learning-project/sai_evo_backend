@@ -1,5 +1,6 @@
 from django.db import models
 from gamification.actions import VALID_ACTIONS
+from gamification.managers import GoalLevelManager
 from users.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -24,6 +25,9 @@ class GamificationContext(models.Model):
 
     # TODO should context be recursive?
 
+    def __str__(self) -> str:
+        return "Context " + str(self.pk) + " - " + str(self.content_object)[:50]
+
 
 class Goal(models.Model):
     """
@@ -41,6 +45,9 @@ class Goal(models.Model):
 
     # TODO have a manager that allows to create never-ending goals, e.g. with lazily generated new levels
 
+    def __str__(self) -> str:
+        return "Goal " + self.name
+
 
 class GoalLevel(models.Model):
     goal = models.ForeignKey(
@@ -53,7 +60,7 @@ class GoalLevel(models.Model):
     # in order to satisfy that requirement
     # requirements = models.JSONField(default=dict, blank=False)
 
-    requirements = models.ManyToManyField(
+    action_requirements = models.ManyToManyField(
         "ActionDefinition",
         through="GoalLevelActionDefinitionRequirement",
     )
@@ -65,6 +72,11 @@ class GoalLevel(models.Model):
         related_name="awarded_in_goal_levels",
         blank=True,
     )
+
+    objects = GoalLevelManager()
+
+    def __str__(self) -> str:
+        return str(self.goal) + " level " + self.level_value
 
     def award_reputation_and_badges(self, to_user: User):
         pass
@@ -93,6 +105,9 @@ class ActionDefinition(models.Model):
         blank=True,
     )
 
+    def __str__(self) -> str:
+        return "Action " + self.action_code + " in context " + str(self.context)
+
 
 class Action(TimestampableModel):
     """
@@ -111,6 +126,9 @@ class Action(TimestampableModel):
     )
     # parameters = models.JSONField(default=dict, blank=True)
 
+    def __str__(self) -> str:
+        return str(self.pk) + " " + str(self.definition) + " by " + str(self.user)
+
 
 class BadgeDefinition(models.Model):
     """
@@ -124,6 +142,9 @@ class BadgeDefinition(models.Model):
         related_name="badges",
         on_delete=models.CASCADE,
     )
+
+    def __str__(self) -> str:
+        return "Badge " + self.name + " in context " + str(self.pk)
 
 
 class Badge(TimestampableModel):
@@ -142,6 +163,9 @@ class Badge(TimestampableModel):
         on_delete=models.CASCADE,
     )
 
+    def __str__(self) -> str:
+        return str(self.badge_definition) + " of " + str(self.user)
+
 
 class GoalLevelActionDefinitionRequirement(models.Model):
     """
@@ -149,9 +173,23 @@ class GoalLevelActionDefinitionRequirement(models.Model):
     times it must be performed to satisfy the requirement
     """
 
-    goal_level = models.ForeignKey(GoalLevel, on_delete=models.CASCADE)
+    goal_level = models.ForeignKey(
+        GoalLevel,
+        related_name="requirements",
+        on_delete=models.CASCADE,
+    )
     action_definition = models.ForeignKey(ActionDefinition, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField()
+
+    def __str__(self) -> str:
+        return (
+            "("
+            + str(self.goal_level)
+            + ") "
+            + str(self.action_definition)
+            + ": "
+            + str(self.amount)
+        )
 
 
 class GoalProgress(models.Model):
@@ -174,12 +212,23 @@ class GoalProgress(models.Model):
         GoalLevel,
         related_name="current_in_progresses",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
+
+    def __str__(self) -> str:
+        return (
+            str(self.user)
+            + " - "
+            + str(self.goal)
+            + ": "
+            + str(self.current_level.level_value)
+        )
 
     # TODO enforce that current_level is child of goal
 
     def reach_level(self, new_level: GoalLevel):
-        self.current_level = GoalLevel
+        self.current_level = new_level
         self.save(update_fields=["current_level"])
 
 
@@ -201,3 +250,6 @@ class GamificationReputationDelta(TimestampableModel):
     )
     delta = models.IntegerField()
     data = models.JSONField(default=dict, blank=True)
+
+    def __str__(self) -> str:
+        return str(self.user) + ": " + str(self.delta) + " (" + str(self.context) + ")"
