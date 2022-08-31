@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     "channels_redis",
     "gamification",
     "notifications",
-    "notifications_rest",
+    "user_notifications"
     # "silk",
 ]
 
