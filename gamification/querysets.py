@@ -15,6 +15,8 @@ class GoalLevelQuerySet(models.QuerySet):
 
         self = self.order_by("level_value").filter(
             level_value__gte=starting_from.level_value
+            if starting_from is not None
+            else 0
         )
 
         context = self.first().goal.context

@@ -5,7 +5,10 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
-from gamification.actions import SUBMIT_EXERCISE_SOLUTION
+from gamification.actions import (
+    SUBMIT_EXERCISE_SOLUTION,
+    TURN_IN_PRACTICE_PARTICIPATION,
+)
 from gamification.entry import get_gamification_engine
 from users.models import User
 from django.db import transaction
@@ -804,7 +807,7 @@ class EventTemplateRuleClause(models.Model):
         ordering = ["rule_id", "id"]
 
 
-class EventParticipation(models.Model):
+class EventParticipation(LifecycleModelMixin, models.Model):
     IN_PROGRESS = 0
     TURNED_IN = 1
     # TODO implement ABANDONED state
@@ -994,8 +997,16 @@ class EventParticipation(models.Model):
 
     @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
     def on_turn_in(self):
-        # TODO implement
-        ...
+        if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
+            get_gamification_engine().dispatch_action(
+                {
+                    "action": TURN_IN_PRACTICE_PARTICIPATION,
+                    "main_object": self,
+                    "related_objects": [self.event.course],
+                    "user": self.user,
+                    "extras": {},
+                }
+            )
 
     def move_current_slot_cursor_forward(self):
         if self.is_cursor_last_position:
