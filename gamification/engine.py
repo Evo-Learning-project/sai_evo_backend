@@ -4,6 +4,7 @@ Entry point to the app from the other apps
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import QuerySet
+from notifications.signals import notify
 
 from typing import Any, Dict, List, Optional, TypedDict
 from gamification.actions import SUBMIT_EXERCISE_SOLUTION, VALID_ACTIONS
@@ -16,6 +17,7 @@ from gamification.models import (
     GoalLevel,
     GoalProgress,
 )
+from gamification.notifications import NEW_GOAL_LEVEL_REACHED, NOTIFICATION_VERBS
 from users.models import User
 
 
@@ -110,7 +112,7 @@ def award_points_and_badges_for_progress(
     for goal in context.goals.all():  # type: ignore
         goal_progress: GoalProgress = goal.progresses.get_or_create(user=user)[0]
         highest_level_satisfied: GoalLevel = (
-            # TODO implement qs method
+            # TODO start checking from current level to optimize
             goal.levels.all().get_highest_satisfied_by_user(user)
         )
         if highest_level_satisfied == goal_progress.current_level:
@@ -127,7 +129,13 @@ def award_points_and_badges_for_progress(
             if highest_level_satisfied is not None
             else 0,
         ):
-            # TODO notify a new level has been reached
+            notify.send(
+                user,
+                recipient=user,
+                level=reached_level,
+                target=goal,
+                verb=NOTIFICATION_VERBS[NEW_GOAL_LEVEL_REACHED],
+            )
             reached_level.award_reputation_and_badges(user)
 
         # update goal progress to reflect new highest reached level

@@ -38,6 +38,8 @@ django-silk = "*"
 django-auto-prefetching = "*"
 drf-viewset-profiler = "*"
 django-lifecycle = "*"
+django-notifications-rest = "*"
+django-notifications-hq = "*"
 
 [dev-packages]
 mypy = "*"
