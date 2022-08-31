@@ -22,7 +22,7 @@ class GoalLevelSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        models = GoalLevel
+        model = GoalLevel
         fields = ["id", "level_value", "requirements"]
 
 

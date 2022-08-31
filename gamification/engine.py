@@ -132,7 +132,7 @@ def award_points_and_badges_for_progress(
             notify.send(
                 user,
                 recipient=user,
-                level=reached_level,
+                action_object=reached_level,
                 target=goal,
                 verb=NOTIFICATION_VERBS[NEW_GOAL_LEVEL_REACHED],
             )
