@@ -1,15 +1,33 @@
 from rest_framework import filters, mixins, status, viewsets
 from courses.models import Course
 
-from gamification.models import GamificationContext
+from gamification.models import GamificationContext, Goal
 from django.contrib.contenttypes.models import ContentType
 
 from gamification.serializers import (
     GamificationContextSerializer,
     GamificationUserSerializer,
+    GoalProgressSerializer,
+    GoalSerializer,
 )
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
+
+
+class GoalViewSet(viewsets.ModelViewSet):
+    serializer_class = GoalSerializer
+    queryset = Goal.objects.all()
+
+    def get_queryset(self):
+        return super().get_queryset().filter(context_id=self.kwargs["context_pk"])
+
+    @action(methods=["get"], detail=True)
+    def progress(self, request, **kwargs):
+        goal: Goal = self.get_object()
+
+        goal_progress = get_object_or_404(goal.progresses.all(), user=request.user)
+        return Response(GoalProgressSerializer(goal_progress).data)
 
 
 class CourseGamificationContextViewSet(viewsets.ModelViewSet):

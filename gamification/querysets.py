@@ -9,11 +9,13 @@ class GamificationContextQuerySet(models.QuerySet):
 
 
 class GoalLevelQuerySet(models.QuerySet):
-    def get_highest_satisfied_by_user(self, user: User):
+    def get_highest_satisfied_by_user(self, user: User, starting_from):
         if self.first() is None:
             return None
 
-        self = self.order_by("level_value")
+        self = self.order_by("level_value").filter(
+            level_value__gte=starting_from.level_value
+        )
 
         context = self.first().goal.context
         user_actions_with_amounts = (

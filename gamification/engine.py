@@ -52,7 +52,6 @@ class ActionPayload(TypedDict):
 
 
 def dispatch_action(payload: ActionPayload) -> None:
-    print("ENGINE REACHED")
     contexts = get_contexts(payload["main_object"], *payload["related_objects"])
     user = payload["user"]
 
@@ -112,8 +111,9 @@ def award_points_and_badges_for_progress(
     for goal in context.goals.all():  # type: ignore
         goal_progress: GoalProgress = goal.progresses.get_or_create(user=user)[0]
         highest_level_satisfied: GoalLevel = (
-            # TODO start checking from current level to optimize
-            goal.levels.all().get_highest_satisfied_by_user(user)
+            goal.levels.all().get_highest_satisfied_by_user(
+                user, starting_from=goal_progress.current_level
+            )
         )
         if highest_level_satisfied == goal_progress.current_level:
             # user hasn't reached a new level
@@ -129,6 +129,7 @@ def award_points_and_badges_for_progress(
             if highest_level_satisfied is not None
             else 0,
         ):
+            # notify user about new reached level
             notify.send(
                 user,
                 recipient=user,

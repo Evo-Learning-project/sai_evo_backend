@@ -28,7 +28,7 @@ class GenericRelatedField(RelatedField):
                 serializer = serializer_cls(value)
                 return serializer.data
 
-        assert False, "GenericNotificationRelatedField: value is " + str(value)
+        assert False, "GenericRelatedField: value is " + str(value)
 
 
 class NotificationSerializer(ModelSerializer):

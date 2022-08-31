@@ -4,8 +4,35 @@ from .models import (
     Goal,
     GoalLevel,
     GoalLevelActionDefinitionRequirement,
+    GoalProgress,
 )
 from users.models import User
+
+from django.db.models.aggregates import Max, Min, Count
+from django.db.models import F
+
+
+class GoalProgressSerializer(serializers.ModelSerializer):
+    action_counts = serializers.SerializerMethodField()
+    current_level = serializers.IntegerField(
+        read_only=True, source="current_level.level_value"
+    )
+
+    class Meta:
+        model = GoalProgress
+        fields = ["current_level", "action_counts"]
+
+    def get_action_counts(self, obj: GoalProgress):
+        # TODO review
+        user = obj.user
+        return (
+            user.actions.filter(  # type: ignore
+                definition__context=obj.current_level.goal.context,
+            )
+            .annotate(action=F("definition__action_code"))
+            .values("action")
+            .annotate(amount=Count("definition"))
+        )
 
 
 class GoalLevelActionDefinitionRequirementSerializer(serializers.ModelSerializer):
