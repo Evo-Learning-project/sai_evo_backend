@@ -27,7 +27,7 @@ class GoalProgressSerializer(serializers.ModelSerializer):
         user = obj.user
         return (
             user.actions.filter(  # type: ignore
-                definition__context=obj.current_level.goal.context,
+                definition__context=obj.goal.context,
             )
             .annotate(action=F("definition__action_code"))
             .values("action")
@@ -63,13 +63,17 @@ class GoalSerializer(serializers.ModelSerializer):
 
 class GamificationContextSerializer(serializers.ModelSerializer):
     reputation = serializers.SerializerMethodField()
+    leaderboard_position = serializers.SerializerMethodField()
 
     class Meta:
         model = GamificationContext
-        fields = ["id", "reputation", "badges", "goals"]
+        fields = ["id", "reputation", "badges", "goals", "leaderboard_position"]
 
-    def get_reputation(self, obj):
+    def get_reputation(self, obj: GamificationContext):
         return obj.get_reputation_for(self.context["request"].user)
+
+    def get_leaderboard_position(self, obj: GamificationContext):
+        return obj.get_leaderboard_position_for(self.context["request"].user)
 
 
 class GamificationUserSerializer(serializers.ModelSerializer):

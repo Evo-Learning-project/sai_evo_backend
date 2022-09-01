@@ -32,11 +32,12 @@ class GamificationContext(models.Model):
         return "Context " + str(self.pk) + " - " + str(self.content_object)[:50]
 
     def get_reputation_for(self, user: User):
-        return user.reputation_deltas.all().aggregate(
-            reputation_total=Sum("delta", default=0)
+        return user.reputation_deltas.filter(context=self).aggregate(
+            reputation_total=Sum("delta", default=0),
         )["reputation_total"]
 
     def get_users_with_annotated_reputation_total(self):
+        # TODO filter for deltas in this context
         return User.objects.all().annotate(
             reputation_total=Sum("reputation_deltas__delta", default=0)
         )
@@ -45,6 +46,23 @@ class GamificationContext(models.Model):
         return self.get_users_with_annotated_reputation_total().filter(
             reputation_total__gt=0
         )
+
+    def get_leaderboard(self):
+        return self.get_active_users().order_by("-reputation_total")
+
+    def get_leaderboard_position_for(self, user: User):
+        qs = self.get_leaderboard()
+        # TODO optimize
+        # numbered_qs = qs.extra(
+        #     select={
+        #         "queryset_row_number": 'ROW_NUMBER() OVER (ORDER BY "users_user"."id")'
+        #     }
+        # )
+        # print("NUM", numbered_qs)
+        try:
+            return list(qs.values_list("id", flat=True)).index(user.pk) + 1
+        except ValueError:
+            return None
 
 
 class Goal(models.Model):

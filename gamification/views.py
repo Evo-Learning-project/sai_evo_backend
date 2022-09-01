@@ -3,6 +3,7 @@ from courses.models import Course
 
 from gamification.models import GamificationContext, Goal
 from django.contrib.contenttypes.models import ContentType
+from gamification.pagination import LeaderboardPagination
 
 from gamification.serializers import (
     GamificationContextSerializer,
@@ -37,16 +38,33 @@ class CourseGamificationContextViewSet(viewsets.ModelViewSet):
 
     # TODO implement method to create gamification context for a course
 
+    @property
+    def paginator(self):
+        """
+        Paginate only action `leaderboard`
+        """
+        if self.action == "leaderboard" and not hasattr(self, "_paginator"):
+            self._paginator = LeaderboardPagination()
+        return super().paginator
+
     @action(methods=["get"], detail=True)
     def leaderboard(self, request, **kwargs):
         gamification_context = self.get_object()
-        ordered_active_users = gamification_context.get_active_users().order_by(
-            "-reputation_total"
-        )
+        ordered_active_users = gamification_context.get_leaderboard()
+
+        page = self.paginate_queryset(ordered_active_users)
+
+        if page is not None:
+            serializer = GamificationUserSerializer(
+                page,
+                many=True,
+                context={"gamification_context": gamification_context},
+            )
+            return self.get_paginated_response(serializer.data)
+
         serializer = GamificationUserSerializer(
             ordered_active_users,
             many=True,
             context={"gamification_context": gamification_context},
         )
-
         return Response(serializer.data)
