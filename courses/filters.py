@@ -1,7 +1,7 @@
 import django_filters
 from django_filters.rest_framework import FilterSet
 
-from courses.models import Exercise, ExerciseSolution, Tag, Event
+from courses.models import EventParticipation, Exercise, ExerciseSolution, Tag, Event
 from django.db.models import Q
 
 
@@ -60,3 +60,22 @@ class EventFilter(FilterSet):
     class Meta:
         model = Event
         fields = ["event_type"]
+
+
+class EventParticipationFilter(FilterSet):
+    bookmarked = django_filters.BooleanFilter(method="bookmarked_filter")
+    event_type = django_filters.NumberFilter(method="event_type_filter")
+
+    class Meta:
+        model = EventParticipation
+        fields = ["bookmarked"]
+
+    def bookmarked_filter(self, queryset, name, value):
+        if value:
+            queryset = queryset.filter(bookmarked=True)
+        return queryset
+
+    def event_type_filter(self, queryset, name, value):
+        if value:
+            queryset = queryset.filter(event__event_type=value)
+        return queryset

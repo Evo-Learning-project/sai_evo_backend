@@ -4,7 +4,12 @@ import os
 from django.db.models import Exists, OuterRef
 from django.db.models import Prefetch
 
-from courses.filters import EventFilter, ExerciseFilter, ExerciseSolutionFilter
+from courses.filters import (
+    EventFilter,
+    EventParticipationFilter,
+    ExerciseFilter,
+    ExerciseSolutionFilter,
+)
 
 from .view_mixins import (
     BulkCreateMixin,
@@ -69,7 +74,7 @@ from courses.models import (
     Tag,
     UserCoursePrivilege,
 )
-from courses.pagination import ExercisePagination
+from courses.pagination import EventParticipationPagination, ExercisePagination
 
 from .serializers import (
     CourseRoleSerializer,
@@ -704,6 +709,8 @@ class EventParticipationViewSet(
     )
     permission_classes = [policies.EventParticipationPolicy]
     serializer_class = EventParticipationSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = EventParticipationFilter
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -766,6 +773,19 @@ class EventParticipationViewSet(
         }
 
         return ret
+
+    @property
+    def paginator(self):
+        """
+        Paginate action `list` if accessing as a sub-route of courses
+        """
+        if (
+            self.action == "list"
+            and self.kwargs.get("event_pk") is None
+            and not hasattr(self, "_paginator")
+        ):
+            self._paginator = EventParticipationPagination()
+        return super().paginator
 
     def get_queryset(self):
         qs = super().get_queryset()
