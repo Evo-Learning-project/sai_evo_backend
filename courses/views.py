@@ -705,6 +705,7 @@ class EventParticipationViewSet(
             "user",
             "event",
         )
+        .order_by("-begin_timestamp")
         .with_prefetched_base_slots()
     )
     permission_classes = [policies.EventParticipationPolicy]

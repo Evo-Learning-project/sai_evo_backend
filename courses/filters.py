@@ -76,6 +76,6 @@ class EventParticipationFilter(FilterSet):
         return queryset
 
     def event_type_filter(self, queryset, name, value):
-        if value:
+        if value is not None:
             queryset = queryset.filter(event__event_type=value)
         return queryset
