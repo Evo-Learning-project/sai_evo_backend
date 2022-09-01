@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 
 class LeaderboardPagination(PageNumberPagination):
-    page_size = 2
+    page_size = 10
     page_size_query_param = "size"
 
     def paginate_queryset(self, queryset, request, view=None):
