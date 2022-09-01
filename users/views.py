@@ -94,5 +94,8 @@ class UserViewSet(
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = UserSerializer(user, context=self.get_serializer_context())
+        serializer = UserSerializer(
+            self.get_object(),
+            context=self.get_serializer_context(),
+        )
         return Response(serializer.data)
