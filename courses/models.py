@@ -1072,7 +1072,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                             "main_object": slot.exercise,
                             "related_objects": [self.event.course, self, slot],
                             "user": self.user,
-                            "extras": {},
+                            "extras": {},  # TODO might put exercise tags or other information to create more complex goals
                         }
                     )
 

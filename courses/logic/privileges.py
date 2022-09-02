@@ -1,24 +1,19 @@
 from django.core.exceptions import ValidationError
 
-# VIEW_ENROLLED = "view_enrolled"
 UPDATE_COURSE = "update_course"
 ACCESS_EXERCISES = "access_exercises"
-# CREATE_EXERCISES = "create_exercises"
 MANAGE_EXERCISES = "manage_exercises"
 ASSESS_PARTICIPATIONS = "assess_participations"
 MANAGE_EVENTS = "manage_events"
-# UPDATE_EVENTS = "update_events"
+MANAGE_EXERCISE_SOLUTIONS = "manage_exercise_solutions"
 
 TEACHER_PRIVILEGES = [
-    # VIEW_ENROLLED,
     UPDATE_COURSE,
     ACCESS_EXERCISES,  # list/retrieve
-    # CREATE_EXERCISES,
     MANAGE_EXERCISES,
     ASSESS_PARTICIPATIONS,
     MANAGE_EVENTS,
-    # UPDATE_EVENTS,
-    # "__all__",
+    MANAGE_EXERCISE_SOLUTIONS,
 ]
 
 
