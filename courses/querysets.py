@@ -213,6 +213,13 @@ class ExerciseSolutionQuerySet(models.QuerySet):
     def bookmarked_by(self, user):
         return self.filter(bookmarked_by__in=[user])
 
+    def exclude_draft_and_rejected(self):
+        from courses.models import ExerciseSolution
+
+        return self.exclude(
+            (Q(state=ExerciseSolution.REJECTED) | Q(state=ExerciseSolution.DRAFT))
+        )
+
     def exclude_draft_and_rejected_unless_authored_by(self, user):
         from courses.models import ExerciseSolution
 

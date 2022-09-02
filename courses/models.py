@@ -6,7 +6,14 @@ from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
 from gamification.actions import (
+    CORRECTLY_ANSWERED_EXERCISE,
+    EXERCISE_SOLUTION_APPROVED,
+    EXERCISE_SOLUTION_DOWNVOTE_DELETED,
+    EXERCISE_SOLUTION_DOWNVOTED,
+    EXERCISE_SOLUTION_UPVOTE_DELETED,
+    EXERCISE_SOLUTION_UPVOTED,
     SUBMIT_EXERCISE_SOLUTION,
+    SUBMIT_FIRST_EXERCISE_SOLUTION,
     TURN_IN_PRACTICE_PARTICIPATION,
 )
 from gamification.entry import get_gamification_engine
@@ -20,6 +27,7 @@ from django_lifecycle import (
     BEFORE_UPDATE,
     AFTER_UPDATE,
     AFTER_CREATE,
+    BEFORE_DELETE,
 )
 
 
@@ -381,9 +389,22 @@ class ExerciseSolution(LifecycleModelMixin, TimestampableModel):
 
     @hook(AFTER_UPDATE, when="state", was=DRAFT, is_now=SUBMITTED)
     def on_submit(self):
+        is_first_public_solution = (
+            not self.exercise.solutions.all()
+            .exclude_draft_and_rejected()
+            .exclude(pk=self.pk)
+            .exists()
+        )
+        # two different action codes are dispatched depending on whether
+        # or not this is the first solution submitted for the exercise
+        action_code = (
+            SUBMIT_FIRST_EXERCISE_SOLUTION
+            if is_first_public_solution
+            else SUBMIT_EXERCISE_SOLUTION
+        )
         get_gamification_engine().dispatch_action(
             {
-                "action": SUBMIT_EXERCISE_SOLUTION,
+                "action": action_code,
                 "main_object": self,
                 "related_objects": [self.exercise.course, self.exercise],
                 "user": self.user,
@@ -393,8 +414,15 @@ class ExerciseSolution(LifecycleModelMixin, TimestampableModel):
 
     @hook(AFTER_UPDATE, when="state", changes_to=PUBLISHED)
     def on_approve(self):
-        # TODO implement
-        ...
+        get_gamification_engine().dispatch_action(
+            {
+                "action": EXERCISE_SOLUTION_APPROVED,
+                "main_object": self,
+                "related_objects": [self.exercise.course, self.exercise],
+                "user": self.user,
+                "extras": {},
+            }
+        )
 
 
 class ExerciseSolutionComment(PostModel):
@@ -404,13 +432,8 @@ class ExerciseSolutionComment(PostModel):
         on_delete=models.PROTECT,
     )
 
-    @hook(AFTER_CREATE)
-    def on_create(self):
-        # TODO implement
-        ...
 
-
-class ExerciseSolutionVote(VoteModel):
+class ExerciseSolutionVote(LifecycleModelMixin, VoteModel):
     solution = models.ForeignKey(
         ExerciseSolution,
         related_name="votes",
@@ -419,8 +442,39 @@ class ExerciseSolutionVote(VoteModel):
 
     @hook(AFTER_CREATE)
     def on_create(self):
-        # TODO implement
-        ...
+        action_code = (
+            EXERCISE_SOLUTION_UPVOTED
+            if self.vote_type == self.UP_VOTE
+            else EXERCISE_SOLUTION_DOWNVOTED
+        )
+        get_gamification_engine().dispatch_action(
+            {
+                "action": action_code,
+                "main_object": self,
+                "related_objects": [self.solution.exercise.course],
+                "user": self.solution.user,
+                "extras": {},
+            }
+        )
+
+    @hook(BEFORE_DELETE)
+    def on_delete(self):
+        action_code = (
+            EXERCISE_SOLUTION_UPVOTE_DELETED
+            if self.vote_type == self.UP_VOTE
+            else EXERCISE_SOLUTION_DOWNVOTE_DELETED
+        )
+        get_gamification_engine().dispatch_action(
+            {
+                "action": action_code,
+                "main_object": self,
+                "related_objects": [self.solution.exercise.course],
+                "user": self.solution.user,
+                "extras": {},
+            }
+        )
+
+    # TODO handle vote update
 
 
 class ExerciseChoice(OrderableModel):
@@ -1007,6 +1061,20 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                     "extras": {},
                 }
             )
+            # for each correctly-answered exercise, dispatch an action
+            for slot in self.slots.base_slots():
+                # TODO review
+                # max score obtained for this exercise
+                if slot.score == slot.populating_rule.weight:
+                    get_gamification_engine().dispatch_action(
+                        {
+                            "action": CORRECTLY_ANSWERED_EXERCISE,
+                            "main_object": slot.exercise,
+                            "related_objects": [self.event.course, self, slot],
+                            "user": self.user,
+                            "extras": {},
+                        }
+                    )
 
     def move_current_slot_cursor_forward(self):
         if self.is_cursor_last_position:

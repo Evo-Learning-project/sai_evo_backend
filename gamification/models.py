@@ -135,7 +135,7 @@ class ActionDefinition(models.Model):
     # TODO allow parametrizing actions
     # parameters = models.JSONField(default=dict, blank=True)
 
-    reputation_awarded = models.PositiveIntegerField()
+    reputation_awarded = models.IntegerField()
     badges_awarded = models.ManyToManyField(
         "BadgeDefinition",
         related_name="awarded_in_actions",
