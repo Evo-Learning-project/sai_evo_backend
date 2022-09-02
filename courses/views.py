@@ -783,6 +783,7 @@ class EventParticipationViewSet(
         if (
             self.action == "list"
             and self.kwargs.get("event_pk") is None
+            and self.request.query_params.get("user_id") is None
             and not hasattr(self, "_paginator")
         ):
             self._paginator = EventParticipationPagination()
