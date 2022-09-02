@@ -398,13 +398,14 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
             "action": ["destroy"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "has_teacher_privileges:manage_exercises",
+            "condition_expression": "has_teacher_privileges:manage_exercise_solutions",
         },
         {
             "action": ["create", "update", "partial_update"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "has_teacher_privileges:manage_exercises or \
+                has_teacher_privileges:manage_exercise_solutions or \
                 not is_publish_or_reject_request",
         },
         {
@@ -412,6 +413,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
             "principal": ["authenticated"],
             "effect": "deny",
             "condition_expression": "not has_teacher_privileges:manage_exercises and \
+                not has_teacher_privileges:manage_exercise_solutions and \
                 not is_own_solution",
         },
         {
