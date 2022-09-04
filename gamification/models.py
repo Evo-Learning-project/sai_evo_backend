@@ -5,6 +5,7 @@ from users.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Sum, Case, When, Value
+from django.db.models import Q
 
 from courses.models import TimestampableModel
 
@@ -39,7 +40,11 @@ class GamificationContext(models.Model):
     def get_users_with_annotated_reputation_total(self):
         # TODO filter for deltas in this context
         return User.objects.all().annotate(
-            reputation_total=Sum("reputation_deltas__delta", default=0)
+            reputation_total=Sum(
+                "reputation_deltas__delta",
+                default=0,
+                filter=Q(reputation_deltas__context=self),
+            )
         )
 
     def get_active_users(self):
