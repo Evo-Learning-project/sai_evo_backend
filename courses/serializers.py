@@ -640,7 +640,7 @@ class EventParticipationSlotSerializer(
 
         capabilities = self.context.get("capabilities", {})
 
-        logger.error("CAPABILITIES " + str()capabilities)
+        logger.error("CAPABILITIES " + str(capabilities))
 
         self.fields["sub_slots"] = RecursiveField(
             many=True,
