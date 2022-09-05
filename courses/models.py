@@ -1004,6 +1004,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def current_slots(self):
+        return self.slots.base_slots()
         # !!!! double check
         ret = (
             self.prefetched_base_slots
