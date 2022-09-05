@@ -141,6 +141,12 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=["post"])
+    def test_atomic(self, request, **kwargs):
+        Course.objects.create(name="wqeuwewopwqopwop")
+        Course.objects.create(name="w123")
+        raise Exception
+
+    @action(detail=True, methods=["post"])
     def jobe(self, request, **kwargs):
         data = request.data
         body = request.data.get("body")

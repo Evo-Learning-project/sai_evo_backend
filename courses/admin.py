@@ -102,4 +102,4 @@ class EventParticipationSlotAdmin(admin.ModelAdmin):
 
 @admin.register(EventParticipation)
 class EventParticipationAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ("begin_timestamp",)
