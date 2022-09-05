@@ -51,6 +51,11 @@ from courses.serializer_fields import (
 import re
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class HiddenFieldsModelSerializer(serializers.ModelSerializer):
     pass
 
@@ -631,7 +636,11 @@ class EventParticipationSlotSerializer(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        print("CONTEXT", self.context)
+
         capabilities = self.context.get("capabilities", {})
+
+        print("CAPABILITIES", capabilities)
 
         self.fields["sub_slots"] = RecursiveField(
             many=True,
@@ -663,6 +672,7 @@ class EventParticipationSlotSerializer(
                 many=True, **selected_choices_kwargs
             )
 
+            print("ATTACHMENT EXTRAS")
             # TODO find a better way to handle attachment
             # pass slot and participation id's to file field's extras
             attachment_extras = {}
@@ -675,32 +685,44 @@ class EventParticipationSlotSerializer(
                 if instance is not None:
                     attachment_extras["slot_id"] = instance.pk
                     attachment_extras["participation_id"] = instance.participation.pk
-
+            print("INSTANTIATING ATTACHMENT FIELD")
             self.fields["attachment"] = FileWithPreviewField(
                 read_only=(not submission_fields_write), extras=attachment_extras
             )
+            print("INSTANTIATED ATTACHMENT FIELD")
             if self.context.get("trim_images_in_text", False):
+                print("ANSWER TEXT THEN")
                 self.fields["answer_text"] = serializers.SerializerMethodField()
             else:
+                print("ANSWER TEXT ELSE")
                 self.fields["answer_text"] = serializers.CharField(
                     read_only=(not submission_fields_write),
                     allow_blank=True,
                 )
+
+            print("JSON FIELD")
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
 
+        print("REMOVING UNSATISFIED CONDITIONS")
         self.remove_unsatisfied_condition_fields()
 
     def get_exercise(self, obj):
+        print("ACCESSING GET_EXERCISE")
+        print(obj.exercise)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
     def get_answer_text(self, obj):
         """
         Does some processing on the answer text value
         """
+        print("ACCESSING GET_ANSWER_TEXT")
+        print(obj.answer_text)
         # TODO put this in separate module
         text = obj.answer_text
         text = re.sub(r'src="([^"]+)"', "", text)
         text = re.sub(r"</?p( style=('|\")[^\"']*('|\"))?>", "", text)
+        print("RETURNING TEXT")
+        print(text)
         return text
 
 
@@ -732,6 +754,13 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
         }
 
     def __init__(self, *args, **kwargs):
+        print("instantiating PARTICIPATION")
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
+
         super().__init__(*args, **kwargs)
         self.remove_unsatisfied_condition_fields()
 
