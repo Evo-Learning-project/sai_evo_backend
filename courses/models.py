@@ -1208,7 +1208,7 @@ class EventParticipationSlot(models.Model):
         What an answer is, and thus the condition checked, depends
         on the type of the exercise associated to this slot
         """
-        logger.error("inside has answer for " + self.pk)
+        logger.error("inside has answer for " + str(self.pk))
         e_type = self.exercise.exercise_type
         if e_type in [
             Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
