@@ -1009,7 +1009,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     @property
     def current_slots(self):
 
-        print("PRE-CURRENT SLOTS")
+        logger.error("PRE-CURRENT SLOTS")
         # !!!! double check
         ret = (
             self.prefetched_base_slots
@@ -1017,7 +1017,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
             else self.slots.base_slots()
         )
 
-        print(
+        logger.error(
             "CURRENT SLOTS",
             ret,
             hasattr(self, "prefetched_base_slots"),
@@ -1046,8 +1046,8 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                     < self.current_slot_cursor + self.event.exercises_shown_at_a_time
                 ]
             )
-        print("ABOUT TO RETURN")
-        print(ret)
+        logger.error("ABOUT TO RETURN")
+        logger.error(ret)
         return ret
 
     def validate_unique(self, *args, **kwargs):
@@ -1208,7 +1208,7 @@ class EventParticipationSlot(models.Model):
         What an answer is, and thus the condition checked, depends
         on the type of the exercise associated to this slot
         """
-        print("inside has answer for", self.pk)
+        logger.error("inside has answer for " + self.pk)
         e_type = self.exercise.exercise_type
         if e_type in [
             Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
@@ -1217,7 +1217,7 @@ class EventParticipationSlot(models.Model):
             return self.selected_choices.exists()
 
         if e_type in [Exercise.OPEN_ANSWER, Exercise.JS, Exercise.C, Exercise.PYTHON]:
-            print("about to return")
+            logger.error("about to return")
             return self.answer_text is not None and len(self.answer_text) > 0
 
         if e_type == Exercise.ATTACHMENT:
@@ -1226,16 +1226,16 @@ class EventParticipationSlot(models.Model):
         if e_type in [Exercise.COMPLETION, Exercise.AGGREGATED]:
             return any(s.has_answer for s in self.sub_slots.all())
 
-        print("about to assert!")
+        logger.error("about to assert!")
         assert False, "Type " + str(self.exercise.exercise_type) + " not implemented"
 
     @property
     def score(self):
         if self._score is None:
-            print("about to instantiate assessor class")
-            print(
-                "will return",
-                get_assessor_class(self.participation.event)(self).assess(),
+            logger.error("about to instantiate assessor class")
+            logger.error(
+                "will return "
+                + str(get_assessor_class(self.participation.event)(self).assess())
             )
             return get_assessor_class(self.participation.event)(self).assess()
         return self._score
@@ -1281,7 +1281,7 @@ class EventParticipationSlot(models.Model):
         EventParticipation, i.e. it contains one of the exercises currently being
         shown to the user; False otherwise
         """
-        print("is in scope")
+        logger.error("is in scope")
         return (
             self in self.participation.current_slots
             or self.parent is not None
