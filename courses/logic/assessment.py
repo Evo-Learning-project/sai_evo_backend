@@ -13,7 +13,11 @@ def get_assessor_class(event):
 class SubmissionAssessor:
     def __init__(self, participation_slot):
         self.participation_slot = participation_slot
-        self.slot_weight = self.participation_slot.populating_rule.weight
+        self.slot_weight = (
+            self.participation_slot.populating_rule.weight
+            if self.participation_slot.populating_rule is not None
+            else 1  # for backwards compatibility
+        )
 
     def get_multiple_choice_submission_correctness(self, slot):
         selected_choices = slot.selected_choices.all()
