@@ -636,11 +636,11 @@ class EventParticipationSlotSerializer(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        logger.error("CONTEXT " + str(self.context))
+        # loggererror("CONTEXT " + str(self.context))
 
         capabilities = self.context.get("capabilities", {})
 
-        logger.error("CAPABILITIES " + str(capabilities))
+        # loggererror("CAPABILITIES " + str(capabilities))
 
         self.fields["sub_slots"] = RecursiveField(
             many=True,
@@ -672,7 +672,7 @@ class EventParticipationSlotSerializer(
                 many=True, **selected_choices_kwargs
             )
 
-            logger.error("ATTACHMENT EXTRAS")
+            # loggererror("ATTACHMENT EXTRAS")
             # TODO find a better way to handle attachment
             # pass slot and participation id's to file field's extras
             attachment_extras = {}
@@ -685,44 +685,44 @@ class EventParticipationSlotSerializer(
                 if instance is not None:
                     attachment_extras["slot_id"] = instance.pk
                     attachment_extras["participation_id"] = instance.participation.pk
-            logger.error("INSTANTIATING ATTACHMENT FIELD")
+            # loggererror("INSTANTIATING ATTACHMENT FIELD")
             self.fields["attachment"] = FileWithPreviewField(
                 read_only=(not submission_fields_write), extras=attachment_extras
             )
-            logger.error("INSTANTIATED ATTACHMENT FIELD")
+            # loggererror("INSTANTIATED ATTACHMENT FIELD")
             if self.context.get("trim_images_in_text", False):
-                logger.error("ANSWER TEXT THEN")
+                # loggererror("ANSWER TEXT THEN")
                 self.fields["answer_text"] = serializers.SerializerMethodField()
             else:
-                logger.error("ANSWER TEXT ELSE")
+                # loggererror("ANSWER TEXT ELSE")
                 self.fields["answer_text"] = serializers.CharField(
                     read_only=(not submission_fields_write),
                     allow_blank=True,
                 )
 
-            logger.error("JSON FIELD")
+            # loggererror("JSON FIELD")
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
 
-        logger.error("REMOVING UNSATISFIED CONDITIONS")
+        # loggererror("REMOVING UNSATISFIED CONDITIONS")
         self.remove_unsatisfied_condition_fields()
 
     def get_exercise(self, obj):
-        logger.error("ACCESSING GET_EXERCISE")
-        logger.error(obj.exercise)
+        # loggererror("ACCESSING GET_EXERCISE")
+        # loggererror(obj.exercise)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
     def get_answer_text(self, obj):
         """
         Does some processing on the answer text value
         """
-        logger.error("ACCESSING GET_ANSWER_TEXT")
-        logger.error(obj.answer_text)
+        # loggererror("ACCESSING GET_ANSWER_TEXT")
+        # loggererror(obj.answer_text)
         # TODO put this in separate module
         text = obj.answer_text
         text = re.sub(r'src="([^"]+)"', "", text)
         text = re.sub(r"</?p( style=('|\")[^\"']*('|\"))?>", "", text)
-        logger.error("RETURNING TEXT")
-        logger.error(text)
+        # loggererror("RETURNING TEXT")
+        # loggererror(text)
         return text
 
 
@@ -754,12 +754,12 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
         }
 
     def __init__(self, *args, **kwargs):
-        logger.error("instantiating PARTICIPATION")
-        logger.debug("debug")
-        logger.info("info")
-        logger.warning("warning")
-        logger.error("error")
-        logger.critical("critical")
+        # loggererror("instantiating PARTICIPATION")
+        # loggerdebug("debug")
+        # loggerinfo("info")
+        # loggerwarning("warning")
+        # loggererror("error")
+        # logger.critical("critical")
 
         super().__init__(*args, **kwargs)
 
