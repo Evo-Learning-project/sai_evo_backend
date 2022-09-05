@@ -111,6 +111,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        # TODO move the exercise count to an action on the child ExerciseViewSet and have frontend do a separate call
         context[COURSE_SHOW_PUBLIC_EXERCISES_COUNT] = self.action == "retrieve"
         return context
 
@@ -141,14 +142,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=["post"])
-    def test_atomic(self, request, **kwargs):
-        Course.objects.create(name="wqeuwewopwqopwop")
-        Course.objects.create(name="w123")
-        raise Exception
-
-    @action(detail=True, methods=["post"])
     def jobe(self, request, **kwargs):
-        data = request.data
         body = request.data.get("body")
         headers = request.data.get("headers")
         url = request.data.get("url")

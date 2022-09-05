@@ -1097,6 +1097,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                 f"Cursor is past the max position: {self.current_slot_cursor}"
             )
 
+        if self.event.exercises_shown_at_a_time is None:
+            raise ValidationError("Event shows all exercises at once")
+
         # ? add min between this exercises_shown_at_a_time and max_slot_number?
         self.current_slot_cursor += self.event.exercises_shown_at_a_time
         self.save(update_fields=["current_slot_cursor"])
@@ -1118,6 +1121,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     def move_current_slot_cursor_back(self):
         if self.current_slot_cursor == 0:
             raise ValidationError("Cursor is in position 0")
+
+        if self.event.exercises_shown_at_a_time is None:
+            raise ValidationError("Event shows all exercises at once")
 
         self.current_slot_cursor = max(
             self.current_slot_cursor - self.event.exercises_shown_at_a_time, 0
