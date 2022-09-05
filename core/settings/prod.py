@@ -9,9 +9,12 @@ from sentry_sdk.integrations.django import DjangoIntegration
 DEBUG = False
 
 DATABASES = {
-    "default": dj_database_url.parse(
-        os.environ.get("DATABASE_URL", False), conn_max_age=600
-    )
+    "default": {
+        **dj_database_url.parse(
+            os.environ.get("DATABASE_URL", False), conn_max_age=600
+        ),
+        "ATOMIC_REQUESTS": True,
+    }
 }
 
 MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"] + MIDDLEWARE
