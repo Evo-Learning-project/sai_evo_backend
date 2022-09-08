@@ -926,7 +926,12 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     class Meta:
         ordering = ["event_id", "-begin_timestamp", "pk"]
-        # TODO enforce user_id, event_id pair uniqueness
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event_id", "user_id"],
+                name="event_participation_unique_user",
+            )
+        ]
 
     def __str__(self):
         return str(self.event) + " - " + str(self.user)
