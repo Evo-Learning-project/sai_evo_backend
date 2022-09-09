@@ -582,6 +582,8 @@ class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
 
     # filter_fields = ["event_type"]
 
+    # TODO filter queryset to hide draft events
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         # show hidden fields only to privileged users

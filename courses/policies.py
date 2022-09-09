@@ -251,6 +251,8 @@ class EventParticipationPolicyMixin:
 
 
 class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
+    NOT_IN_EVENT_ALLOWED_LIST = "NOT_IN_EVENT_ALLOWED_LIST"
+
     statements = [
         {
             "action": ["list"],
@@ -338,7 +340,10 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
         if event.access_rule == Event.ALLOW_ACCESS:
             return request.user.email not in event.access_rule_exceptions
         else:  # default is DENY_ACCESS
-            return request.user.email in event.access_rule_exceptions
+            is_allowed = request.user.email in event.access_rule_exceptions
+            if not is_allowed:
+                self.message = self.NOT_IN_EVENT_ALLOWED_LIST
+            return is_allowed
 
     def is_bookmark_request(self, request, view, action):
         # users are allowed to update a participation after it's
