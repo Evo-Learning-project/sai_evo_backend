@@ -1206,7 +1206,12 @@ class EventParticipationSlot(models.Model):
             models.UniqueConstraint(
                 fields=["participation_id", "parent_id", "slot_number"],
                 name="event_participation_unique_slot_number",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["participation_id", "slot_number"],
+                condition=Q(parent_id=None),
+                name="event_participation_unique_base_slot_number",
+            ),
         ]
 
     def __str__(self):

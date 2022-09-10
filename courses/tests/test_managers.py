@@ -670,7 +670,7 @@ class EventParticipationManagerTestCase(TestCase):
                 event_id=self.event.pk, user=self.user
             )
 
-            slot_0 = participation.slots.base_slots().get(slot_number=0)
+            slot_0 = participation.slots.base_slots().get(0)
             self.assertIn(slot_0.exercise.pk, [self.e1.pk, self.e2.pk])
 
             slot_1 = participation.slots.base_slots().get(slot_number=1)
