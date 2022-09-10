@@ -1063,7 +1063,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
         #     raise ValidationError("A user can only participate in an event once")
 
     def save(self, *args, **kwargs):
-        self.validate_unique()
+        # self.validate_unique()
         # TODO use django lifecycle package
         if self.state == EventParticipation.TURNED_IN and self.end_timestamp is None:
             self.end_timestamp = timezone.localtime(timezone.now())
