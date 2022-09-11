@@ -478,7 +478,7 @@ class EventTemplateManagerTestCase(TestCase):
 
 class EventParticipationManagerTestCase(TestCase):
     def setUp(self):
-        self.user = User.objects.create(email="aaa@bbb.com")
+        self.user = User.objects.create(email="aaa@bbb.com", username="a")
         self.course = Course.objects.create(name="course")
         self.event = Event.objects.create(
             name="event", event_type=Event.EXAM, course=self.course
@@ -665,12 +665,13 @@ class EventParticipationManagerTestCase(TestCase):
             )
 
     def test_creation(self):
-        for _ in range(0, 10):
+        for i in range(0, 10):
+            user = User.objects.create(email=str(i) + "@aaa.com", username=str(i))
             participation = EventParticipation.objects.create(
-                event_id=self.event.pk, user=self.user
+                event_id=self.event.pk, user=user
             )
 
-            slot_0 = participation.slots.base_slots().get(0)
+            slot_0 = participation.slots.base_slots().get(slot_number=0)
             self.assertIn(slot_0.exercise.pk, [self.e1.pk, self.e2.pk])
 
             slot_1 = participation.slots.base_slots().get(slot_number=1)
