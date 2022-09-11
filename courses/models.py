@@ -62,6 +62,14 @@ def get_attachment_path(slot, filename):
 
 
 class Course(TimestampableModel):
+    """
+    Courses are at the top level of the model hierarchy. Everything happens
+    in the context of a course. A course is created by a teacher and managed
+    by one or more users with permissions. A course contains exercises, and
+    allows teachers to create exams (see model Event) and students to practice
+    using the available exercises
+    """
+
     name = models.TextField(unique=True)
     description = models.TextField(blank=True)
     creator = models.ForeignKey(
@@ -82,6 +90,11 @@ class Course(TimestampableModel):
 
 
 class UserCoursePrivilege(models.Model):
+    """
+    Represents the administrative permissions a user has over a course.
+    See logic.privileges.py for the available permissions.
+    """
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -124,6 +137,10 @@ class UserCoursePrivilege(models.Model):
 
 
 class CourseRole(models.Model):
+    """
+    Reusable permission group for users inside of a course
+    """
+
     name = models.CharField(max_length=250)
     course = models.ForeignKey(
         Course,
@@ -159,6 +176,10 @@ class CourseRole(models.Model):
 
 
 class Tag(models.Model):
+    """
+    Used to tag exercises (see Exercise model)
+    """
+
     course = models.ForeignKey(
         Course,
         null=True,
@@ -190,6 +211,14 @@ class Tag(models.Model):
 
 
 class Exercise(TimestampableModel, OrderableModel, LockableModel):
+    """
+    An Exercise represents a question, coding problem, or other element that
+    can appear inside of an exam. It can be PRIVATE or PUBLIC, depending on
+    whether the teachers want students to be able to freely access it, and is
+    associated with some public tags and private tags.
+    Exercises can contain other exercises.
+    """
+
     MULTIPLE_CHOICE_SINGLE_POSSIBLE = 0
     MULTIPLE_CHOICE_MULTIPLE_POSSIBLE = 1
     OPEN_ANSWER = 2
@@ -235,6 +264,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         related_name="created_exercises",
         on_delete=models.SET_NULL,
     )
+    # for AGGREGATED or COMPLETION exercises
     parent = models.ForeignKey(
         "Exercise",
         null=True,
@@ -244,24 +274,33 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     )
     # how much the sub-exercise weighs in scoring the parent exercise
     child_weight = models.PositiveSmallIntegerField(default=1)
+    # tags publicly visible by students
     public_tags = models.ManyToManyField(
         Tag,
         related_name="public_in_exercises",
         blank=True,
     )
+    # tags hidden from students
     private_tags = models.ManyToManyField(
         Tag,
         related_name="private_in_exercises",
         blank=True,
     )
     exercise_type = models.PositiveSmallIntegerField(choices=EXERCISE_TYPES)
+    # mnemonic name for the exercise
     label = models.CharField(max_length=75, blank=True)
     text = models.TextField(blank=True)
+
     solution = models.TextField(blank=True)  # TODO delete once implemented new feature
-    initial_code = models.TextField(blank=True)
+    initial_code = models.TextField(blank=True)  # TODO implement
+
     state = models.PositiveSmallIntegerField(choices=EXERCISE_STATES, default=DRAFT)
+
+    # currently unused
     time_to_complete = models.PositiveIntegerField(null=True, blank=True)
     skip_if_timeout = models.BooleanField(default=False)
+
+    # only relevant if exercise_type is JS
     requires_typescript = models.BooleanField(default=False)
     # if True, an answer that gets a score less than the max score for the exercise gets 0 instead
     all_or_nothing = models.BooleanField(default=False)
@@ -279,6 +318,7 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
             "pk",
         ]
         constraints = [
+            # TODO review
             # models.UniqueConstraint(
             #     fields=["parent_id", "_ordering"],
             #     condition=Q(parent__isnull=False),
@@ -482,6 +522,10 @@ class ExerciseSolutionVote(LifecycleModelMixin, VoteModel):
 
 
 class ExerciseChoice(OrderableModel):
+    """
+    A selectable choice in a multiple-choice exercise
+    """
+
     exercise = models.ForeignKey(
         Exercise,
         related_name="choices",
@@ -504,6 +548,7 @@ class ExerciseChoice(OrderableModel):
                 name="same_exercise_unique_ordering",
                 deferrable=models.Deferrable.DEFERRED,
             ),
+            # TODO add uniqueness for the choice text
         ]
 
     def __str__(self):
@@ -531,6 +576,10 @@ class ExerciseChoice(OrderableModel):
 
 
 class ExerciseTestCase(OrderableModel):
+    """
+    A test case used to evaluate an answer to a programming exercise
+    """
+
     SHOW_CODE_SHOW_TEXT = 0
     SHOW_TEXT_ONLY = 1
     HIDDEN = 2
@@ -546,10 +595,15 @@ class ExerciseTestCase(OrderableModel):
         related_name="testcases",
         on_delete=models.CASCADE,
     )
+
     code = models.TextField(blank=True)  # for js and python exercises
+
     stdin = models.TextField(blank=True)  # for c exercises
     expected_stdout = models.TextField(blank=True)  # for c exercises
+
+    # human-readable description of what the test case does
     text = models.TextField(blank=True)
+
     testcase_type = models.PositiveIntegerField(
         default=SHOW_CODE_SHOW_TEXT, choices=TESTCASE_TYPES
     )
@@ -571,6 +625,13 @@ class ExerciseTestCase(OrderableModel):
 
 
 class Event(HashIdModel, TimestampableModel, LockableModel):
+    """
+    An Event represents some type of quiz/exam students can participate in.
+    Teachers can create exam events, and students can create "self-service
+    practice" events (i.e. a simulation of an exam).
+    See the EventTemplate model for how exercises are related to events.
+    """
+
     SELF_SERVICE_PRACTICE = 0
     IN_CLASS_PRACTICE = 1
     EXAM = 2
@@ -624,10 +685,12 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         on_delete=models.SET_NULL,
     )
     name = models.TextField(blank=True)
+
     event_type = models.PositiveIntegerField(choices=EVENT_TYPES)
     _event_state = models.PositiveIntegerField(
         choices=EVENT_STATES, default=DRAFT, db_column="state"
     )
+
     template = models.OneToOneField(
         "EventTemplate",
         on_delete=models.CASCADE,
@@ -776,12 +839,17 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
 
 
 class EventTemplate(models.Model):
-    course = models.ForeignKey(
+    """
+    An EventTemplate defines a set of rules (see model EventTemplateRule) that dictate how
+    exercises should be assigned to participants in an event (see model EventParticipation).
+    """
+
+    course = models.ForeignKey(  # TODO this is redundant; remove
         Course,
         on_delete=models.CASCADE,
         related_name="event_templates",
     )
-    name = models.TextField(blank=True)
+    name = models.TextField(blank=True)  # currently unused
     public = models.BooleanField(default=False)
     creator = models.ForeignKey(
         "users.User",
@@ -803,6 +871,18 @@ class EventTemplate(models.Model):
 
 
 class EventTemplateRule(OrderableModel):
+    """
+    An EventTemplateRule defines what exercises can be assigned to a specific
+    slot (see model EventParticipationSlot) of a participation to an event.
+    A rule specifies an amount of exercises that can be picked by the rule,
+    and some criteria for how to select those exercises.
+    A rule can currently be of three kinds:
+    1. Fully random - pick `amount` random exercises
+    2. ID-based - pick `amount` exercises that are in the `exercises` m2m relation
+    3. Tag-based - pick `amount` exercises whose tags satisfy the query created by the
+    clauses of this rule: see the EventTemplateRuleClause model to see how this works.
+    """
+
     TAG_BASED = 0
     ID_BASED = 1
     FULLY_RANDOM = 2
@@ -818,13 +898,17 @@ class EventTemplateRule(OrderableModel):
         on_delete=models.CASCADE,
         related_name="rules",
     )
+
     rule_type = models.PositiveSmallIntegerField(
         choices=RULE_TYPES, null=True, blank=True
     )
+
+    # for ID-based rules
     exercises = models.ManyToManyField(
         "courses.Exercise",
         blank=True,
     )
+
     # weight of the targeted slot(s), i.e. the maximum score for the related exercise(s)
     weight = models.DecimalField(
         max_digits=5,
@@ -852,8 +936,23 @@ class EventTemplateRule(OrderableModel):
             )
         ]
 
+    # TODO enforce constraints such as: for ID-based rules, self.amount <= len(self.exercises)
+
 
 class EventTemplateRuleClause(models.Model):
+    """
+    An EventTemplateRuleClause is a specifies a list of tags of interest.
+    When an EventTemplateRule is tag-based and has a list of clauses, say
+    c1, c2, c3, the condition generated by that rule is the following:
+
+    pick `amount` (the rule amount) exercises that have:
+    at least one tag from c1 AND
+    at least one tag from c2 AND
+    at least one tag from c3.
+
+    So the tags in m2m field `tags` are "OR'd" and the clauses are "AND'd".
+    """
+
     rule = models.ForeignKey(
         EventTemplateRule,
         related_name="clauses",
@@ -866,6 +965,15 @@ class EventTemplateRuleClause(models.Model):
 
 
 class EventParticipation(LifecycleModelMixin, models.Model):
+    """
+    A participation of a user to an event.
+
+    A participation has a state, which determines if the user is still participating
+    or has turned in / abandoned, and has an assessment state, which determines
+    whether a teacher has graded the answers given yet.
+
+    """
+
     IN_PROGRESS = 0
     TURNED_IN = 1
     # TODO implement ABANDONED state
@@ -952,6 +1060,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def last_slot_number(self):
+        # TODO extract base_slots to a property that encapsulates this logic and logs if no prefetched slots
         if hasattr(self, "prefetched_base_slots"):
             base_slots = self.prefetched_base_slots
         else:
@@ -1013,21 +1122,11 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def current_slots(self):
-
-        # logger.error("PRE-CURRENT SLOTS")
-        # !!!! double check
         ret = (
             self.prefetched_base_slots
             if hasattr(self, "prefetched_base_slots")
             else self.slots.base_slots()
         )
-
-        # logger.error(
-        #     "CURRENT SLOTS",
-        #     ret,
-        #     hasattr(self, "prefetched_base_slots"),
-        #     getattr(self, "prefetched_base_slots", []),
-        # )
         if (
             self.event.exercises_shown_at_a_time is not None
             # if the participation has been turned in, show all slots to allow reviewing answers
@@ -1051,19 +1150,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                     < self.current_slot_cursor + self.event.exercises_shown_at_a_time
                 ]
             )
-        # logger.error("ABOUT TO RETURN")
-        # logger.error(ret)
         return ret
 
-    def validate_unique(self, *args, **kwargs):
-        super().validate_unique(*args, **kwargs)
-        # TODO implement
-        # qs = EventParticipation.objects.filter(user=self.user)
-        # if qs.filter(event_instance__event=self.event_instance.event).exists():
-        #     raise ValidationError("A user can only participate in an event once")
-
     def save(self, *args, **kwargs):
-        # self.validate_unique()
         # TODO use django lifecycle package
         if self.state == EventParticipation.TURNED_IN and self.end_timestamp is None:
             self.end_timestamp = timezone.localtime(timezone.now())
@@ -1138,6 +1227,13 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
 
 class EventParticipationSlot(models.Model):
+    """
+    An EventParticipationSlot represents an exercise assigned to a participant to an
+    event, the answer given by that student, and the assessment of a teacher.
+    Slots can have children if the exercise assigned to a slot is an exercise that
+    has children.
+    """
+
     NOT_ASSESSED = 0
     ASSESSED = 1
     ASSESSMENT_STATES = (
@@ -1296,7 +1392,6 @@ class EventParticipationSlot(models.Model):
         EventParticipation, i.e. it contains one of the exercises currently being
         shown to the user; False otherwise
         """
-        # logger.error("is in scope")
         return (
             self in self.participation.current_slots
             or self.parent is not None
