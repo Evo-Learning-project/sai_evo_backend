@@ -1320,7 +1320,6 @@ class EventParticipationSlot(models.Model):
         What an answer is, and thus the condition checked, depends
         on the type of the exercise associated to this slot
         """
-        # logger.error("inside has answer for " + self.pk)
         e_type = self.exercise.exercise_type
         if e_type in [
             Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE,
@@ -1329,7 +1328,6 @@ class EventParticipationSlot(models.Model):
             return self.selected_choices.exists()
 
         if e_type in [Exercise.OPEN_ANSWER, Exercise.JS, Exercise.C, Exercise.PYTHON]:
-            # logger.error("about to return")
             return self.answer_text is not None and len(self.answer_text) > 0
 
         if e_type == Exercise.ATTACHMENT:
@@ -1338,16 +1336,11 @@ class EventParticipationSlot(models.Model):
         if e_type in [Exercise.COMPLETION, Exercise.AGGREGATED]:
             return any(s.has_answer for s in self.sub_slots.all())
 
-        # logger.error("about to assert!")
         assert False, "Type " + str(self.exercise.exercise_type) + " not implemented"
 
     @property
     def score(self):
         if self._score is None:
-            # logger.error("about to instantiate assessor class")
-            # logger.error(
-            #     "will return",get_assessor_class(self.participation.event)(self).assess(),
-            # )
             return get_assessor_class(self.participation.event)(self).assess()
         return self._score
 
