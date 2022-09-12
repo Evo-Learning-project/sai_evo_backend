@@ -60,8 +60,8 @@ INSTALLED_APPS = [
     "channels_redis",
     "gamification",
     "notifications",
-    "user_notifications"
-    # "silk",
+    "user_notifications",
+    "silk",
 ]
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
@@ -69,7 +69,7 @@ DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
 SILKY_PYTHON_PROFILER = True
 
 MIDDLEWARE = [
-    # "silk.middleware.SilkyMiddleware",
+    "silk.middleware.SilkyMiddleware",
     "drf_viewset_profiler.middleware.LineProfilerViewSetMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
