@@ -49,6 +49,7 @@ from courses.serializer_fields import (
     RecursiveField,
 )
 import re
+from django.db.models.query import QuerySet
 
 
 import logging
@@ -257,11 +258,13 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer, ConditionalFieldsM
         self.remove_unsatisfied_condition_fields()
 
     def get_has_upvote(self, obj):
+        # TODO FIXME optimize, prefetch specifically upvotes
         return obj.votes.filter(
             vote_type=VoteModel.UP_VOTE, user=self.context["request"].user
         ).exists()
 
     def get_has_downvote(self, obj):
+        # TODO FIXME optimize, prefetch specifically downvotes
         return obj.votes.filter(
             vote_type=VoteModel.DOWN_VOTE, user=self.context["request"].user
         ).exists()
@@ -593,7 +596,6 @@ class EventParticipationSlotSerializer(
         read_only=True,
         source="participation.is_cursor_first_position",
     )
-    # TODO instead of explicitly declaring it here, use extra_kwargs to set source
     weight = serializers.DecimalField(
         max_digits=5,
         decimal_places=1,
@@ -672,57 +674,51 @@ class EventParticipationSlotSerializer(
                 many=True, **selected_choices_kwargs
             )
 
-            # loggererror("ATTACHMENT EXTRAS")
             # TODO find a better way to handle attachment
             # pass slot and participation id's to file field's extras
             attachment_extras = {}
             if self.instance is not None:
-                instance = (
-                    self.instance
-                    if not isinstance(self.instance, list)
-                    else (self.instance[0] if len(self.instance) > 0 else None)
-                )
+                if isinstance(self.instance, list):
+                    instance = self.instance[0] if len(self.instance) > 0 else None
+                elif isinstance(self.instance, QuerySet):
+                    instance = self.instance.first()
+                else:
+                    instance = self.instance
+
+                # instance = (
+                #     self.instance
+                #     if not isinstance(self.instance, list)
+                #     else (self.instance[0] if len(self.instance) > 0 else None)
+                # )
                 if instance is not None:
                     attachment_extras["slot_id"] = instance.pk
                     attachment_extras["participation_id"] = instance.participation.pk
-            # loggererror("INSTANTIATING ATTACHMENT FIELD")
             self.fields["attachment"] = FileWithPreviewField(
                 read_only=(not submission_fields_write), extras=attachment_extras
             )
-            # loggererror("INSTANTIATED ATTACHMENT FIELD")
             if self.context.get("trim_images_in_text", False):
-                # loggererror("ANSWER TEXT THEN")
                 self.fields["answer_text"] = serializers.SerializerMethodField()
             else:
-                # loggererror("ANSWER TEXT ELSE")
                 self.fields["answer_text"] = serializers.CharField(
                     read_only=(not submission_fields_write),
                     allow_blank=True,
                 )
 
-            # loggererror("JSON FIELD")
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
 
-        # loggererror("REMOVING UNSATISFIED CONDITIONS")
         self.remove_unsatisfied_condition_fields()
 
     def get_exercise(self, obj):
-        # loggererror("ACCESSING GET_EXERCISE")
-        # loggererror(obj.exercise)
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
     def get_answer_text(self, obj):
         """
         Does some processing on the answer text value
         """
-        # loggererror("ACCESSING GET_ANSWER_TEXT")
-        # loggererror(obj.answer_text)
         # TODO put this in separate module
         text = obj.answer_text
         text = re.sub(r'src="([^"]+)"', "", text)
         text = re.sub(r"</?p( style=('|\")[^\"']*('|\"))?>", "", text)
-        # loggererror("RETURNING TEXT")
-        # loggererror(text)
         return text
 
 
@@ -796,7 +792,7 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
     def get_slots(self, obj):
         if self.context.get("capabilities").get("assessment_fields_read", False):
             # accessing outside of active participation - show all slots
-            slots = obj.prefetched_base_slots
+            slots = obj.base_slots
         else:
             slots = obj.current_slots
 

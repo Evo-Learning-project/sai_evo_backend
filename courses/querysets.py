@@ -210,6 +210,13 @@ class ExerciseQuerySet(models.QuerySet):
 
 
 class ExerciseSolutionQuerySet(models.QuerySet):
+    def with_prefetched_related_objects(self):
+        return self.select_related("_content", "user").prefetch_related(
+            "votes",
+            "comments",
+            "bookmarked_by",
+        )
+
     def bookmarked_by(self, user):
         return self.filter(bookmarked_by__in=[user])
 

@@ -83,41 +83,40 @@ def get_user_privileges(user, course):
     ]
 
 
-# TODO eventually remove this and use get_user_privileges everywhere
 def check_privilege(user, course, privilege):
     """
     Returns True if and only `user` has `privilege` for `course`
     `course` can either be a Course object or the id of a course
     """
-    from courses.models import Course, UserCoursePrivilege
+    # from courses.models import Course, UserCoursePrivilege
 
-    if user.is_anonymous:
-        return False
+    # if user.is_anonymous:
+    #     return False
 
-    if not isinstance(course, Course):
-        course = Course.objects.get(pk=course)
+    # if not isinstance(course, Course):
+    #     course = Course.objects.get(pk=course)
 
-    if user == course.creator:
-        return True
+    # if user == course.creator:
+    #     return True
 
-    allow_privileges = [
-        privilege
-        for role_privileges in (
-            role.allow_privileges for role in user.roles.filter(course=course)
-        )
-        for privilege in role_privileges
-    ]  # get all the privileges for this user's roles
+    # allow_privileges = [
+    #     privilege
+    #     for role_privileges in (
+    #         role.allow_privileges for role in user.roles.filter(course=course)
+    #     )
+    #     for privilege in role_privileges
+    # ]  # get all the privileges for this user's roles
 
-    try:
-        per_user_privileges = UserCoursePrivilege.objects.get(user=user, course=course)
-        allow_privileges.extend(per_user_privileges.allow_privileges)  # add per-user
-        deny_privileges = per_user_privileges.deny_privileges
-    except UserCoursePrivilege.DoesNotExist:
-        deny_privileges = []
+    # try:
+    #     per_user_privileges = UserCoursePrivilege.objects.get(user=user, course=course)
+    #     allow_privileges.extend(per_user_privileges.allow_privileges)  # add per-user
+    #     deny_privileges = per_user_privileges.deny_privileges
+    # except UserCoursePrivilege.DoesNotExist:
+    #     deny_privileges = []
+
+    privileges = get_user_privileges(user, course)
 
     if privilege == "__some__":
-        return len(allow_privileges) > 0
+        return len(privileges) > 0
 
-    return "__all__" in allow_privileges or (
-        privilege not in deny_privileges and privilege in allow_privileges
-    )
+    return "__all__" in privileges or privilege in privileges

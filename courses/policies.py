@@ -1,3 +1,4 @@
+from functools import lru_cache
 from rest_access_policy import AccessPolicy
 from courses.logic.participations import is_time_up
 
@@ -212,7 +213,9 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
 
 
 class EventParticipationPolicyMixin:
+    @lru_cache(maxsize=None)
     def get_participation(self, view):
+        print("---------GET PARTICIPATION--------")
         from courses.views import (
             EventParticipationSlotViewSet,
             EventParticipationViewSet,
@@ -352,11 +355,14 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
         return "bookmarked" in request.data and len(request.data.keys()) == 1
 
     def can_go_forward(self, request, view, action):
+        print("------CAN GO FORWARD------")
         participation = view.get_object()
         return not participation.is_cursor_last_position
 
     def can_go_back(self, request, view, action):
         from courses.models import Event
+
+        print("-----CAN GO BACK------")
 
         participation = view.get_object()
         event = participation.event

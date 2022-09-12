@@ -258,6 +258,7 @@ class ExerciseSolutionViewSet(
     serializer_class = ExerciseSolutionSerializer
     queryset = (
         ExerciseSolution.objects.all()
+        .with_prefetched_related_objects()
         .order_by_published_first()
         .order_by_score_descending()
     )
@@ -830,13 +831,16 @@ class EventParticipationViewSet(
         )
         return Response(serializer.data)
 
+    # TODO FIXME this action and go_back should NOT prefetch all the related objects to base slots
     @action(detail=True, methods=["post"])
     def go_forward(self, request, **kwargs):
         # TODO make this idempotent (e.g. include the target slot number in request) or add a few seconds throttle
-        participation = self.get_queryset().get(pk=kwargs["pk"])
+        # participation = self.get_queryset().get(pk=kwargs["pk"])
+        participation = self.get_object()
         participation.move_current_slot_cursor_forward()
 
         current_slot = participation.current_slots[0]
+        # TODO FIXME prefetch populating_rule (in go_back too)
         serializer = EventParticipationSlotSerializer(
             current_slot,
             context={
@@ -851,7 +855,8 @@ class EventParticipationViewSet(
     @action(detail=True, methods=["post"])
     def go_back(self, request, **kwargs):
         # TODO make this idempotent (e.g. include the target slot number in request)
-        participation = self.get_queryset().get(pk=kwargs["pk"])
+        # participation = self.get_queryset().get(pk=kwargs["pk"])
+        participation = self.get_object()
         participation.move_current_slot_cursor_back()
 
         current_slot = participation.current_slots[0]
