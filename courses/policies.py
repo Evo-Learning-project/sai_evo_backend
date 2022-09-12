@@ -356,7 +356,7 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
 
     def can_go_forward(self, request, view, action):
         print("------CAN GO FORWARD------")
-        participation = view.get_object()
+        participation = self.get_participation(view)  # view.get_object()
         return not participation.is_cursor_last_position
 
     def can_go_back(self, request, view, action):
@@ -364,7 +364,7 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
 
         print("-----CAN GO BACK------")
 
-        participation = view.get_object()
+        participation = self.get_participation(view)  # view.get_object()
         event = participation.event
 
         return not participation.is_cursor_first_position and event.allow_going_back
