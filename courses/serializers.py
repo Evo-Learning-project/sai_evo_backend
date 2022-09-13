@@ -709,6 +709,11 @@ class EventParticipationSlotSerializer(
         self.remove_unsatisfied_condition_fields()
 
     def get_exercise(self, obj):
+        if hasattr(obj, "prefetched_max_choice_correctness"):
+            # pass along prefetched value to the exercise to speed up computation of max_score
+            obj.exercise.prefetched_max_choice_correctness = (
+                obj.prefetched_max_choice_correctness
+            )
         return ExerciseSerializer(obj.exercise, context=self.context).data
 
     def get_answer_text(self, obj):

@@ -346,10 +346,16 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         if self.exercise_type in [Exercise.JS, Exercise.C, Exercise.PYTHON]:
             return self.testcases.count()
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE:
-            # TODO FIXME needs optimization, isn't prefetched
-            max_score = (self.choices.all().aggregate(Max("correctness")))[
-                "correctness__max"
-            ]  # TODO `or 0`?
+            if hasattr(self, "prefetched_max_choice_correctness"):
+                max_score = self.prefetched_max_choice_correctness
+            else:
+                logger.warning(
+                    "no prefetched_max_choice_correctness for exercise with id "
+                    + str(self.pk)
+                )
+                max_score = (self.choices.all().aggregate(Max("correctness")))[
+                    "correctness__max"
+                ]  # TODO `or 0`?
             return max_score
         if self.exercise_type == Exercise.MULTIPLE_CHOICE_MULTIPLE_POSSIBLE:
             correct_choices = self.choices.filter(correctness__gt=0)
@@ -1051,12 +1057,11 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def is_cursor_last_position(self):
-        import inspect
-
-        print(
-            "[is_cursor_last_position] \033[95m caller name: \033[0m",
-            inspect.stack()[1][3],
-        )
+        # import inspect
+        # print(
+        #     "[is_cursor_last_position] \033[95m caller name: \033[0m",
+        #     inspect.stack()[1][3],
+        # )
         if self.event.exercises_shown_at_a_time is None:
             return True
 
@@ -1067,9 +1072,8 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def base_slots(self):
-        import inspect
-
-        print("[base_slots] \033[95m caller name: \033[0m", inspect.stack()[1][3])
+        # import inspect
+        # print("[base_slots] \033[95m caller name: \033[0m", inspect.stack()[1][3])
         # logger.warning("accessing base slots property")
         if hasattr(self, "prefetched_base_slots"):
             base_slots = self.prefetched_base_slots
@@ -1082,13 +1086,8 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def last_slot_number(self):
-        # if hasattr(self, "prefetched_base_slots"):
-        #     base_slots = self.prefetched_base_slots
-        # else:
-        #     base_slots = self.slots.base_slots()
-        import inspect
-
-        print("[last_slot_number] \033[92m caller name: \033[0m", inspect.stack()[1][3])
+        # import inspect
+        # print("[last_slot_number] \033[92m caller name: \033[0m", inspect.stack()[1][3])
         return len(self.base_slots) - 1
 
     @property
@@ -1143,17 +1142,11 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def current_slots(self):
-        # ret = (
-        #     self.prefetched_base_slots
-        #     if hasattr(self, "prefetched_base_slots")
-        #     else self.slots.base_slots()
+        # import inspect
+        # print(
+        #     "[current_slots] \033[95m caller name: \033[0m",
+        #     inspect.stack()[1][3],
         # )
-        import inspect
-
-        print(
-            "[current_slots] \033[95m caller name: \033[0m",
-            inspect.stack()[1][3],
-        )
         ret = self.base_slots
         if (
             self.event.exercises_shown_at_a_time is not None
@@ -1214,12 +1207,11 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                     )
 
     def move_current_slot_cursor_forward(self):
-        import inspect
-
-        print(
-            "[move_current_slot_cursor_forward] \033[95m caller name: \033[0m",
-            inspect.stack()[1][3],
-        )
+        # import inspect
+        # print(
+        #     "[move_current_slot_cursor_forward] \033[95m caller name: \033[0m",
+        #     inspect.stack()[1][3],
+        # )
         if self.is_cursor_last_position:
             raise ValidationError(
                 f"Cursor is past the max position: {self.current_slot_cursor}"
@@ -1389,7 +1381,14 @@ class EventParticipationSlot(models.Model):
         return self.ASSESSED if self.score is not None else self.NOT_ASSESSED
 
     def save(self, *args, **kwargs):
-        # self.full_clean()
+        # import inspect
+        # print(
+        #     "[save] \033[95m caller name: \033[0m",
+        #     inspect.stack()[1][3],
+        #     "pk is",
+        #     self.pk,
+        # )
+        pre_save_pk = self.pk
         super().save(*args, **kwargs)
 
         # run on transaction commit because, for multiple choice exercises,
@@ -1406,7 +1405,7 @@ class EventParticipationSlot(models.Model):
                     self.parent.answered_at = now
                     self.parent.save(update_fields=["answered_at"])
 
-        if self.answered_at is None:
+        if self.answered_at is None and pre_save_pk is not None:
             transaction.on_commit(update_answered_at_if_answer_exists)
 
     # TODO clean

@@ -1,5 +1,38 @@
 from random import shuffle
-from courses.models import EventTemplate, Exercise
+from typing import List
+from courses.models import EventTemplate, EventTemplateRule, Exercise
+from django.db.models import Q
+import random
+
+
+def prefetch_exercises_from_rules(rules: List[EventTemplateRule]) -> List[Exercise]:
+    """
+    Eagerly fetch all exercises related to the list of rules passed. This
+    limits the number of queries and allows to work in memory with the exercises
+    """
+    condition = Q()
+    for rule in rules:
+        if rule.rule_type == EventTemplateRule.ID_BASED:
+            condition |= Q(pk__in=rule.exercises.all().values("pk"))
+
+    return [
+        e for e in Exercise.objects.filter(condition).with_prefetched_related_objects()
+    ]
+
+
+def get_random_exercises_from_list(
+    exercises: List[Exercise], amount: int
+) -> List[Exercise]:
+    ids = [e.pk for e in exercises]
+
+    # avoid trying to pick a larger sample than the list of id's
+    amount = min(amount, len(ids))
+
+    picked_ids = random.sample(
+        ids,
+        amount,
+    )
+    return [e for e in exercises if e.pk in picked_ids]
 
 
 def get_exercises_from(
@@ -33,14 +66,22 @@ def get_exercises_from(
         exercises = exercises.not_seen_in_practice_by(template.event.creator)
 
     picked_exercises = []
-    rules = template.rules.all()
+    rules: List[EventTemplateRule] = [r for r in template.rules.all()]
+    prefetched_exercises = prefetch_exercises_from_rules(rules)
 
     for rule in rules:
-        rule_qs = exercises.satisfying(rule)
-
-        rule_picked_exercises = rule_qs.exclude(
-            pk__in=[e.pk for e, _ in picked_exercises]  # don't pick same exercise again
-        ).get_random(amount=rule.amount)
+        if rule.rule_type == EventTemplateRule.ID_BASED:
+            # use prefetched exercises to limit db hits
+            rule_picked_exercises = get_random_exercises_from_list(
+                prefetched_exercises, rule.amount
+            )
+        else:
+            rule_qs = exercises.satisfying(rule)
+            rule_picked_exercises = rule_qs.exclude(
+                pk__in=[
+                    e.pk for e, _ in picked_exercises
+                ]  # don't pick same exercise again
+            ).get_random(amount=rule.amount)
 
         for picked_exercise in rule_picked_exercises:
             picked_exercises.append((picked_exercise, rule))

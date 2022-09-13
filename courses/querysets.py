@@ -288,7 +288,7 @@ class EventParticipationQuerySet(models.QuerySet):
             Prefetch(
                 "slots",
                 queryset=EventParticipationSlot.objects.base_slots()
-                .select_related("exercise")
+                .select_related("exercise", "populating_rule")
                 .prefetch_related(
                     "sub_slots",
                     "selected_choices",
@@ -302,10 +302,18 @@ class EventParticipationQuerySet(models.QuerySet):
                     "exercise__sub_exercises__sub_exercises",
                     "exercise__public_tags",
                     "exercise__private_tags",
+                )
+                .annotate(
+                    prefetched_max_choice_correctness=Max(
+                        "exercise__choices__correctness"
+                    )
                 ),
                 to_attr="prefetched_base_slots",
             )
         )
+
+    def annotate_with_max_score_correctness(self):
+        return self.annotate(max_choice_correctness=Max("choices__correctness"))
 
 
 class SlotModelQuerySet(models.QuerySet):
