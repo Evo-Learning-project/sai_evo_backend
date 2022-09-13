@@ -62,13 +62,6 @@ class ExerciseQuerySet(models.QuerySet):
             exercise=OuterRef("pk"),
         )
 
-        # print(
-        #     "----QUERY\n\n",
-        #     self.annotate(eligible_slot_exists=Exists(eligible_slot_exists_subquery))
-        #     .filter(Q(eligible_slot_exists=True) | Q(state=Exercise.PUBLIC))
-        #     .query,
-        # )
-
         return self.annotate(
             eligible_slot_exists=Exists(eligible_slot_exists_subquery)
         ).filter(Q(eligible_slot_exists=True) | Q(state=Exercise.PUBLIC))
@@ -157,7 +150,8 @@ class ExerciseQuerySet(models.QuerySet):
 
         ret_qs = self.exclude(state=Exercise.DRAFT)
 
-        if rule.rule_type == EventTemplateRule.ID_BASED:
+        # TODO refactor as ID-based rules aren't handled here anymore
+        if rule.rule_type == EventTemplateRule.ID_BASED:  # UNUSED CODE
             ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])
         elif rule.rule_type == EventTemplateRule.TAG_BASED:
             for clause in rule.clauses.all():

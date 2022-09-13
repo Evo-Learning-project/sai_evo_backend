@@ -5,7 +5,9 @@ from django.db.models import Q
 import random
 
 
-def prefetch_exercises_from_rules(rules: List[EventTemplateRule]) -> List[Exercise]:
+def prefetch_exercises_from_rules(
+    initial_qs, rules: List[EventTemplateRule]
+) -> List[Exercise]:
     """
     Eagerly fetch all exercises related to the list of rules passed. This
     limits the number of queries and allows to work in memory with the exercises
@@ -15,9 +17,8 @@ def prefetch_exercises_from_rules(rules: List[EventTemplateRule]) -> List[Exerci
         if rule.rule_type == EventTemplateRule.ID_BASED:
             condition |= Q(pk__in=rule.exercises.all().values("pk"))
 
-    return [
-        e for e in Exercise.objects.filter(condition).with_prefetched_related_objects()
-    ]
+    ret = [e for e in initial_qs.filter(condition).with_prefetched_related_objects()]
+    return ret
 
 
 def get_random_exercises_from_list(
@@ -66,14 +67,19 @@ def get_exercises_from(
         exercises = exercises.not_seen_in_practice_by(template.event.creator)
 
     picked_exercises = []
-    rules: List[EventTemplateRule] = [r for r in template.rules.all()]
-    prefetched_exercises = prefetch_exercises_from_rules(rules)
+    rules: List[EventTemplateRule] = [
+        r for r in template.rules.all().prefetch_related("exercises")
+    ]
+    prefetched_exercises = prefetch_exercises_from_rules(exercises, rules)
 
     for rule in rules:
+        # TODO extract to separate method (possibly create a class to handle the whole flow)
         if rule.rule_type == EventTemplateRule.ID_BASED:
             # use prefetched exercises to limit db hits
+            rule_ids = [e.pk for e in rule.exercises.all()]
             rule_picked_exercises = get_random_exercises_from_list(
-                prefetched_exercises, rule.amount
+                [e for e in prefetched_exercises if e.pk in rule_ids],
+                rule.amount,
             )
         else:
             rule_qs = exercises.satisfying(rule)

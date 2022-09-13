@@ -836,12 +836,10 @@ class EventParticipationViewSet(
     def go_forward(self, request, **kwargs):
         # TODO make this idempotent (e.g. include the target slot number in request) or add a few seconds throttle
         # participation = self.get_queryset().get(pk=kwargs["pk"])
-        print("!!!!!! GO FORWARD")
         participation = self.get_object()
         participation.move_current_slot_cursor_forward()
 
         current_slot = participation.current_slots[0]
-        # TODO FIXME prefetch populating_rule (in go_back too)
         serializer = EventParticipationSlotSerializer(
             current_slot,
             context={

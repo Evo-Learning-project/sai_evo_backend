@@ -349,10 +349,10 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
             if hasattr(self, "prefetched_max_choice_correctness"):
                 max_score = self.prefetched_max_choice_correctness
             else:
-                logger.warning(
-                    "no prefetched_max_choice_correctness for exercise with id "
-                    + str(self.pk)
-                )
+                # logger.warning(
+                #     "no prefetched_max_choice_correctness for exercise with id "
+                #     + str(self.pk)
+                # )
                 max_score = (self.choices.all().aggregate(Max("correctness")))[
                     "correctness__max"
                 ]  # TODO `or 0`?
@@ -1072,15 +1072,17 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def base_slots(self):
-        # import inspect
-        # print("[base_slots] \033[95m caller name: \033[0m", inspect.stack()[1][3])
-        # logger.warning("accessing base slots property")
         if hasattr(self, "prefetched_base_slots"):
             base_slots = self.prefetched_base_slots
         else:
-            logger.warning(
-                "no prefetched base slots for participation with id " + str(self.pk)
-            )
+            # import inspect
+            # logger.warning(
+            #     "no prefetched base slots for participation with id "
+            #     + str(self.pk)
+            #     + " (caller name: "
+            #     + str(inspect.stack()[1][3])
+            #     + ")"
+            # )
             base_slots = self.slots.base_slots()
         return base_slots
 
