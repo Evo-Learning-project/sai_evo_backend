@@ -68,9 +68,16 @@ def get_exercises_from(
 
     picked_exercises = []
     rules: List[EventTemplateRule] = [
-        r for r in template.rules.all().prefetch_related("exercises")
+        r
+        for r in template.rules.all().prefetch_related(
+            "exercises",
+            "clauses",
+            "clauses__tags",
+        )
     ]
-    prefetched_exercises = prefetch_exercises_from_rules(exercises, rules)
+
+    if len([r for r in rules if r.rule_type == EventTemplateRule.ID_BASED]) > 0:
+        prefetched_exercises = prefetch_exercises_from_rules(exercises, rules)
 
     for rule in rules:
         # TODO extract to separate method (possibly create a class to handle the whole flow)
@@ -83,11 +90,15 @@ def get_exercises_from(
             )
         else:
             rule_qs = exercises.satisfying(rule)
-            rule_picked_exercises = rule_qs.exclude(
-                pk__in=[
-                    e.pk for e, _ in picked_exercises
-                ]  # don't pick same exercise again
-            ).get_random(amount=rule.amount)
+            rule_picked_exercises = (
+                rule_qs.exclude(
+                    pk__in=[
+                        e.pk for e, _ in picked_exercises
+                    ]  # don't pick same exercise again
+                )
+                .get_random(amount=rule.amount)
+                .with_prefetched_related_objects()
+            )
 
         for picked_exercise in rule_picked_exercises:
             picked_exercises.append((picked_exercise, rule))
