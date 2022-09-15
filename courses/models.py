@@ -610,7 +610,7 @@ class ExerciseTestCase(OrderableModel):
 
     ORDER_WITH_RESPECT_TO_FIELD = "exercise"
 
-    MAX_CODE_LENGTH = 100000
+    MAX_CODE_LENGTH = 2000
 
     class Meta:
         ordering = ["exercise_id", "_ordering"]
