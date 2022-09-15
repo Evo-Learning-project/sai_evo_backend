@@ -610,6 +610,8 @@ class ExerciseTestCase(OrderableModel):
 
     ORDER_WITH_RESPECT_TO_FIELD = "exercise"
 
+    MAX_CODE_LENGTH = 100000
+
     class Meta:
         ordering = ["exercise_id", "_ordering"]
         constraints = [
@@ -622,6 +624,39 @@ class ExerciseTestCase(OrderableModel):
 
     def __str__(self):
         return str(self.exercise) + " - " + self.code
+
+    @property
+    def truncated_code(self):
+        """
+        Returns a truncated version of the test case code.
+        Used to keep large test cases from generating huge responses
+        """
+        if len(self.code) < self.MAX_CODE_LENGTH:
+            return self.code
+
+        return self.code[: self.MAX_CODE_LENGTH] + "<...>"
+
+    @property
+    def truncated_stdin(self):
+        """
+        Returns a truncated version of the test case stdin.
+        Used to keep large test cases from generating huge responses
+        """
+        if len(self.stdin) < self.MAX_CODE_LENGTH:
+            return self.stdin
+
+        return self.stdin[: self.MAX_CODE_LENGTH] + "<...>"
+
+    @property
+    def truncated_expected_stdout(self):
+        """
+        Returns a truncated version of the test case expected stdout.
+        Used to keep large test cases from generating huge responses
+        """
+        if len(self.expected_stdout) < self.MAX_CODE_LENGTH:
+            return self.expected_stdout
+
+        return self.expected_stdout[: self.MAX_CODE_LENGTH] + "<...>"
 
 
 class Event(HashIdModel, TimestampableModel, LockableModel):

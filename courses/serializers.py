@@ -190,10 +190,26 @@ class ExerciseTestCaseSerializer(serializers.ModelSerializer, ConditionalFieldsM
     def add_relevant_public_info_fields(self):
         self.fields["code"] = serializers.SerializerMethodField()
         self.fields["text"] = serializers.SerializerMethodField()
+        self.fields["stdin"] = serializers.SerializerMethodField()
+        self.fields["expected_stdout"] = serializers.SerializerMethodField()
 
     def get_code(self, obj):
         return (
-            obj.code
+            obj.truncated_code
+            if obj.testcase_type == ExerciseTestCase.SHOW_CODE_SHOW_TEXT
+            else None
+        )
+
+    def get_stdin(self, obj):
+        return (
+            obj.truncated_stdin
+            if obj.testcase_type == ExerciseTestCase.SHOW_CODE_SHOW_TEXT
+            else None
+        )
+
+    def get_expected_stdout(self, obj):
+        return (
+            obj.truncated_expected_stdout
             if obj.testcase_type == ExerciseTestCase.SHOW_CODE_SHOW_TEXT
             else None
         )
