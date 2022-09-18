@@ -1,8 +1,7 @@
-from rest_framework import filters, mixins, status, viewsets
-from courses.models import Course
+from rest_framework import viewsets
+from django.db.models import Prefetch
 
-from gamification.models import GamificationContext, Goal
-from django.contrib.contenttypes.models import ContentType
+from gamification.models import GamificationContext, Goal, GamificationReputationDelta
 from gamification.pagination import LeaderboardPagination
 
 from gamification.serializers import (
@@ -50,7 +49,15 @@ class CourseGamificationContextViewSet(viewsets.ModelViewSet):
     @action(methods=["get"], detail=True)
     def leaderboard(self, request, **kwargs):
         gamification_context = self.get_object()
-        ordered_active_users = gamification_context.get_leaderboard()
+        ordered_active_users = gamification_context.get_leaderboard().prefetch_related(
+            Prefetch(
+                "reputation_deltas",
+                queryset=GamificationReputationDelta.objects.filter(
+                    context=gamification_context
+                ),
+                to_attr="prefetched_reputation_deltas",
+            ),
+        )
 
         page = self.paginate_queryset(ordered_active_users)
 

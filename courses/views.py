@@ -809,6 +809,9 @@ class EventParticipationViewSet(
                 else:
                     # if user doesn't specify a user id, return their participations
                     qs = qs.filter(user=self.request.user)
+
+                if "include_event" in self.request.query_params:
+                    qs = qs.prefetch_related("event__template__rules")
                 return qs
         except ValueError:
             raise Http404

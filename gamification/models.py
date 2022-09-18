@@ -33,6 +33,8 @@ class GamificationContext(models.Model):
         return "Context " + str(self.pk) + " - " + str(self.content_object)[:50]
 
     def get_reputation_for(self, user: User):
+        if hasattr(user, "prefetched_reputation_deltas"):
+            return sum([d.delta for d in user.prefetched_reputation_deltas])
         return user.reputation_deltas.filter(context=self).aggregate(
             reputation_total=Sum("delta", default=0),
         )["reputation_total"]
