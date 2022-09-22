@@ -90,6 +90,7 @@ def run_python_code_in_vm(code, testcases):
 def run_c_code_in_vm(code, testcases):
     ret = {}
     for testcase in testcases:
+        print("TESTCASE " + str(testcase.pk) + ", STDIN: " + str(testcase.stdin))
         response = requests.post(
             os.environ.get(
                 "JOBE_POST_RUN_URL",
