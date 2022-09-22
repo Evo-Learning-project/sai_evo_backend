@@ -20,6 +20,11 @@ JOBE_OUTCOMES = {
 }
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def send_jobe_request(body, headers, req_method, url=""):
     call_func = getattr(requests, req_method)
     response = call_func(
@@ -90,7 +95,7 @@ def run_python_code_in_vm(code, testcases):
 def run_c_code_in_vm(code, testcases):
     ret = {}
     for testcase in testcases:
-        print("TESTCASE " + str(testcase.pk) + ", STDIN: " + str(testcase.stdin))
+        logger.error("TESTCASE " + str(testcase.pk) + ", STDIN: " + str(testcase.stdin))
         response = requests.post(
             os.environ.get(
                 "JOBE_POST_RUN_URL",
