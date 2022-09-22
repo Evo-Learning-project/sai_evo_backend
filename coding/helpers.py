@@ -104,11 +104,7 @@ def run_c_code_in_vm(code, testcases):
                 {
                     "run_spec": {
                         "language_id": "c",
-                        # the following line from Jobe:
-                        # https://github.com/trampgeek/jobe/blob/74d912ad4d52ed5313537568702763ad1567d59b/application/libraries/LanguageTask.php#L304
-                        # will skip the input if the testcase's stdin is "0" because "0" is falsy in PHP;
-                        # will need to work around this for now until Jobe is substituted
-                        "input": testcase.stdin if testcase.stdin != "0" else "00",
+                        "input": testcase.stdin,
                         "sourcecode": code,
                         "parameters": {"linkargs": ["-lm"]},
                     }
