@@ -60,13 +60,15 @@ INSTALLED_APPS = [
     "channels_redis",
     "gamification",
     "notifications",
-    "user_notifications"
-    # "silk",
+    "user_notifications",
+    "silk",
 ]
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
 
-SILKY_PYTHON_PROFILER = True
+SILKY_PYTHON_PROFILER = False
+SILKY_INTERCEPT_PERCENT = 50  # log only 50% of requests
+
 
 MIDDLEWARE = [
     # "silk.middleware.SilkyMiddleware",
