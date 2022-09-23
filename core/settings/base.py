@@ -66,9 +66,7 @@ INSTALLED_APPS = [
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
 
-SILKY_PYTHON_PROFILER = False
-SILKY_INTERCEPT_PERCENT = 50  # log only 50% of requests
-
+SILKY_PYTHON_PROFILER = True
 
 MIDDLEWARE = [
     # "silk.middleware.SilkyMiddleware",
