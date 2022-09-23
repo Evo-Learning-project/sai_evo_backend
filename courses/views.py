@@ -591,6 +591,7 @@ class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
         context[EVENT_SHOW_HIDDEN_FIELDS] = MANAGE_EVENTS in self.user_privileges
         context[EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD] = (
             MANAGE_EVENTS in self.user_privileges
+            and "include_event_template_rule_details" in self.request.query_params
         )
         # tell user if a participation of their own to the
         # event exists if they retrieve a specific event

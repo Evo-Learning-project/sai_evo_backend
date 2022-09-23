@@ -87,6 +87,12 @@ class SubmissionAssessor:
         Returns the score that results in applying the given rule with the given answer(s), or
         None if the exercise referenced by the given slot needs to be assessed manually.
         """
+        if hasattr(self.participation_slot, "prefetched_max_choice_correctness"):
+            # pass along prefetched value to the exercise to speed up computation of max_score
+            self.participation_slot.exercise.prefetched_max_choice_correctness = (
+                self.participation_slot.prefetched_max_choice_correctness
+            )
+
         exercise_max_score = self.participation_slot.exercise.get_max_score()
         submission_correctness = self.get_submission_correctness(
             self.participation_slot
