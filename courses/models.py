@@ -1092,11 +1092,6 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def is_cursor_last_position(self):
-        # import inspect
-        # print(
-        #     "[is_cursor_last_position] \033[95m caller name: \033[0m",
-        #     inspect.stack()[1][3],
-        # )
         if self.event.exercises_shown_at_a_time is None:
             return True
 
@@ -1110,21 +1105,11 @@ class EventParticipation(LifecycleModelMixin, models.Model):
         if hasattr(self, "prefetched_base_slots"):
             base_slots = self.prefetched_base_slots
         else:
-            # import inspect
-            # logger.warning(
-            #     "no prefetched base slots for participation with id "
-            #     + str(self.pk)
-            #     + " (caller name: "
-            #     + str(inspect.stack()[1][3])
-            #     + ")"
-            # )
             base_slots = self.slots.base_slots()
         return base_slots
 
     @property
     def last_slot_number(self):
-        # import inspect
-        # print("[last_slot_number] \033[92m caller name: \033[0m", inspect.stack()[1][3])
         return len(self.base_slots) - 1
 
     @property
@@ -1179,11 +1164,6 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def current_slots(self):
-        # import inspect
-        # print(
-        #     "[current_slots] \033[95m caller name: \033[0m",
-        #     inspect.stack()[1][3],
-        # )
         ret = self.base_slots
         if (
             self.event.exercises_shown_at_a_time is not None
@@ -1247,11 +1227,6 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                     )
 
     def move_current_slot_cursor_forward(self):
-        # import inspect
-        # print(
-        #     "[move_current_slot_cursor_forward] \033[95m caller name: \033[0m",
-        #     inspect.stack()[1][3],
-        # )
         if self.is_cursor_last_position:
             raise ValidationError(
                 f"Cursor is past the max position: {self.current_slot_cursor}"
@@ -1421,13 +1396,6 @@ class EventParticipationSlot(models.Model):
         return self.ASSESSED if self.score is not None else self.NOT_ASSESSED
 
     def save(self, *args, **kwargs):
-        # import inspect
-        # print(
-        #     "[save] \033[95m caller name: \033[0m",
-        #     inspect.stack()[1][3],
-        #     "pk is",
-        #     self.pk,
-        # )
         pre_save_pk = self.pk
         super().save(*args, **kwargs)
 
