@@ -25,7 +25,7 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from coding.helpers import get_code_execution_results, send_jobe_request
-from courses.logic.event_instances import get_exercises_from
+from courses.logic.event_instances import ExercisePicker
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
     COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
@@ -616,7 +616,7 @@ class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
         for _ in range(0, int(instance_count)):
             data.append(
                 ExerciseSerializer(
-                    [e for e, _ in get_exercises_from(template)],
+                    [e for e, _ in ExercisePicker().get_exercises_from(template)],
                     many=True,
                 ).data
                 # TODO? context to exercise serializer?

@@ -148,8 +148,10 @@ class EventParticipationManager(models.Manager):
         """
         Creates an event participation and its related slots
         """
-        from .logic.event_instances import get_exercises_from
+        # from .logic.event_instances import get_exercises_from
         from .models import EventParticipationSlot, Event
+
+        from courses.logic.event_instances import ExercisePicker
 
         assert (
             kwargs["event_id"] is not None
@@ -157,18 +159,19 @@ class EventParticipationManager(models.Manager):
 
         participation = super().create(*args, **kwargs)
 
-        if (exercises := kwargs.pop("exercises", None)) is None:
-            event = Event.objects.get(pk=kwargs["event_id"])
-            event_template = event.template
+        event = Event.objects.get(pk=kwargs["event_id"])
+        event_template = event.template
 
-            # use event template to get a list of exercises for this participation
-            exercises_with_rules = get_exercises_from(
-                event_template,
-                public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
-                exclude_seen_in_practice=(
-                    event.event_type == Event.SELF_SERVICE_PRACTICE
-                ),
-            )
+        # use event template to get a list of exercises for this participation
+        # exercises_with_rules = get_exercises_from(
+        #     event_template,
+        #     public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
+        #     exclude_seen_in_practice=(event.event_type == Event.SELF_SERVICE_PRACTICE),
+        # )
+        exercises_with_rules = ExercisePicker().get_exercises_from(
+            event_template,
+            public_only=(event.event_type == Event.SELF_SERVICE_PRACTICE),
+        )
 
         slot_number = 0
         for exercise, populating_rule in exercises_with_rules:

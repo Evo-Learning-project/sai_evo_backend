@@ -361,6 +361,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
 
         self.remove_unsatisfied_condition_fields()
 
+        # TODO possibly only include this field for the appropriate exercise types
         self.fields["sub_exercises"] = RecursiveField(
             many=True,
             required=False,
@@ -370,6 +371,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
         # list serializer would pass this down to choice serializer, having parameter twice
         kwargs.pop("many", False)
 
+        # TODO possibly only include these fields for the appropriate exercise types
         if self.context.pop("show_choices", True):
             self.fields["choices"] = ExerciseChoiceSerializer(
                 many=True,

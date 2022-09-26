@@ -150,8 +150,7 @@ class ExerciseQuerySet(models.QuerySet):
 
         ret_qs = self.exclude(state=Exercise.DRAFT)
 
-        # TODO refactor as ID-based rules aren't handled here anymore
-        if rule.rule_type == EventTemplateRule.ID_BASED:  # UNUSED CODE
+        if rule.rule_type == EventTemplateRule.ID_BASED:
             ret_qs = ret_qs.filter(pk__in=[e.pk for e in rule.exercises.all()])
         elif rule.rule_type == EventTemplateRule.TAG_BASED:
             for clause in rule.clauses.all():
@@ -187,20 +186,21 @@ class ExerciseQuerySet(models.QuerySet):
         """
         Returns `amount` random exercise(s) from the queryset
         """
-        qs = self
+        return self.order_by("?")[:amount]
+        # qs = self
 
-        ids = list(qs.values_list("pk", flat=True))
+        # ids = list(qs.values_list("pk", flat=True))
 
-        # avoid trying to pick a larger sample than the list of id's
-        amount = min(amount, len(ids))
+        # # avoid trying to pick a larger sample than the list of id's
+        # amount = min(amount, len(ids))
 
-        picked_ids = random.sample(
-            ids,
-            amount,
-        )
+        # picked_ids = random.sample(
+        #     ids,
+        #     amount,
+        # )
 
-        ret = qs.filter(pk__in=picked_ids)
-        return ret
+        # ret = qs.filter(pk__in=picked_ids)
+        # return ret
 
 
 class ExerciseSolutionQuerySet(models.QuerySet):
