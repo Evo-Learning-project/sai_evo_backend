@@ -20,6 +20,11 @@ JOBE_OUTCOMES = {
 }
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def send_jobe_request(body, headers, req_method, url=""):
     call_func = getattr(requests, req_method)
     response = call_func(
