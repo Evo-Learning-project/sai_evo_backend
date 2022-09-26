@@ -351,16 +351,11 @@ class TagQuerySet(models.QuerySet):
         """
         A tag is public if it is in public_tags relationship with at least one public exercise
         """
-        # TODO optimize
-        qs = self.prefetch_related("public_in_exercises")
-        pk_list = []
+        from courses.models import Exercise
 
-        for tag in qs:
-            if (
-                hasattr(tag, "prefetched_public_in_public_exercises")
-                and len(tag.prefetched_public_in_public_exercises) > 0
-                or tag.public_in_exercises.public().exists()
-            ):
-                pk_list.append(tag.pk)
-
-        return qs.filter(id__in=pk_list)
+        return self.annotate(
+            public_in_public_exercise_count=Count(
+                "public_in_exercises",
+                filter=Q(public_in_exercises__state=Exercise.PUBLIC),
+            )
+        ).filter(public_in_public_exercise_count__gt=0)

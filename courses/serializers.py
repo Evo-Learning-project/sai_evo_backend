@@ -656,11 +656,7 @@ class EventParticipationSlotSerializer(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # loggererror("CONTEXT " + str(self.context))
-
         capabilities = self.context.get("capabilities", {})
-
-        # loggererror("CAPABILITIES " + str(capabilities))
 
         self.fields["sub_slots"] = RecursiveField(
             many=True,
@@ -727,6 +723,7 @@ class EventParticipationSlotSerializer(
         self.remove_unsatisfied_condition_fields()
 
     def get_exercise(self, obj):
+        # TODO pass only pk when participations are accessed in a list and fetch exercises separately
         if hasattr(obj, "prefetched_max_choice_correctness"):
             # pass along prefetched value to the exercise to speed up computation of max_score
             obj.exercise.prefetched_max_choice_correctness = (
