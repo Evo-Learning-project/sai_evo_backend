@@ -1209,7 +1209,10 @@ class EventParticipation(LifecycleModelMixin, models.Model):
             for slot in self.slots.base_slots():
                 # TODO review
                 # max score obtained for this exercise
-                if slot.score == slot.populating_rule.weight:
+                if (
+                    slot.populating_rule is not None  # for backward compatibility
+                    and slot.score == slot.populating_rule.weight
+                ):
                     get_gamification_engine().dispatch_action(
                         {
                             "action": CORRECTLY_ANSWERED_EXERCISE,
