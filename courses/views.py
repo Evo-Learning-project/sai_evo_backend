@@ -820,14 +820,16 @@ class EventParticipationViewSet(
 
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
-        sleep(5)
+        sleep(3)
         try:
             participation = self.get_queryset().get(user=request.user)
         except EventParticipation.DoesNotExist:
+            sleep(3)
             try:
                 participation_pk = EventParticipation.objects.create(
                     user=request.user, event_id=self.kwargs["event_pk"]
                 ).pk
+                sleep(3)
                 participation = self.get_queryset().get(pk=participation_pk)
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
