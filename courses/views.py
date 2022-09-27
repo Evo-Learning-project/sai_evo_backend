@@ -2,8 +2,8 @@ import os
 from time import sleep
 
 
-from django.db.models import Exists, OuterRef
 from django.db.models import Prefetch
+from django.db import IntegrityError
 
 from courses.filters import (
     EventFilter,
@@ -20,7 +20,7 @@ from .view_mixins import (
     RestrictedListMixin,
     ScopeQuerySetByCourseMixin,
 )
-from django_filters.rest_framework import DjangoFilterBackend, FilterSet
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
@@ -42,7 +42,6 @@ from courses.logic.presentation import (
     EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
     EXERCISE_SHOW_HIDDEN_FIELDS,
     EXERCISE_SHOW_SOLUTION_FIELDS,
-    EXERCISE_SOLUTION_SHOW_EXERCISE,
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
@@ -831,6 +830,8 @@ class EventParticipationViewSet(
                 ).pk
                 sleep(3)
                 participation = self.get_queryset().get(pk=participation_pk)
+            except IntegrityError:  # race condition detected
+                return self.create(request, *args, **kwargs)
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
