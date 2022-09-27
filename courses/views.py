@@ -1,4 +1,5 @@
 import os
+from time import sleep
 
 
 from django.db.models import Exists, OuterRef
@@ -819,6 +820,7 @@ class EventParticipationViewSet(
 
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
+        sleep(5)
         try:
             participation = self.get_queryset().get(user=request.user)
         except EventParticipation.DoesNotExist:
