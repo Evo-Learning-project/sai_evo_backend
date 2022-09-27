@@ -254,7 +254,7 @@ class EventParticipationPolicyMixin:
 
 class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
     NOT_IN_EVENT_ALLOWED_LIST = "NOT_IN_EVENT_ALLOWED_LIST"
-
+    EVENT_CLOSED = "EVENT_CLOSED"
     statements = [
         {
             "action": ["list"],
@@ -337,6 +337,7 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
             event.state != Event.RESTRICTED
             or request.user not in event.users_allowed_past_closure.all()
         ):
+            self.message = self.EVENT_CLOSED
             return False
 
         if event.access_rule == Event.ALLOW_ACCESS:
