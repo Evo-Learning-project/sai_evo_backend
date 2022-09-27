@@ -373,6 +373,16 @@ class ExerciseSolutionViewSet(
         qs = self.get_queryset().filter(state=ExerciseSolution.SUBMITTED)
         return self.restricted_list(qs)
 
+    @action(detail=True, methods=["post"])
+    def execution_results(self, request, **kwargs):
+        # TODO make async
+        solution: ExerciseSolution = self.get_object()
+        results = get_code_execution_results(
+            exercise=solution.exercise,
+            code=solution.content,
+        )
+        return Response(results)
+
 
 class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSolutionCommentSerializer
