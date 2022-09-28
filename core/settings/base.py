@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = True
 
 
-DEMO_MODE = os.environ.get("DEMO_MODE", False)
+DEMO_MODE = os.environ.get("DEMO_MODE", True)
 
 
 ALLOWED_HOSTS = ["*"]
@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "gamification",
     "notifications",
     "user_notifications",
+    "demo_mode"
     # "silk",
 ]
 

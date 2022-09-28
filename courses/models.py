@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
+from demo_mode.logic import is_demo_mode
+from demo_mode.querysets import DemoCoursesQuerySet
 from gamification.actions import (
     CORRECTLY_ANSWERED_EXERCISE,
     EXERCISE_SOLUTION_APPROVED,
@@ -81,6 +83,10 @@ class Course(TimestampableModel):
     hidden = models.BooleanField(default=False)
 
     objects = CourseManager()
+
+    if is_demo_mode():
+        print("adding custom manager for demo to course")
+        demo_manager = DemoCoursesQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created", "pk"]

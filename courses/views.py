@@ -10,6 +10,7 @@ from courses.filters import (
     ExerciseFilter,
     ExerciseSolutionFilter,
 )
+from demo_mode.logic import is_demo_mode
 
 from .view_mixins import (
     BulkCreateMixin,
@@ -117,6 +118,10 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         # TODO use scope_queryset https://rsinger86.github.io/drf-access-policy/multi_tenacy/
+
+        if is_demo_mode():  # !!!
+            return Course.demo_manager.visible_in_demo_mode_to(self.request.user)
+
         if not self.request.user.is_teacher:
             qs = qs.public()
 
