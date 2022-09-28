@@ -10,9 +10,7 @@ DEBUG = False
 
 DATABASES = {
     "default": {
-        **dj_database_url.parse(
-            os.environ.get("DATABASE_URL", False), conn_max_age=600
-        ),
+        **dj_database_url.parse(os.environ.get("DATABASE_URL", False), conn_max_age=60),
         "ATOMIC_REQUESTS": True,
     }
 }
