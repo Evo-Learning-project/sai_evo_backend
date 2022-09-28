@@ -11,7 +11,8 @@ DEBUG = False
 DATABASES = {
     "default": {
         **dj_database_url.parse(
-            os.environ.get("DATABASE_URL", False), conn_max_age=600
+            os.environ.get("DATABASE_URL", False),
+            conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", 60)),
         ),
         "ATOMIC_REQUESTS": True,
     }

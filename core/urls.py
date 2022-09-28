@@ -53,5 +53,5 @@ urlpatterns = [
     path("users/", include("users.urls")),
     path("gamification/", include("gamification.urls")),
     path("notifications/", include("user_notifications.urls")),
-    path(os.environ.get("SILK_PATH", "silk/"), include("silk.urls", namespace="silk")),
+    # path(os.environ.get("SILK_PATH", "silk/"), include("silk.urls", namespace="silk")),
 ]
