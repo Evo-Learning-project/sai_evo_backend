@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     "gamification",
     "notifications",
     "user_notifications",
-    "silk",
+    # "silk",
 ]
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
@@ -70,7 +70,7 @@ SILKY_PYTHON_PROFILER = False
 SILKY_INTERCEPT_PERCENT = 50  # log only 50% of requests
 
 MIDDLEWARE = [
-    "silk.middleware.SilkyMiddleware",
+    # "silk.middleware.SilkyMiddleware",
     "drf_viewset_profiler.middleware.LineProfilerViewSetMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
