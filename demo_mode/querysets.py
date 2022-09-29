@@ -11,11 +11,11 @@ class DemoInvitationQuerySet(models.QuerySet):
     def valid(self):
         return self.exclude(state__in=[DemoInvitation.REVOKED, DemoInvitation.EXPIRED])
 
-    def valid_for(self, user: User):
-        normalized_email = normalize_email_address(user.email)
+    def valid_for(self, user_email: str):
+        normalized_email = normalize_email_address(user_email)
         return self.valid().filter(
             main_invitee_email=normalized_email,
-            other_invitees_emails__contains=normalized_email,
+            # FIXME  other_invitees_emails__contains=normalized_email,
         )
 
 

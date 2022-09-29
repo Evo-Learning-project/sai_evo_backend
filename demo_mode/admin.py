@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import *
+
+
+@admin.register(DemoInvitation)
+class DemoInvitationAdmin(admin.ModelAdmin):
+    pass
