@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 
 from users.managers import UserManager
+import json
 
 
 def validate_list_of_emails(value):
@@ -62,6 +63,9 @@ class DemoInvitation(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     objects = DemoInvitationManager()
+
+    def __str__(self) -> str:
+        return self.main_invitee_email + " - " + json.dumps(self.other_invitees_emails)
 
     def save(self, *args, **kwargs) -> None:
         from demo_mode.logic import normalize_email_address

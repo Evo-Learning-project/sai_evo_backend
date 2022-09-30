@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = True
 
 
-DEMO_MODE = os.environ.get("DEMO_MODE", True)
+DEMO_MODE = os.environ.get("DEMO_MODE", "False") == "True"
 
 
 ALLOWED_HOSTS = ["*"]

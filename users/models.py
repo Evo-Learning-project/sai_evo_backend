@@ -23,7 +23,6 @@ class User(AbstractUser):
     if is_demo_mode():
         from demo_mode.models import DemoUserManager
 
-        print("setting demo manager for user")
         objects = DemoUserManager()
 
     def __str__(self):

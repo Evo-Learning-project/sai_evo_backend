@@ -8,7 +8,6 @@ from django.core.exceptions import ValidationError
 
 
 def is_demo_mode() -> bool:
-    print("DEMO", settings.DEMO_MODE)
     return settings.DEMO_MODE
 
 

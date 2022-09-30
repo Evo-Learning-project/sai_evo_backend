@@ -78,8 +78,7 @@ class DemoInvitationViewSet(
 
             return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        email = user_profile["email"]
-        self.email = email
+        self.email = user_profile["email"]
 
         try:
             return super().create(request, *args, **kwargs)

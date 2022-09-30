@@ -85,7 +85,6 @@ class Course(TimestampableModel):
     objects = CourseManager()
 
     if is_demo_mode():
-        print("adding custom manager for demo to course")
         demo_manager = DemoCoursesQuerySet.as_manager()
 
     class Meta:
