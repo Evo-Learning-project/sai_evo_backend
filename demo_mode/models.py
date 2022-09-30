@@ -49,7 +49,11 @@ class DemoInvitation(models.Model):
         (REVOKED, "Revoked"),
     )
 
-    main_invitee_email = models.CharField(max_length=250, validators=[EmailValidator()])
+    main_invitee_email = models.CharField(
+        max_length=250,
+        validators=[EmailValidator()],
+        unique=True,
+    )
     other_invitees_emails = models.JSONField(
         default=list, validators=[validate_list_of_emails]
     )

@@ -12,10 +12,17 @@ class DemoInvitationQuerySet(models.QuerySet):
         return self.exclude(state__in=[DemoInvitation.REVOKED, DemoInvitation.EXPIRED])
 
     def valid_for(self, user_email: str):
+        from django.conf import settings
+
         normalized_email = normalize_email_address(user_email)
         return self.valid().filter(
-            main_invitee_email=normalized_email,
-            # FIXME  other_invitees_emails__contains=normalized_email,
+            Q(main_invitee_email=normalized_email)
+            | (
+                # `contains` lookup not supported by sqlite
+                Q(other_invitees_emails__contains=[normalized_email])
+                if not settings.DEBUG
+                else Q()
+            )
         )
 
 
@@ -27,7 +34,12 @@ class DemoCoursesQuerySet(models.QuerySet):
         for course in self:
             if course.creator == user or normalize_email_address(user.email) in [
                 email
-                for sublist in [d.other_invitees_emails for d in valid_invitations]
+                for sublist in [
+                    d.other_invitees_emails
+                    for d in valid_invitations.filter(
+                        main_invitee_email=normalize_email_address(course.creator.email)
+                    )
+                ]
                 for email in sublist
             ]:
                 pks.append(course.pk)
