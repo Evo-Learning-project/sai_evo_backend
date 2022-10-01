@@ -4,17 +4,24 @@ from demo_mode.models import DemoInvitation
 from users.models import User
 from .logic import is_demo_mode, normalize_email_address
 from django.db.models import Exists, OuterRef
-from django.db.models import Q
+from django.db.models import Q, F
+from django.utils import timezone
+
+from datetime import timedelta
 
 
 class DemoInvitationQuerySet(models.QuerySet):
     def valid(self):
-        return self.exclude(state__in=[DemoInvitation.REVOKED, DemoInvitation.EXPIRED])
+        return self.filter(
+            created__gte=timezone.now()
+            - timedelta(hours=DemoInvitation.DEMO_DURATION_HOURS)
+        ).exclude(state__in=[DemoInvitation.REVOKED, DemoInvitation.EXPIRED])
 
     def valid_for(self, user_email: str):
         from django.conf import settings
 
         normalized_email = normalize_email_address(user_email)
+        print("NORM", normalized_email)
         return self.valid().filter(
             Q(main_invitee_email=normalized_email)
             | (

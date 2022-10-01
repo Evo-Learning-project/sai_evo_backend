@@ -6,6 +6,7 @@ from rest_framework import serializers
 from demo_mode.models import DemoInvitation
 from rest_framework.response import Response
 from social_core.backends.google import GoogleOAuth2
+from rest_framework.decorators import action
 
 import logging
 
@@ -19,33 +20,28 @@ class DemoInvitationSerializer(serializers.ModelSerializer):
             "id",
             "main_invitee_email",
             "other_invitees_emails",
-            "duration_hours",
+            "created"
+            # "duration_hours",
         ]
-        read_only_fields = ["main_invitee_email", "duration_hours"]
+        read_only_fields = [
+            "main_invitee_email",
+            # "duration_hours",
+        ]
 
 
 class DemoInvitationPolicy(AccessPolicy):
     statements = [
         {
-            "action": ["list"],
+            "action": ["mine", "list"],
             "principal": ["*"],
             "effect": "allow",
-            # "condition": "token_is_present",
         },
         {
             "action": ["create"],
             "principal": ["*"],
             "effect": "allow",
-            # "condition": "token_is_present",
         },
     ]
-
-    # def token_is_present(self, request, view, action):
-    #     # return True
-    #     request_token = request.data.get("DEMO_TOKEN", "")
-    #     secret_token = os.environ["DEMO_TOKEN"]
-
-    #     return request_token == secret_token
 
 
 class DemoInvitationViewSet(
@@ -60,14 +56,26 @@ class DemoInvitationViewSet(
     permission_classes = [DemoInvitationPolicy]
     serializer_class = DemoInvitationSerializer
 
-    def create(self, request, *args, **kwargs):
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if hasattr(self, "email"):
+            qs = qs.valid_for(self.email)
+        return qs
+
+    def resolve_user_token(self, token):
+        user_profile = GoogleOAuth2().user_data(access_token=token)
+        self.email = user_profile["email"]
+
+    @action(detail=False, methods=["post"])
+    def mine(self, request, *args, **kwargs):
+        # TODO abstract repeated code
         try:
             token = request.data["token"]
         except KeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user_profile = GoogleOAuth2().user_data(access_token=token)
+            self.resolve_user_token(token)
         except Exception as e:
             logger.error(
                 "An error occurred while trying to fetch user data from Google: "
@@ -78,7 +86,25 @@ class DemoInvitationViewSet(
 
             return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        self.email = user_profile["email"]
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        try:
+            token = request.data["token"]
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            self.resolve_user_token(token)
+        except Exception as e:
+            logger.error(
+                "An error occurred while trying to fetch user data from Google: "
+                + str(e)
+            )
+            if hasattr(e, "response") and e.response.status_code == 401:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+            return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:
             return super().create(request, *args, **kwargs)

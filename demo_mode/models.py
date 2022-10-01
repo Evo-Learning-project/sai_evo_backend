@@ -42,6 +42,8 @@ class DemoInvitationManager(models.Manager):
 class DemoInvitation(models.Model):
     """ """
 
+    DEMO_DURATION_HOURS = 24 * 7
+
     (ACTIVE, EXPIRED, PENDING, REVOKED) = range(0, 4)
     STATES = (
         (ACTIVE, "Active"),
@@ -56,10 +58,12 @@ class DemoInvitation(models.Model):
         unique=True,
     )
     other_invitees_emails = models.JSONField(
-        default=list, validators=[validate_list_of_emails]
+        default=list,
+        validators=[validate_list_of_emails],
+        blank=True,
     )
     state = models.PositiveSmallIntegerField(choices=STATES, default=PENDING)
-    duration_hours = models.PositiveIntegerField(default=24 * 7)
+    # duration_hours = models.PositiveIntegerField(default=24 * 7)
     created = models.DateTimeField(auto_now_add=True)
 
     objects = DemoInvitationManager()
