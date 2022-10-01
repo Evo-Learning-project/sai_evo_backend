@@ -20,7 +20,8 @@ class DemoInvitationSerializer(serializers.ModelSerializer):
             "id",
             "main_invitee_email",
             "other_invitees_emails",
-            "created"
+            "created",
+            "expired"
             # "duration_hours",
         ]
         read_only_fields = [

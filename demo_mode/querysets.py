@@ -21,7 +21,6 @@ class DemoInvitationQuerySet(models.QuerySet):
         from django.conf import settings
 
         normalized_email = normalize_email_address(user_email)
-        print("NORM", normalized_email)
         return self.valid().filter(
             Q(main_invitee_email=normalized_email)
             | (

@@ -4,6 +4,9 @@ from django.core.validators import EmailValidator
 
 from users.managers import UserManager
 import json
+from django.utils import timezone
+
+from datetime import timedelta
 
 
 def validate_list_of_emails(value):
@@ -79,3 +82,9 @@ class DemoInvitation(models.Model):
             normalize_email_address(e) for e in self.other_invitees_emails
         ]
         return super().save(*args, **kwargs)
+
+    @property
+    def expired(self):
+        return self.created < timezone.now() - timedelta(
+            hours=DemoInvitation.DEMO_DURATION_HOURS
+        )
