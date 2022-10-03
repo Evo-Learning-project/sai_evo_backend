@@ -19,6 +19,12 @@ DATABASES = {
     }
 }
 
+DATABASE_POOL_ARGS = {
+    "max_overflow": 50,
+    "pool_size": 150,
+    "recycle": 300,
+}
+
 MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"] + MIDDLEWARE
 # STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_MAX_AGE = 604800 * 2  # 2 weeks
