@@ -1103,7 +1103,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     @property
     def base_slots(self):
         if hasattr(self, "prefetched_base_slots"):
-            base_slots = self.prefetched_base_slots
+            # print([s.slot_number for s in self.prefetched_base_slots])
+            # TODO review for nested slots
+            base_slots = sorted(self.prefetched_base_slots, key=lambda s: s.slot_number)
         else:
             base_slots = self.slots.base_slots()
         return base_slots
