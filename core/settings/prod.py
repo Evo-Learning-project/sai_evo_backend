@@ -12,7 +12,7 @@ DATABASES = {
     "default": {
         **dj_database_url.parse(
             os.environ.get("DATABASE_URL", False),
-            # engine="django_postgrespool2",
+            engine="django_postgrespool2",
             conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", 60)),
         ),
         "ATOMIC_REQUESTS": True,
