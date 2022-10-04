@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import os
 
 
@@ -958,16 +959,27 @@ class EventParticipationSlotViewSet(
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
-        # schedule code execution
-        run_participation_slot_code_task.delay(slot.pk)
-        # mark slot as running
-        slot.execution_results = {
-            **(slot.execution_results or {}),
-            "state": "running",
-        }
-        slot.save(update_fields=["execution_results"])
+        try:
+            # mark slot as running
+            slot.execution_results = {
+                **(slot.execution_results or {}),
+                "state": "running",
+            }
+            slot.save(update_fields=["execution_results"])
+
+            # schedule code execution
+            run_participation_slot_code_task.delay(slot.pk)
+        except Exception as e:
+            logger.critical("Exception in run action " + str(e))
+            slot.execution_results = {
+                **(slot.execution_results or {}),
+                "state": "internal_error",
+            }
+            slot.save(update_fields=["execution_results"])
+
         serializer = self.get_serializer_class()(
-            slot, context=self.get_serializer_context()
+            self.get_object(),
+            context=self.get_serializer_context(),
         )
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
