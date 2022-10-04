@@ -44,7 +44,7 @@ from courses.logic.presentation import (
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
-from courses.tasks import run_user_code_task
+from courses.tasks import run_participation_slot_code_task
 from users.models import User
 from users.serializers import UserSerializer
 from django.http import FileResponse, Http404
@@ -959,7 +959,7 @@ class EventParticipationSlotViewSet(
     def run(self, request, **kwargs):
         slot = self.get_object()
         # schedule code execution
-        run_user_code_task.delay(slot.pk)
+        run_participation_slot_code_task.delay(slot.pk)
         # mark slot as running
         slot.execution_results = {
             **(slot.execution_results or {}),

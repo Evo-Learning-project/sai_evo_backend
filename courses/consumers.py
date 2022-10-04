@@ -65,13 +65,18 @@ class ChannelLayer(RedisChannelLayer):
         if self.crypter:
             value = self.crypter.encrypt(value)
 
-        # As we use an sorted set to expire messages
+        # As we use a sorted set to expire messages
         # we need to guarantee uniqueness, with 12 bytes.
         random_prefix = random.getrandbits(8 * 12).to_bytes(12, "big")
         return random_prefix + value
 
 
 class BaseObserverConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+    """
+    A consumer used to subscribe to changes to model instances.
+    For model which are lockable, allows to enter mutex editing on the instance(s).
+    """
+
     LOCK_BY_DEFAULT = True
 
     def __init__(self, *args, **kwargs):
@@ -144,7 +149,7 @@ class EventConsumer(BaseObserverConsumer):
                     self.queryset.select_related("course").get
                 )(pk=kwargs["pk"])
             except ObjectDoesNotExist:
-                return False
+                raise PermissionDenied()
             if not await database_sync_to_async(check_privilege)(
                 self.scope["user"], obj.course.pk, MANAGE_EVENTS
             ):
@@ -179,6 +184,12 @@ class ExerciseConsumer(BaseObserverConsumer):
 
 
 class SubmissionSlotConsumer(AsyncWebsocketConsumer):
+    """
+    Used to subscribe to changes to an EventParticipationSlot; currently
+    only employed for programming exercises in order to get updated on
+    its execution_results field value
+    """
+
     queryset = EventParticipationSlot.objects.all()
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -227,3 +238,7 @@ class SubmissionSlotConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+
+# class CodeExecutionConsumer(AsyncWebsocketConsumer):
+#     pass

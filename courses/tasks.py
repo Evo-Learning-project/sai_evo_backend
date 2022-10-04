@@ -17,8 +17,29 @@ logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
 
 
+# @app.task(bind=True, retry_backoff=True, max_retries=5)
+# def run_one_off_code_task(self, exercise_id, code, task_uuid):
+#     from courses.models import Exercise
+
+#     try:
+#         exercise = Exercise.objects.get(id=exercise_id)
+#     except:
+#         pass
+
+#     try:
+#         execution_results = get_code_execution_results(exercise=exercise, code=code)
+#     except Exception as e:
+#         logger.critical("RUN ONE-OFF CODE TASK EXCEPTION: %s", e, exc_info=1)
+#         try:
+#             self.retry(countdown=1)
+#         except MaxRetriesExceededError:
+#             execution_results = {"state": "internal_error"}
+
+# TODO notify channel group using task uuid
+
+
 @app.task(bind=True, retry_backoff=True, max_retries=5)
-def run_user_code_task(self, slot_id):
+def run_participation_slot_code_task(self, slot_id):
     """
     Takes in the id of a submission slot, runs the code in it, then
     saves the results to its execution_results field
@@ -29,16 +50,19 @@ def run_user_code_task(self, slot_id):
     try:
         # run code and save outcome to slot
         results = get_code_execution_results(slot=slot)
-        slot.execution_results = results
+        # strip off \u0000 char
+        sanitized_results = EventParticipationSlot.sanitize_json(results)
+        slot.execution_results = sanitized_results
         slot.save(update_fields=["execution_results"])
     except Exception as e:
-        logger.critical("RUN CODE TASK EXCEPTION: %s", e, exc_info=1)
+        logger.critical("RUN SLOT CODE TASK EXCEPTION: %s", e, exc_info=1)
         try:
             self.retry(countdown=1)
         except MaxRetriesExceededError:
             slot.execution_results = {"state": "internal_error"}
             slot.save(update_fields=["execution_results"])
 
+    # TODO this can be generalized (a notify_task_complete function) to decrease coupling with Channels
     # send completion message to consumer
     async_to_sync(channel_layer.group_send)(
         "submission_slot_" + str(slot_id),

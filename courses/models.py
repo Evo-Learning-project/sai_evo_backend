@@ -16,6 +16,7 @@ from gamification.actions import (
     SUBMIT_FIRST_EXERCISE_SOLUTION,
     TURN_IN_PRACTICE_PARTICIPATION,
 )
+import json
 from gamification.entry import get_gamification_engine
 from users.models import User
 from django.db import transaction
@@ -1378,6 +1379,12 @@ class EventParticipationSlot(models.Model):
             return any(s.has_answer for s in self.sub_slots.all())
 
         assert False, "Type " + str(self.exercise.exercise_type) + " not implemented"
+
+    @staticmethod
+    def sanitize_json(json_data):
+        json_data = json.dumps(json_data)
+        json_data = json_data.replace("\\u0000", " ")
+        return json.loads(json_data)
 
     @property
     def score(self):
