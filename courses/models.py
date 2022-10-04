@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
+
 from gamification.actions import (
     CORRECTLY_ANSWERED_EXERCISE,
     EXERCISE_SOLUTION_APPROVED,
@@ -242,6 +243,8 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
         (C, "C"),
         (PYTHON, "Python"),
     )
+
+    PROGRAMMING_TYPES = (JS, C, PYTHON)
 
     DRAFT = 0
     PRIVATE = 1
@@ -667,7 +670,7 @@ class ExerciseTestCase(OrderableModel):
         return self.expected_stdout[: self.MAX_CODE_LENGTH] + "<...>"
 
 
-class Event(HashIdModel, TimestampableModel, LockableModel):
+class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel):
     """
     An Event represents some type of quiz/exam students can participate in.
     Teachers can create exam events, and students can create "self-service
@@ -843,6 +846,28 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
     @state.setter
     def state(self, value):
         self._event_state = value
+
+    @hook(AFTER_UPDATE, when="state", changes_to=CLOSED)
+    def on_close(self):
+        """
+        For exams that contain programming exercises, when the Event is closed
+        run code for all slots that don't have an execution_results value and
+        for those that have a value out of sync with the current answer. This is
+        done in order to be forgiving with students that wrote an answer but forgot
+        to run it, and to prevent teachers from having to manually grade it
+        """
+        # TODO add checks for execution_results referring to an old answer
+        slots_to_run = EventParticipationSlot.objects.filter(
+            participation__event_id=self.pk,
+            exercise__exercise_type__in=Exercise.PROGRAMMING_TYPES,
+            execution_results__isnull=True,
+        )
+        if slots_to_run.exists():
+            from courses.tasks import bulk_run_participation_slot_code_task
+
+            pks = list(slots_to_run.values_list("pk", flat=True))
+            slots_to_run.update(execution_results={"state": "running"})
+            bulk_run_participation_slot_code_task.delay(pks)
 
     def save(self, *args, **kwargs):
         self.full_clean()
