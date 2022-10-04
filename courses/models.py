@@ -866,6 +866,8 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
             from courses.tasks import bulk_run_participation_slot_code_task
 
             pks = list(slots_to_run.values_list("pk", flat=True))
+
+            # mark slots as running
             slots_to_run.update(execution_results={"state": "running"})
             bulk_run_participation_slot_code_task.delay(pks)
 
@@ -1039,7 +1041,6 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     A participation has a state, which determines if the user is still participating
     or has turned in / abandoned, and has an assessment state, which determines
     whether a teacher has graded the answers given yet.
-
     """
 
     IN_PROGRESS = 0

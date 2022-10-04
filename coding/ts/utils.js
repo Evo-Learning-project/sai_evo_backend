@@ -8,7 +8,7 @@ const getRandomIdentifier = (length) => {
   return result;
 };
 
-const SANDBOX_TIMEOUT = 1000;
+const SANDBOX_TIMEOUT = 1500;
 
 function printError(e) {
   const AssertionError = require("assert").AssertionError;
