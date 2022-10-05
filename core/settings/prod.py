@@ -12,17 +12,18 @@ DATABASES = {
     "default": {
         **dj_database_url.parse(
             os.environ.get("DATABASE_URL", False),  #
-            engine="django_postgrespool2",
+            engine=os.environ.get("DATABASE_ENGINE", None),  # "django_postgrespool2"
             conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", 60)),
         ),
         "ATOMIC_REQUESTS": True,
     }
 }
 
+# applies if using django_postgrespool2
 DATABASE_POOL_ARGS = {
-    "max_overflow": 50,
-    "pool_size": 150,
-    "recycle": 300,
+    "max_overflow": int(os.environ.get("DJANGO_POSTGRESPOOL2_MAX_OVERFLOW", 20)),
+    "pool_size": int(os.environ.get("DJANGO_POSTGRESPOOL2_POOL_SIZE", 80)),
+    "recycle": int(os.environ.get("DJANGO_POSTGRESPOOL2_RECYCLE", 300)),
 }
 
 MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"] + MIDDLEWARE
@@ -114,4 +115,4 @@ CHANNEL_LAYERS = {
     },
 }
 
-CSRF_TRUSTED_ORIGINS = ["https://*.di.unipi.it"]
+CSRF_TRUSTED_ORIGINS = ["https://*.di.unipi.it"]  # TODO use env var
