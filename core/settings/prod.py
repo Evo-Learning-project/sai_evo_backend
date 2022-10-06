@@ -15,7 +15,7 @@ DATABASES = {
             engine=os.environ.get("DATABASE_ENGINE", None),  # "django_postgrespool2"
             conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", 60)),
         ),
-        "ATOMIC_REQUESTS": True,
+        "ATOMIC_REQUESTS": os.environ.get("ATOMIC_REQUESTS", "False") == "True",
     }
 }
 
