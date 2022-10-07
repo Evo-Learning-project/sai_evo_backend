@@ -70,6 +70,7 @@ class ExerciseManager(models.Manager):
         choices = kwargs.pop("choices", [])
         testcases = kwargs.pop("testcases", [])
         sub_exercises = kwargs.pop("sub_exercises", [])
+        solution = kwargs.pop("solution", "")
 
         # if kwargs.get("parent") is not None or kwargs.get("parent_id") is not None:
         #     parent = kwargs.get("parent") or Exercise.objects.get(
@@ -78,6 +79,16 @@ class ExerciseManager(models.Manager):
         #     kwargs["child_position"] = parent.get_next_child_position()
 
         exercise = super().create(*args, **kwargs)
+
+        if bool(solution.strip()):
+            from courses.models import ExerciseSolution
+
+            ExerciseSolution.objects.create(
+                content=solution.strip(),
+                exercise=exercise,
+                user=kwargs.get("creator", None),
+                state=ExerciseSolution.PUBLISHED,
+            )
 
         # TODO review everything
         if (
