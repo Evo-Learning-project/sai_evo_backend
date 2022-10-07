@@ -1,6 +1,7 @@
 from decimal import Decimal
 import json
 import random
+from typing import Optional
 from django.http import HttpRequest
 from djangochannelsrestframework import permissions
 from djangochannelsrestframework.observer.generics import (
@@ -22,6 +23,7 @@ from channels.generic.websocket import (
     AsyncJsonWebsocketConsumer,
     AsyncWebsocketConsumer,
 )
+from coding.helpers import get_code_execution_results
 
 from courses import serializers
 from courses.logic.presentation import (
@@ -240,5 +242,47 @@ class SubmissionSlotConsumer(AsyncWebsocketConsumer):
         )
 
 
-# class CodeExecutionConsumer(AsyncWebsocketConsumer):
-#     pass
+class CodeExecutionConsumer(AsyncWebsocketConsumer):
+    async def receive(self, text_data=None, bytes_data=None):
+        payload = json.loads(text_data)
+        try:
+            if "action" in payload and payload["action"] == "run_code":
+                await self.run_code(
+                    exercise_id=payload.get("exercise_id"), code=payload.get("code")
+                )
+            else:
+                print("unknown message", text_data)
+        except ValueError as e:
+            # TODO set channel name
+            await self.channel_layer.group_send(
+                "",
+                {
+                    "type": "error.response",
+                    "payload": str(e),
+                },
+            )
+
+    async def run_code(self, exercise_id: Optional[str], code: Optional[str]):
+        if exercise_id is None:
+            raise ValueError("exercise_id required")
+        if code is None:
+            raise ValueError("code required")
+
+        exercise = await database_sync_to_async(
+            Exercise.objects.prefetch_related("testcases").get
+        )(pk=exercise_id)
+
+        execution_results = get_code_execution_results(exercise=exercise, code=code)
+
+        # TODO send
+
+    # handlers
+    async def error_response(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "action": "error",
+                    "data": event["payload"],
+                }
+            )
+        )
