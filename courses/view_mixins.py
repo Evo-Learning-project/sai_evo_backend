@@ -8,6 +8,8 @@ from rest_framework.response import Response
 
 from courses.models import Course
 
+from django.db import transaction
+
 
 class RequestingUserPrivilegesMixin:
     @cached_property
@@ -29,6 +31,7 @@ class RestrictedListMixin:
 
 
 class BulkCreateMixin:
+    @transaction.atomic()
     def create(self, request, *args, **kwargs):
         many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=many)
@@ -39,6 +42,7 @@ class BulkCreateMixin:
 
 
 class BulkPatchMixin:
+    @transaction.atomic()
     @action(detail=False, methods=["patch"])
     def bulk_patch(self, request, **kwargs):
         try:

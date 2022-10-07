@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import os
 
 
@@ -11,6 +12,8 @@ from courses.filters import (
     ExerciseSolutionFilter,
 )
 from demo_mode.logic import is_demo_mode
+
+from django.db import transaction
 
 from .view_mixins import (
     BulkCreateMixin,
@@ -45,7 +48,7 @@ from courses.logic.presentation import (
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
-from courses.tasks import run_user_code_task
+from courses.tasks import run_participation_slot_code_task
 from users.models import User
 from users.serializers import UserSerializer
 from django.http import FileResponse, Http404
@@ -139,6 +142,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
 
         return qs
+
+    # @action(methods=["get"], detail=False)
+    # def test(self, request, **kwargs):
+    #     Course.objects.create(name="wenfioheirowr")
+    #     raise Exception
 
     def perform_create(self, serializer):
         serializer.save(
@@ -460,6 +468,7 @@ class ExerciseViewSet(
             creator=self.request.user,
         )
 
+    @transaction.atomic()
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
         exercise = self.get_object()
@@ -831,6 +840,8 @@ class EventParticipationViewSet(
         except ValueError:
             raise Http404
 
+    # TODO see if you can move transaction.atomic to the create method on the manager
+    @transaction.atomic()
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
         try:
@@ -842,6 +853,7 @@ class EventParticipationViewSet(
                 ).pk
                 participation = self.get_queryset().get(pk=participation_pk)
             except IntegrityError:  # race condition detected
+                logger.error("race condition detected for user " + str(request.user))
                 return self.create(request, *args, **kwargs)
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
@@ -960,19 +972,31 @@ class EventParticipationSlotViewSet(
             .prefetch_related("sub_slots", "selected_choices")
         )
 
+    @transaction.atomic()
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
-        # schedule code execution
-        run_user_code_task.delay(slot.pk)
-        # mark slot as running
-        slot.execution_results = {
-            **(slot.execution_results or {}),
-            "state": "running",
-        }
-        slot.save(update_fields=["execution_results"])
+        try:
+            # mark slot as running
+            slot.execution_results = {
+                **(slot.execution_results or {}),
+                "state": "running",
+            }
+            slot.save(update_fields=["execution_results"])
+
+            # schedule code execution
+            run_participation_slot_code_task.delay(slot.pk)
+        except Exception as e:
+            logger.critical("Exception in run action " + str(e))
+            slot.execution_results = {
+                **(slot.execution_results or {}),
+                "state": "internal_error",
+            }
+            slot.save(update_fields=["execution_results"])
+
         serializer = self.get_serializer_class()(
-            slot, context=self.get_serializer_context()
+            self.get_object(),
+            context=self.get_serializer_context(),
         )
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 

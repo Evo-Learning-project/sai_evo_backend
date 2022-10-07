@@ -10,3 +10,4 @@ media
 staticfiles
 *.sqlite3.bak
 *.sqlite.bak
+debug.log

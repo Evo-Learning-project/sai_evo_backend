@@ -18,6 +18,7 @@ from gamification.actions import (
     SUBMIT_FIRST_EXERCISE_SOLUTION,
     TURN_IN_PRACTICE_PARTICIPATION,
 )
+import json
 from gamification.entry import get_gamification_engine
 from users.models import User
 from django.db import transaction
@@ -1108,7 +1109,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     @property
     def base_slots(self):
         if hasattr(self, "prefetched_base_slots"):
-            base_slots = self.prefetched_base_slots
+            # print([s.slot_number for s in self.prefetched_base_slots])
+            # TODO review for nested slots
+            base_slots = sorted(self.prefetched_base_slots, key=lambda s: s.slot_number)
         else:
             base_slots = self.slots.base_slots()
         return base_slots
@@ -1381,6 +1384,12 @@ class EventParticipationSlot(models.Model):
             return any(s.has_answer for s in self.sub_slots.all())
 
         assert False, "Type " + str(self.exercise.exercise_type) + " not implemented"
+
+    @staticmethod
+    def sanitize_json(json_data):
+        json_data = json.dumps(json_data)
+        json_data = json_data.replace("\\u0000", " ")
+        return json.loads(json_data)
 
     @property
     def score(self):
