@@ -835,6 +835,7 @@ class EventParticipationViewSet(
         except ValueError:
             raise Http404
 
+    # TODO see if you can move transaction.atomic to the create method on the manager
     @transaction.atomic()
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
@@ -847,6 +848,7 @@ class EventParticipationViewSet(
                 ).pk
                 participation = self.get_queryset().get(pk=participation_pk)
             except IntegrityError:  # race condition detected
+                logger.error("race condition detected for user " + str(request.user))
                 return self.create(request, *args, **kwargs)
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
