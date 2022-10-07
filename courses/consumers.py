@@ -2,6 +2,7 @@ from decimal import Decimal
 import json
 import random
 from typing import Optional
+import uuid
 from django.http import HttpRequest
 from djangochannelsrestframework import permissions
 from djangochannelsrestframework.observer.generics import (
@@ -48,6 +49,8 @@ from courses.models import (
 from hashid_field import Hashid
 
 from channels_redis.core import RedisChannelLayer
+
+from courses.tasks import run_one_off_code_task
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -242,13 +245,16 @@ class SubmissionSlotConsumer(AsyncWebsocketConsumer):
         )
 
 
-class CodeExecutionConsumer(AsyncWebsocketConsumer):
+class CodeRunnerConsumer(AsyncWebsocketConsumer):
+    # called when the consumer receives a message from a client
     async def receive(self, text_data=None, bytes_data=None):
         payload = json.loads(text_data)
         try:
             if "action" in payload and payload["action"] == "run_code":
-                await self.run_code(
-                    exercise_id=payload.get("exercise_id"), code=payload.get("code")
+                await self.schedule_run_code_task(
+                    exercise_id=payload.get("exercise_id"),
+                    code=payload.get("code"),
+                    task_id=payload.get("task_id"),
                 )
             else:
                 print("unknown message", text_data)
@@ -262,19 +268,39 @@ class CodeExecutionConsumer(AsyncWebsocketConsumer):
                 },
             )
 
-    async def run_code(self, exercise_id: Optional[str], code: Optional[str]):
+    # called when the consumer receives a message from a celery task
+    # right now this is only used for when the task completes execution
+    # of code and sends the dict containing the results of execution
+    async def task_message(self, payload):
+        if payload["action"] == "execution_complete":
+            await self.channel_layer.group_send(
+                "code_execution_task_" + payload["task_id"],
+                {
+                    "type": "execution.results",
+                    "payload": payload["execution_results"],
+                },
+            )
+        else:
+            print("unknown action", payload)
+
+    async def schedule_run_code_task(
+        self, exercise_id: Optional[str], code: Optional[str], task_id: Optional[str]
+    ):
         if exercise_id is None:
             raise ValueError("exercise_id required")
         if code is None:
             raise ValueError("code required")
+        if task_id is None:
+            raise ValueError("task_id required")
 
-        exercise = await database_sync_to_async(
-            Exercise.objects.prefetch_related("testcases").get
-        )(pk=exercise_id)
+        # create a code execution task with an id and subscribe to an ad-hoc
+        # channel to listen for updates on that event
+        task_id = str(task_id)
+        await self.channel_layer.group_add(
+            "code_execution_task_" + task_id, self.channel_name
+        )
 
-        execution_results = get_code_execution_results(exercise=exercise, code=code)
-
-        # TODO send
+        run_one_off_code_task.delay(exercise_id, code, task_id)
 
     # handlers
     async def error_response(self, event):
@@ -282,6 +308,16 @@ class CodeExecutionConsumer(AsyncWebsocketConsumer):
             text_data=json.dumps(
                 {
                     "action": "error",
+                    "data": event["payload"],
+                }
+            )
+        )
+
+    async def execution_results(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "action": "execution_results",
                     "data": event["payload"],
                 }
             )
