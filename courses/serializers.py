@@ -512,12 +512,7 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     locked_by = UserSerializer(read_only=True)
     template = serializers.SerializerMethodField()
     participation_exists = serializers.SerializerMethodField()
-    max_score = serializers.DecimalField(
-        max_digits=5,
-        decimal_places=1,
-        allow_null=True,
-        required=False,
-    )
+    max_score = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
 
     class Meta:
         model = Event
