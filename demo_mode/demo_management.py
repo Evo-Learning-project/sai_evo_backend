@@ -75,9 +75,7 @@ def create_demo_courses_for(user):
                     context={EVENT_SHOW_HIDDEN_FIELDS: True},
                 )
                 serializer.is_valid()
-                new_event = serializer.save(
-                    course_id=new_course.pk, state=Exercise.PUBLIC
-                )
+                new_event = serializer.save(course_id=new_course.pk, state=event.state)
 
                 # clone template rules
                 template = new_event.template
