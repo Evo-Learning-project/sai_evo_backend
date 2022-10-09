@@ -19,7 +19,7 @@ from django.db import transaction
 DEMO_COURSES = [
     ("Analisi Matematica", ""),
     ("Laboratorio JavaScript", ""),
-    ("Fondamenti di programmazione C"),
+    ("Fondamenti di programmazione C", ""),
 ]
 import string
 import random
@@ -46,7 +46,6 @@ def create_demo_courses_for(user):
 
     with transaction.atomic():
         for (name, description) in DEMO_COURSES:
-            print("------ CREATING FOR -------", name)
             blueprint_course = blueprint_courses.get(name=name)
             new_course = Course.objects.create(
                 name=name + "(" + get_random_string() + ")",
