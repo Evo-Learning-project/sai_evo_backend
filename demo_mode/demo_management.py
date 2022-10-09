@@ -48,7 +48,7 @@ def create_demo_courses_for(user):
         for (name, description) in DEMO_COURSES:
             blueprint_course = blueprint_courses.get(name=name)
             new_course = Course.objects.create(
-                name=name + "(" + get_random_string() + ")",
+                name=name + " (" + get_random_string() + ")",
                 description=description,
                 creator=user,
             )
