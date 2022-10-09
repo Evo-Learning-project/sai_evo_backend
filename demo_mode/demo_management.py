@@ -18,8 +18,8 @@ from django.db import transaction
 
 DEMO_COURSES = [
     ("Analisi Matematica", ""),
-    # ("Programmazione JavaScript", ""),
-    # ("Programmazione C"),
+    ("Laboratorio JavaScript", ""),
+    ("Fondamenti di programmazione C"),
 ]
 import string
 import random
