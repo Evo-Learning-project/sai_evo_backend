@@ -12,3 +12,4 @@ staticfiles
 *.sqlite.bak
 debug.log
 .DS_Store
+DS_Store
