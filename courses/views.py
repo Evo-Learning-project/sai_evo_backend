@@ -779,6 +779,7 @@ class EventParticipationViewSet(
         Returns a dict for usage inside serializers' context in order to decide whether
         to display some fields ans whether to make them writable
         """
+        # TODO improve this by checking for truthy values
         force_student = "as_student" in self.request.query_params
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
@@ -929,6 +930,7 @@ class EventParticipationSlotViewSet(
         Returns a dict for usage inside serializers' context in order to decide whether
         to display some fields ans whether to make them writable
         """
+        # TODO improve this by checking for truthy values
         force_student = "as_student" in self.request.query_params
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges

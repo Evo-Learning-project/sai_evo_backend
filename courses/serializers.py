@@ -770,13 +770,6 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
         }
 
     def __init__(self, *args, **kwargs):
-        # loggererror("instantiating PARTICIPATION")
-        # loggerdebug("debug")
-        # loggerinfo("info")
-        # loggerwarning("warning")
-        # loggererror("error")
-        # logger.critical("critical")
-
         super().__init__(*args, **kwargs)
 
         self.remove_unsatisfied_condition_fields()

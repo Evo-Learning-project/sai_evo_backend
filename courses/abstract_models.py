@@ -217,6 +217,8 @@ class LockableModel(models.Model):
     to enforce the constraints
     """
 
+    # TODO actually enforce the locking at api level
+
     locked_by = models.ForeignKey(
         User,
         null=True,
