@@ -35,6 +35,7 @@ def get_user_privileges(user, course):
         return []
 
     if not isinstance(course, Course):
+        # TODO handle exceptions
         course = Course.objects.get(pk=course)
 
     if user == course.creator:
@@ -88,31 +89,6 @@ def check_privilege(user, course, privilege):
     Returns True if and only `user` has `privilege` for `course`
     `course` can either be a Course object or the id of a course
     """
-    # from courses.models import Course, UserCoursePrivilege
-
-    # if user.is_anonymous:
-    #     return False
-
-    # if not isinstance(course, Course):
-    #     course = Course.objects.get(pk=course)
-
-    # if user == course.creator:
-    #     return True
-
-    # allow_privileges = [
-    #     privilege
-    #     for role_privileges in (
-    #         role.allow_privileges for role in user.roles.filter(course=course)
-    #     )
-    #     for privilege in role_privileges
-    # ]  # get all the privileges for this user's roles
-
-    # try:
-    #     per_user_privileges = UserCoursePrivilege.objects.get(user=user, course=course)
-    #     allow_privileges.extend(per_user_privileges.allow_privileges)  # add per-user
-    #     deny_privileges = per_user_privileges.deny_privileges
-    # except UserCoursePrivilege.DoesNotExist:
-    #     deny_privileges = []
 
     privileges = get_user_privileges(user, course)
 
