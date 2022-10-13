@@ -195,6 +195,13 @@ oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
     os.environ.get("TOKEN_EXPIRE_SECONDS", 2592000)
 )
 
+# TODO move to separate settings module for demo mode
+if DEMO_MODE:
+    # in demo mode, make tokens last a week
+    oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
+        os.environ.get("TOKEN_EXPIRE_SECONDS", 60 * 60 * 24 * 7)
+    )
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
