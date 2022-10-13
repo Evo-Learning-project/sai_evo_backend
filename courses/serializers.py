@@ -344,7 +344,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "child_weight",
             "max_score",
             "all_or_nothing",
-            "solution",
+            # "solution",
         ]
 
         conditional_fields = {
