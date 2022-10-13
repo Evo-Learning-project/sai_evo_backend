@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 
@@ -20,11 +20,13 @@ def validate_list_of_emails(value):
 
 
 class DemoUserManager(UserManager):
+    @transaction.atomic()
     def create_user(self, username, email=None, password=None, **extra_fields):
         from demo_mode.logic import (
             get_invitation_for_new_user_or_raise,
             normalize_email_address,
         )
+        from demo_mode.demo_management import create_demo_courses_for
 
         email = email or ""
 
@@ -32,7 +34,10 @@ class DemoUserManager(UserManager):
         if invitation.main_invitee_email == normalize_email_address(email):
             extra_fields.setdefault("is_teacher", True)
 
-        return super().create_user(username, email, password, **extra_fields)
+        user = super().create_user(username, email, password, **extra_fields)
+
+        create_demo_courses_for(user)
+        return user
 
 
 class DemoInvitationManager(models.Manager):
