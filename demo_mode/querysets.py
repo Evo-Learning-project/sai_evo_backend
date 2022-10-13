@@ -21,15 +21,23 @@ class DemoInvitationQuerySet(models.QuerySet):
         from django.conf import settings
 
         normalized_email = normalize_email_address(user_email)
-        return self.valid().filter(
-            Q(main_invitee_email=normalized_email)
-            | (
-                # `contains` lookup not supported by sqlite
-                Q(other_invitees_emails__contains=[normalized_email])
-                if not settings.DEBUG
-                else Q()
+        if not settings.DEBUG:
+            return self.valid().filter(
+                Q(main_invitee_email=normalized_email)
+                | (
+                    # `contains` lookup not supported by sqlite
+                    Q(other_invitees_emails__contains=[normalized_email])
+                )
             )
-        )
+        # workaround to test with sqlite
+        pks = []
+        for invitation in self.valid():
+            if (
+                invitation.main_invitee_email == normalized_email
+                or normalized_email in invitation.other_invitees_emails
+            ):
+                pks.append(invitation.pk)
+        return self.filter(pk__in=pks)
 
 
 class DemoCoursesQuerySet(models.QuerySet):

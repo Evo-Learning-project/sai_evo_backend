@@ -31,12 +31,16 @@ class DemoUserManager(UserManager):
         email = email or ""
 
         invitation: DemoInvitation = get_invitation_for_new_user_or_raise(email)
+        create_courses = False
+
         if invitation.main_invitee_email == normalize_email_address(email):
             extra_fields.setdefault("is_teacher", True)
+            create_courses = True
 
         user = super().create_user(username, email, password, **extra_fields)
+        if create_courses:
+            create_demo_courses_for(user)
 
-        create_demo_courses_for(user)
         return user
 
 
