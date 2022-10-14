@@ -115,4 +115,7 @@ CHANNEL_LAYERS = {
     },
 }
 
-CSRF_TRUSTED_ORIGINS = ["https://*.di.unipi.it"]  # TODO use env var
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.di.unipi.it",
+    "https://*.evo-learning.com",
+]  # TODO use env var
