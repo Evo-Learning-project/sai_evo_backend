@@ -71,6 +71,11 @@ class CoursePolicy(BaseAccessPolicy):
     ]
 
     def is_visible_to(self, request, view, action):
+        from demo_mode.logic import is_demo_mode
+
+        # if is_demo_mode():
+        #     return is_course_accessible_in_demo_mode(view.get_object(), request.user)
+
         return True
 
     def is_teacher(self, request, view, action):

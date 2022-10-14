@@ -1,0 +1,266 @@
+[
+  {
+    "text": "<p><span style=\"color: rgb(0, 0, 0); background-color: transparent;\">Si vuole realizzare una classe in </span><strong style=\"color: rgb(0, 0, 0); background-color: transparent;\">TypeScript</strong><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> per rappresentare grafi. In particolare, l’implementazione deve soddisfare queste condizioni:</span></p><p><br></p><p><span style=\"background-color: transparent;\">-Ogni nodo è rappresentato da un oggetto della classe GNode. Gli oggetti GNode hanno una sola proprietà, di nome </span><em style=\"background-color: transparent;\">label</em><span style=\"background-color: transparent;\">, </span></p><p><span style=\"background-color: transparent;\">che può essere un numero o una stringa. Il costruttore avrà come argomento il valore di </span><em style=\"background-color: transparent;\">label</em><span style=\"background-color: transparent;\">.</span></p><p><span style=\"background-color: transparent;\">-Ogni arco è rappresentato da un oggetto della classe GEdge. Gli oggetti GEdge hanno due proprietà, </span><em style=\"background-color: transparent;\">from</em><span style=\"background-color: transparent;\"> e </span><em style=\"background-color: transparent;\">to</em><span style=\"background-color: transparent;\">, che rappresentano il nodo </span></p><p><span style=\"background-color: transparent;\">di origine e il nodo di destinazione dell’arco (che è orientato). Il costruttore avrà come argomenti due nodi: in ordine, quello di origine e quello di destinazione.</span></p><p><span style=\"background-color: transparent;\">-Un grafo è rappresentato dalla classe Graph. Gli oggetti Graph hanno due proprietà, </span><em style=\"background-color: transparent;\">nodes</em><span style=\"background-color: transparent;\"> (che contiene un array di nodi) e </span></p><p><em style=\"background-color: transparent;\">edges</em><span style=\"background-color: transparent;\"> (che contiene un array di archi). Il costruttore ha due argomenti che sono, rispettivamente, l’array di nodi e l’array di archi che descrive il grafo.</span></p><p><span style=\"background-color: transparent;\">-Potete assumere che i valori passati dal chiamante siano corretti: ovvero, tutti gli archi faranno riferimento a nodi che fanno parte del grafo.&nbsp;</span></p><p><br></p><p><span style=\"color: rgb(0, 0, 0); background-color: transparent;\">Si scriva una funzione </span><strong style=\"color: rgb(0, 0, 0); background-color: transparent;\">TypeScript</strong><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> isDAG() che, ricevuto un grafo, restituisca </span><em style=\"color: rgb(0, 0, 0); background-color: transparent;\">true</em><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> se il grafo è un DAG (grafo diretto aciclico), </span><em style=\"color: rgb(0, 0, 0); background-color: transparent;\">false</em><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> in caso contrario. </span></p><p><br></p><p><strong><u>Potete usare l'algoritmo che preferite, ma ecco qui un possibile algoritmo</u></strong>:</p><p>&nbsp;</p><p>1. Se il grafo non ha nodi, allora è aciclico.</p><p>2. Se il grafo non ha nodi foglia (nodo con nessun arco uscente) il grafo è ciclico.</p><p>3. Scegli un nodo foglia del grafo: rimuovi questo nodo e tutti gli archi entranti in esso, per ottenere un nuovo grafo.</p><p>4. Ripeti dal passo 1. sul nuovo grafo.</p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">ATTENZIONE:</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\"> abbiate cura di specificare il più precisamente possibile i tipi corretti (in particolare, si raccomanda di considerare attentamente </span></p><p><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">se sia il caso di usare il tipo </span><em style=\"background-color: transparent; color: rgb(0, 0, 0);\">any</em><span style=\"background-color: transparent; color: rgb(0, 0, 0);\"> o simili). Ove non sia richiesto altrimenti, tutti i metodi e le proprietà sono intese essere pubbliche.</span></p><p><strong>ATTENZIONE:</strong> <u>il grafo originale NON deve essere distrutto</u>.</p><p><br></p><p><strong>ESEMPIO:</strong></p><p><br></p><p>let nodoA = new GNode(1),&nbsp;</p><p>&nbsp;&nbsp;nodoB = new GNode(2),&nbsp;</p><p>&nbsp;&nbsp;nodoC = new GNode(3),</p><p>&nbsp;&nbsp;nodoD = new GNode(4);</p><p>let arcA = new GEdge(nodoA, nodoB),&nbsp;</p><p>&nbsp;&nbsp;arcB = new GEdge(nodoA, nodoC),</p><p>&nbsp;&nbsp;arcC = new GEdge(nodoC, nodoD),</p><p>&nbsp;&nbsp;arcD = new GEdge(nodoD, nodoA),</p><p>&nbsp;&nbsp;arcE = new GEdge(nodoD, nodoC);</p><p><br></p><p>let grafA = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC]);</p><p>let grafB = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcC, arcE]);</p><p><br></p><p>isDAG(grafA) -&gt; true</p><p>isDAG(grafB) -&gt; false</p><p><br></p><p>let grafC = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC, arcD]);</p><p><br></p><p>isDAG(grafC) -&gt; false</p>",
+    "exercise_type": 5,
+    "label": "Grafi",
+    "public_tags": [{ "name": "Grafi" }, { "name": "DAG" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": true,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "type Label = string | number\n\nclass GNode {\n  label: Label\n  constructor(label: Label) {\n    this.label = label\n  }\n}\n\nclass GEdge {\n  from: GNode\n  to: GNode\n  constructor(from: GNode, to: GNode) {\n    this.from = from\n    this.to = to\n  }\n}\n\nclass Graph {\n  nodes: GNode[]\n  edges: GEdge[]\n  constructor(nodes: GNode[], edges: GEdge[]) {\n    this.nodes = nodes\n    this.edges = edges\n  }\n}\n\nfunction isDAG(g: Graph): boolean {\n  if (g.nodes.length == 0) return true;\n\n  for (let node of g.nodes) {\n    let filtered: GEdge[] = g.edges.filter((e: GEdge) => e.from == node);\n    //console.log(filtered, \"archi from per....\", node);\n    if (filtered.length == 0) {\n      let newG: Graph = new Graph(g.nodes.filter((n: GNode) => n != node), \n                                  g.edges.filter((e: GEdge) => e.to != node));\n      return isDAG(newG);\n    }\n  }\n  return false;\n}",
+    "testcases": [
+      {
+        "code": "let nodoA = new GNode(1), \n    nodoB = new GNode(2), \n    nodoC = new GNode(3),\n    nodoD = new GNode(4);\nlet arcA = new GEdge(nodoA, nodoB), \n    arcB = new GEdge(nodoA, nodoC),\n    arcC = new GEdge(nodoC, nodoD),\n    arcD = new GEdge(nodoD, nodoA),\n    arcE = new GEdge(nodoD, nodoC);\nlet grafA = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC]);\nlet grafB = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcC, arcE]);\nassert.equal(isDAG(grafA), true);// true\nassert.equal(grafA.nodes.length, 4);\nassert.equal(grafA.edges.length, 3);\nassert.equal(isDAG(grafB), false);// false\nassert.equal(grafB.nodes.length, 4);\nassert.equal(grafB.edges.length, 3);\n\nlet grafC = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC, arcD]);\nassert.equal(isDAG(grafC), false); // false",
+        "text": "<p>Test case isDAG</p>",
+        "_ordering": 0,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "let n0 = new GNode(0),\n    n1 = new GNode(1), \n    n2 = new GNode(2), \n    n3 = new GNode(3),\n    n4 = new GNode(4);\nlet e0 = new GEdge(n0, n1),\n    e1 = new GEdge(n0, n2), \n    e2 = new GEdge(n2, n1),\n    e3 = new GEdge(n1, n3),\n    e4 = new GEdge(n3, n2);\n\nlet grafXX = new Graph([n0, n1, n2, n3, n4], [e0, e1, e2, e3]);\nassert.equal(isDAG(grafXX), true);\nassert.equal(grafXX.nodes.length, 5);\nassert.equal(grafXX.edges.length, 4);\n\nlet grafYY = new Graph([n0, n1, n2, n3, n4], [e0, e1, e2, e3, e4]);\nassert.equal(isDAG(grafYY), false);\nassert.equal(grafYY.nodes.length, 5);\nassert.equal(grafYY.edges.length, 5);",
+        "text": "<p>Test case isDAG <strong>nascosto</strong></p>",
+        "_ordering": 1,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      }
+    ]
+  },
+  {
+    "text": "<p><span style=\"color: rgb(0, 0, 0); background-color: transparent;\">Si vuole realizzare una classe in </span><strong style=\"color: rgb(0, 0, 0); background-color: transparent;\">TypeScript</strong><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> per rappresentare grafi. In particolare, l’implementazione deve soddisfare queste condizioni:</span></p><p><br></p><p><span style=\"background-color: transparent;\">-Ogni nodo è rappresentato da un oggetto della classe GNode. Gli oggetti GNode hanno una sola proprietà, di nome </span><em style=\"background-color: transparent;\">label</em><span style=\"background-color: transparent;\">, </span></p><p><span style=\"background-color: transparent;\">che può essere un numero o una stringa. Il costruttore avrà come argomento il valore di </span><em style=\"background-color: transparent;\">label</em><span style=\"background-color: transparent;\">.</span></p><p><span style=\"background-color: transparent;\">-Ogni arco è rappresentato da un oggetto della classe GEdge. Gli oggetti GEdge hanno due proprietà, </span><em style=\"background-color: transparent;\">from</em><span style=\"background-color: transparent;\"> e </span><em style=\"background-color: transparent;\">to</em><span style=\"background-color: transparent;\">, che rappresentano il nodo </span></p><p><span style=\"background-color: transparent;\">di origine e il nodo di destinazione dell’arco (che è orientato). Il costruttore avrà come argomenti due nodi: in ordine, quello di origine e quello di destinazione.</span></p><p><span style=\"background-color: transparent;\">-Un grafo è rappresentato dalla classe Graph. Gli oggetti Graph hanno due proprietà, </span><em style=\"background-color: transparent;\">nodes</em><span style=\"background-color: transparent;\"> (che contiene un array di nodi) e </span></p><p><em style=\"background-color: transparent;\">edges</em><span style=\"background-color: transparent;\"> (che contiene un array di archi). Il costruttore ha due argomenti che sono, rispettivamente, l’array di nodi e l’array di archi che descrive il grafo.</span></p><p><span style=\"background-color: transparent;\">-Potete assumere che i valori passati dal chiamante siano corretti: ovvero, tutti gli archi faranno riferimento a nodi che fanno parte del grafo.&nbsp;</span></p><p><br></p><p><span style=\"color: rgb(0, 0, 0); background-color: transparent;\">Si scriva una funzione </span><strong style=\"color: rgb(0, 0, 0); background-color: transparent;\">TypeScript</strong><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> isDAG() che, ricevuto un grafo, restituisca </span><em style=\"color: rgb(0, 0, 0); background-color: transparent;\">true</em><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> se il grafo è un DAG (grafo diretto aciclico), </span><em style=\"color: rgb(0, 0, 0); background-color: transparent;\">false</em><span style=\"color: rgb(0, 0, 0); background-color: transparent;\"> in caso contrario. </span></p><p><br></p><p><strong><u>Potete usare l'algoritmo che preferite, ma ecco qui un possibile algoritmo</u></strong>:</p><p>&nbsp;</p><p>1. Se il grafo non ha nodi, allora è aciclico.</p><p>2. Se il grafo non ha nodi foglia (nodo con nessun arco uscente) il grafo è ciclico.</p><p>3. Scegli un nodo foglia del grafo: rimuovi questo nodo e tutti gli archi entranti in esso, per ottenere un nuovo grafo.</p><p>4. Ripeti dal passo 1. sul nuovo grafo.</p><p><br></p><p><strong style=\"background-color: transparent; color: rgb(0, 0, 0);\">ATTENZIONE:</strong><span style=\"background-color: transparent; color: rgb(0, 0, 0);\"> abbiate cura di specificare il più precisamente possibile i tipi corretti (in particolare, si raccomanda di considerare attentamente </span></p><p><span style=\"background-color: transparent; color: rgb(0, 0, 0);\">se sia il caso di usare il tipo </span><em style=\"background-color: transparent; color: rgb(0, 0, 0);\">any</em><span style=\"background-color: transparent; color: rgb(0, 0, 0);\"> o simili). Ove non sia richiesto altrimenti, tutti i metodi e le proprietà sono intese essere pubbliche.</span></p><p><strong>ATTENZIONE:</strong> <u>il grafo originale NON deve essere distrutto</u>.</p><p><br></p><p><strong>ESEMPIO:</strong></p><p><br></p><p>let nodoA = new GNode(1),&nbsp;</p><p>&nbsp;&nbsp;nodoB = new GNode(2),&nbsp;</p><p>&nbsp;&nbsp;nodoC = new GNode(3),</p><p>&nbsp;&nbsp;nodoD = new GNode(4);</p><p>let arcA = new GEdge(nodoA, nodoB),&nbsp;</p><p>&nbsp;&nbsp;arcB = new GEdge(nodoA, nodoC),</p><p>&nbsp;&nbsp;arcC = new GEdge(nodoC, nodoD),</p><p>&nbsp;&nbsp;arcD = new GEdge(nodoD, nodoA),</p><p>&nbsp;&nbsp;arcE = new GEdge(nodoD, nodoC);</p><p><br></p><p>let grafA = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC]);</p><p>let grafB = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcC, arcE]);</p><p><br></p><p>isDAG(grafA) -&gt; true</p><p>isDAG(grafB) -&gt; false</p><p><br></p><p>let grafC = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC, arcD]);</p><p><br></p><p>isDAG(grafC) -&gt; false</p>",
+    "exercise_type": 5,
+    "label": "Grafi",
+    "public_tags": [{ "name": "Grafi" }, { "name": "DAG" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": true,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "type Label = string | number\n\nclass GNode {\n  label: Label\n  constructor(label: Label) {\n    this.label = label\n  }\n}\n\nclass GEdge {\n  from: GNode\n  to: GNode\n  constructor(from: GNode, to: GNode) {\n    this.from = from\n    this.to = to\n  }\n}\n\nclass Graph {\n  nodes: GNode[]\n  edges: GEdge[]\n  constructor(nodes: GNode[], edges: GEdge[]) {\n    this.nodes = nodes\n    this.edges = edges\n  }\n}\n\nfunction isDAG(g: Graph): boolean {\n  if (g.nodes.length == 0) return true;\n\n  for (let node of g.nodes) {\n    let filtered: GEdge[] = g.edges.filter((e: GEdge) => e.from == node);\n    //console.log(filtered, \"archi from per....\", node);\n    if (filtered.length == 0) {\n      let newG: Graph = new Graph(g.nodes.filter((n: GNode) => n != node), \n                                  g.edges.filter((e: GEdge) => e.to != node));\n      return isDAG(newG);\n    }\n  }\n  return false;\n}",
+    "testcases": [
+      {
+        "code": "let nodoA = new GNode(1), \n    nodoB = new GNode(2), \n    nodoC = new GNode(3),\n    nodoD = new GNode(4);\nlet arcA = new GEdge(nodoA, nodoB), \n    arcB = new GEdge(nodoA, nodoC),\n    arcC = new GEdge(nodoC, nodoD),\n    arcD = new GEdge(nodoD, nodoA),\n    arcE = new GEdge(nodoD, nodoC);\nlet grafA = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC]);\nlet grafB = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcC, arcE]);\nassert.equal(isDAG(grafA), true);// true\nassert.equal(grafA.nodes.length, 4);\nassert.equal(grafA.edges.length, 3);\nassert.equal(isDAG(grafB), false);// false\nassert.equal(grafB.nodes.length, 4);\nassert.equal(grafB.edges.length, 3);\n\nlet grafC = new Graph([nodoA, nodoB, nodoC, nodoD], [arcA, arcB, arcC, arcD]);\nassert.equal(isDAG(grafC), false); // false",
+        "text": "<p>Test case isDAG</p>",
+        "_ordering": 0,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "let n0 = new GNode(0),\n    n1 = new GNode(1), \n    n2 = new GNode(2), \n    n3 = new GNode(3),\n    n4 = new GNode(4);\nlet e0 = new GEdge(n0, n1),\n    e1 = new GEdge(n0, n2), \n    e2 = new GEdge(n2, n1),\n    e3 = new GEdge(n1, n3),\n    e4 = new GEdge(n3, n2);\n\nlet grafXX = new Graph([n0, n1, n2, n3, n4], [e0, e1, e2, e3]);\nassert.equal(isDAG(grafXX), true);\nassert.equal(grafXX.nodes.length, 5);\nassert.equal(grafXX.edges.length, 4);\n\nlet grafYY = new Graph([n0, n1, n2, n3, n4], [e0, e1, e2, e3, e4]);\nassert.equal(isDAG(grafYY), false);\nassert.equal(grafYY.nodes.length, 5);\nassert.equal(grafYY.edges.length, 5);",
+        "text": "<p>Test case isDAG <strong>nascosto</strong></p>",
+        "_ordering": 1,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      }
+    ]
+  },
+  {
+    "text": "<p>Una sequenza è detta <em>palindroma</em> se, invertendo l'ordine degli elementi, si ottiene nuovamente la sequenza originale. Una sequenza è detta <em>bipalindroma</em> se è costituita da due sottosequenze, anche di lunghezze diverse, ciascuna delle quali è palindroma. Si noti che la sequenza vuota è palindroma, e dunque tutte le sequenze palindrome sono bipalindrome in quanto composte dall'intera sequenza, seguita dalla sequenza vuota.</p><p>Per esempio, \"ABBA\" è una stringa palindroma; \"\" è una stringa palindroma, dunque \"ABBA\"+\"\" è una stringa bipalindroma.</p><p>D'altra parte, \"ABABBABB\" è bipalindroma, in quanto costituita da \"ABA\" e \"BBABB\", che sono entrambe palindrome, ma non è essa stessa palindroma, perché \"ABABBABB\"≠\"BBABBABA\".</p><p><br></p><p>Si scriva una funzione JavaScript bipalindroma(s) che ricevuta una stringa s, restituisca true se la stringa è bipalindroma, false altrimenti.</p><p><br></p>",
+    "exercise_type": 5,
+    "label": "Bipalindroma",
+    "public_tags": [{ "name": "facile" }, { "name": "cicli" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "function bipalindroma(s) {\n  function palindroma(s) {\n    return s.split(\"\").reverse().join(\"\") == s\n  }\n\n  for (var i=0;i<=s.length;i++)\n    if (palindroma(s.substring(0,i)) && palindroma(s.substring(i)))\n       return true\n  return false\n}",
+    "testcases": [
+      {
+        "code": "assert(bipalindroma(\"ABBA\"))",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "assert(bipalindroma(\"ABABBABB\"))",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "assert(!bipalindroma(\"CUCARACHA\"))",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "assert(bipalindroma(\"\"))",
+        "text": "",
+        "_ordering": 3,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "assert(bipalindroma(\"ailatiditalia!\"))\nassert(!bipalindroma(\"ailatiditaliaq!\"))\nassert(bipalindroma(\"Z\"))",
+        "text": "",
+        "_ordering": 4,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      }
+    ]
+  },
+  {
+    "text": "<p>Si scriva una funzione JavaScript lindip(A) che, dato un argomento A che è una matrice di numeri naturali positivi (garantita almeno 2x2), realizzata come un array di righe, ciascuna delle quali è un array di numeri, restituisca true se e solo se la matrice contiene almeno due righe linearmente dipendenti fra di loro.</p><p><br></p><p>Ricordate che due vettori X e Y (nel nostro caso, vettori-riga dentro A) sono linearmente dipendenti se esiste un numero k tale che X=kY.</p>",
+    "exercise_type": 5,
+    "label": "lindip",
+    "public_tags": [
+      { "name": "cicli" },
+      { "name": "matrici" },
+      { "name": "appello" }
+    ],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "function lindip(A) {\n  for (var i=0;i<A.length-1;i++)\n    for (var j=i+1;j<A.length;j++)\n      if (dip(A[i],A[j])) return true\n  return false\n}\n\nfunction dip(X,Y) {\n  var k=X[0]/Y[0]\n  for (var i=1;i<X.length;i++)\n    if (X[i]/Y[i]!=k) return false\n  return true\n}",
+    "testcases": [
+      {
+        "code": "var A=[\n  [ 2, 4, 6 ],\n  [ 5, 7, 1 ],\n  [ 3, 3, 8 ],\n  [ 1, 2, 3 ]\n]\n\nassert(lindip(A))",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "var B=[\n  [ 2, 4, 6 ],\n  [ 5, 7, 1 ],\n  [ 3, 3, 3 ],\n  [ 1, 3, 3 ]\n]\n\nassert(!lindip(B))",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "var C=[\n  [ 2, 4, 6, 1 ],\n  [ 5, 7, 1, 1 ],\n  [ 3, 3, 6, 6 ],\n  [ 1, 1, 2, 2 ]\n]\n\nassert(lindip(C))",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      }
+    ]
+  },
+  {
+    "text": "<p>Un <em>gancio</em> è una sequenza (array) di 3 numeri avente la prima e l'ultima cifra uguali, e la cifra centrale differente.  Se la cifra centrale dell'array è più piccola rispetto alle altre due, abbiamo un gancio <em>discendente</em>; altrimenti, un gancio <em>ascendente</em>. Ad esempio:</p><p><br></p><p>[3, 7, 3]: ascendente</p><p>[1, -1, 1]: discendente</p><p><br></p><p>Si scriva una funzione <strong>gancio(a)</strong>, con <em>a</em> un array di numeri, che restituisca un oggetto avente, <strong>nell'ordine</strong>, quattro proprietà: <em>num</em>, il cui valore è il numero di ganci totali presenti in a; <em>asc</em>, il cui valore è il numero di ganci ascendenti presenti in a; <em>des</em>, il numero di ganci discendenti presenti in a; <em>gan</em>, un array contenente tutte le sequenze che sono ganci, nell'ordine in cui compaiono in <em>a</em>.</p><p><br></p><p>Esempio:</p><p>a: [3, 7, 3, 2, 1, 5, 1, 2, 2, -2, 2]</p><p>gancio(a) -&gt; {num: 3, asc: 2, des: 1, gan: [[3, 7, 3], [1, 5, 1], [2, -2, 2]]}</p>",
+    "exercise_type": 5,
+    "label": "gancio-A",
+    "public_tags": [{ "name": "array" }, { "name": "appello" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "function gancio(a) {\n\tlet res = {num: 0, asc: 0, des: 0, gan: []};\n\tfor (let i = 0; i <= a.length-3; i++) {\n\t\tif ((a[i] == a[i+2]) && (a[i] != a[i+1])) {\n\t\t\tres.num = res.num + 1;\n            res.gan.push([a[i], a[i+1], a[i+2]]);\n            if (a[i+1] > a[i]) res.asc = res.asc + 1;\n            else res.des = res.des + 1;\n\t\t}\n\t}\n\treturn res;\n}",
+    "testcases": [
+      {
+        "code": "let testA =  [3, 7, 3, 2, 1, 5, 1, 2, 2, -2, 2];\nassert.deepEqual(gancio(testA), {num: 3, asc: 2, des: 1, gan: [[3, 7, 3], [1, 5, 1], [2, -2, 2]]});",
+        "text": "<p>pubblico</p>",
+        "_ordering": 0,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "let testB =  [1, 7, 1, 7, 1, 7, 1];\nassert.deepEqual(gancio(testB), {num: 5, asc: 3, des: 2, gan: [[1, 7, 1], [7, 1, 7], [1, 7, 1], [7, 1, 7], [1, 7, 1]]});",
+        "text": "<p>nascosto 1</p>",
+        "_ordering": 1,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      },
+      {
+        "code": "let testC = [5, 5, 5, 5, 8, 8, 8, 8, 8];\nassert.deepEqual(gancio(testC), {num: 0, asc: 0, des: 0, gan: []});",
+        "text": "<p>nascosto 2</p>",
+        "_ordering": 2,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      },
+      {
+        "code": "let testD = [9, 5, 9, 5, 1, 1, 1];\nassert.deepEqual(gancio(testD), {num: 2, asc: 1, des: 1, gan: [[9,5,9], [5,9,5]]});",
+        "text": "<p>nascosto 3</p>",
+        "_ordering": 3,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      }
+    ]
+  },
+  {
+    "text": "<p>Si vuole implementare una classe TypeScript OrdSet che fornisca un insieme ordinato di elementi <strong>di tipo omogeneo</strong>. Un insieme ordinato ha le consuete proprietà di un insieme, ma in più mantiene un ordine fra i suoi elementi. Nel nostro caso, l'ordinamento desiderato è implementato da una funzione cmp(a,b) che restituisce un qualunque numero minore di 0 se $a&lt;b$, esattamente 0 se $a=b$, e un qualunque numero maggiore di 0 se $a&gt;b$. Si noti che il concetto di \"maggiore\", \"minore\", \"uguale\" è definito dalla funzione cmp, non è necessariamente l'ordinamento degli operatori &lt;, &gt;, &gt;=, &lt;=, ==, ===, !=, !== di TypeScript.</p><p><br></p><p>La classe deve implementare i seguenti metodi:</p><ul><li>un costruttore, che prende come argomento la funzione cmp da usare per i confronti</li><li>un metodo add(e) che aggiunge l'elemento e all'insieme (se e è già presente, l'insieme non viene modificato)</li><li>un metodo remove(e) che rimuove l'elemento e dall'insieme (se e non è presente, l'insieme non viene modificato)</li><li>un metodo list() che restituisce un array contenente gli elementi dell'insieme, nell'ordine stabilito da cmp</li></ul><p><br></p><p>Come sempre, si curi di definire i tipi nella maniera più precisa possibile.</p>",
+    "exercise_type": 5,
+    "label": "Insieme ordinato",
+    "public_tags": [
+      { "name": "array" },
+      { "name": "classi" },
+      { "name": "typescript" }
+    ],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": true,
+    "locked_by": null,
+    "child_weight": 1,
+    "all_or_nothing": false,
+    "solution": "type CmpFun<T> = (a:T,b:T)=>number\n\nclass OrdSet<T> {\n    cmp:CmpFun<T>\n    elements:T[]\n    \n    constructor(cmp:CmpFun<T>) {\n        this.cmp=cmp\n        this.elements=[]\n    }\n\n    add(e:T):void {\n        if (this.elements.findIndex((f:T)=>this.cmp(e,f)==0)==-1)\n            this.elements.push(e)\n    }\n\n    remove(e:T):void {\n        var i:number\n        if ((i=this.elements.findIndex((f:T)=>this.cmp(e,f)==0))>=0)\n            this.elements.splice(i,1)\n    }\n\n    list():T[] {\n        this.elements.sort(this.cmp)\n        return this.elements\n    }\n}",
+    "testcases": [
+      {
+        "code": "var s1=new OrdSet<number>((a,b)=>a-b)\ns1.add(5)\ns1.add(3)\ns1.add(5)\nassert.deepEqual(s1.list(),[3,5])",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "var s1=new OrdSet<number>((a,b)=>b-a)\ns1.add(5)\ns1.add(3)\ns1.add(5)\ns1.add(7)\ns1.remove(5)\nassert.deepEqual(s1.list(),[7,3])",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "var s3=new OrdSet<{x:number,y:number}>((a,b)=>a.x-b.x)\ns3.add({x:5,y:3})\ns3.add({x:3,y:1})\ns3.add({x:5,y:1})\ns3.add({x:7,y:7})\ns3.remove({x:7,y:0})\nassert.deepEqual(s3.list(),[{x:3,y:1},{x:5,y:3}])",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 0
+      },
+      {
+        "code": "var s4=new OrdSet<string>((a,b)=>a.length-b.length)\ns4.add(\"pippo\")\ns4.add(\"pluto\")\ns4.add(\"paperino\")\ns4.add(\"pippo\")\ns4.remove(\"pippo\")\ns4.add(\"x\")\nassert.deepEqual(s4.list(),[\"x\",\"paperino\"])",
+        "text": "",
+        "_ordering": 3,
+        "stdin": "",
+        "expected_stdout": "",
+        "testcase_type": 2
+      }
+    ]
+  }
+]

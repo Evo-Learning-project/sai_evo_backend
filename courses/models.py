@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
+from demo_mode.logic import is_demo_mode
+from demo_mode.querysets import DemoCoursesQuerySet
 from gamification.actions import (
     CORRECTLY_ANSWERED_EXERCISE,
     EXERCISE_SOLUTION_APPROVED,
@@ -82,6 +84,9 @@ class Course(TimestampableModel):
     hidden = models.BooleanField(default=False)
 
     objects = CourseManager()
+
+    if is_demo_mode():
+        demo_manager = DemoCoursesQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created", "pk"]
@@ -794,6 +799,7 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         rules = self.template.rules.all()
         return sum([(r.weight or 0) * r.amount for r in rules])
 
+    # TODO remove as this is unused
     @max_score.setter
     def max_score(self, value):
         # divides the given value evenly among the template

@@ -28,6 +28,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
+DEMO_MODE = os.environ.get("DEMO_MODE", "False") == "True"
+
+
 ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = "users.User"
@@ -61,6 +65,7 @@ INSTALLED_APPS = [
     "gamification",
     "notifications",
     "user_notifications",
+    "demo_mode"
     # "silk",
 ]
 
@@ -189,6 +194,13 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
     os.environ.get("TOKEN_EXPIRE_SECONDS", 2592000)
 )
+
+# TODO move to separate settings module for demo mode
+if DEMO_MODE:
+    # in demo mode, make tokens last a week
+    oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
+        os.environ.get("TOKEN_EXPIRE_SECONDS", 60 * 60 * 24 * 7)
+    )
 
 
 # Internationalization

@@ -1,0 +1,258 @@
+[
+  {
+    "text": "Si implementi una lista concatenata che contenga, come dati, interi positivi. Si scelga se implementare procedure o funzioni che realizzino i  seguenti punti:\n\n\n-  Aggiungere un elemento in fondo alla lista;\n\n-  Aggiungere un elemento in cima alla lista;\n\n-  Dato un valore positivo $v$, eliminare la prima occorrenza di $v$ nella lista (non modificare la lista nel caso che non contenga $v$);\n\nQuindi, scrivere un programma che legga degli interi. Per ogni intero letto (e nello stesso ordine dell'input), si applichi una delle seguenti modifiche:\n\n\n-  Se il valore letto $v$ è strettamente negativo, rimuovere il primo elemento uguale a $|v|$ dalla lista (non modificare la lista nel caso che questa non contenga $|v|$);\n\n-  Se il valore letto $v$ è positivo e pari, aggiungerlo in cima alla lista;\n\n-  Se il valore letto $v$ è positivo e dispari, aggiungerlo in fondo alla lista;\n\n-  Se il valore letto è $0$, terminare l'esecuzione del programma stampando, in ordine, gli elementi della lista.\n\n\n<strong>Esempio</strong>\n\n<strong>Input</strong>\n$\\texttt{\n4\n5\n2\n-4\n-5\n-3\n9\n2\n0\n}$\n\n<strong>Output</strong>\n$\\texttt{2}$\n$\\texttt{2}$\n$\\texttt{9}$\n\n\n",
+    "exercise_type": 7,
+    "label": "",
+    "public_tags": [{ "name": "liste" }, { "name": "allocazione dinamica" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct ll_struct{\n\tint dato;\n\tstruct ll_struct* next;\n} linkedlist_t;\n\n//Aggiunge un elemento in cima alla lista. Restituisce il nuovo puntatore al primo elemento della lista.\nlinkedlist_t* add_front(int v, linkedlist_t* head){\n\tlinkedlist_t* new_el = malloc(sizeof(linkedlist_t));\n\tnew_el->dato = v;\n\tnew_el->next = head;\n\treturn new_el;\n}\n\n//Aggiunge un elemento in fondo alla lista. Restituisce il nuovo puntatore al primo elemento della lista.\nlinkedlist_t* add_end(int v, linkedlist_t* head){\n\t//Creiamo il nuovo elemento, che non ha successore.\n\tlinkedlist_t *node=head, *new_el = malloc(sizeof(linkedlist_t));\n\tnew_el->dato = v;\n\tnew_el->next = NULL;\n\n\tif (head == NULL) //Caso speciale: la lista era vuota. Restituiamo come primo elemento della lista quello appena creato.\n\t\treturn new_el;\n\twhile (node->next != NULL) //Cerchiamo l'ultimo elemento, ovvero quello che non ha successore.\n\t\tnode = node->next;\n\t//Aggiungiamo il nuovo elemento in fondo alla lista. Il puntatore al primo elemento della lista non cambia.\n\tnode->next = new_el;\n\treturn head;\n}\n\n//Elimina un elemento della lista di valore v. Restituisce il nuovo puntatore al primo elemento della lista.\nlinkedlist_t* remove_el(int v, linkedlist_t* head){\n\tlinkedlist_t* new_head = NULL;\n\tlinkedlist_t* prec;\n\tlinkedlist_t* curr;\n\tif (head == NULL) //Caso speciale: la lista e' vuota, non dobbiamo rimuovere niente.\n\t\treturn NULL;\n\telse if (head->dato == v){ //Caso speciale: il primo elemento della lista deve essere eliminato. Restituiamo come primo elemento della lista quello che era il secondo elemento.\n\t\tnew_head = head->next;\n\t\tfree(head);\n\t\treturn new_head;\n\t}\n\telse{\n\t\tprec = head;\n\t\tcurr = head->next;\n\t\twhile (curr != NULL){ //Finche' non arriviamo in fondo alla lista...\n\t\t\tif (curr->dato !=v) { //L'elemento corrente non e' quello da eliminare: continuiamo.\n\t\t\t\tprec = prec->next;\n\t\t\t\tcurr = curr->next;\n\t\t\t}\n\t\t\telse { //L'elemento corrente e' quello da eliminare. Il puntatore al primo elemento della lista non cambia.\n\t\t\t\tfree(prec->next);\n\t\t\t\tprec->next = curr->next;\n\t\t\t\treturn head;\n\t\t\t}\n\t\t}\n\t\treturn head;\n\t}\n}\n\n//Processa un valore di input.\nlinkedlist_t* process_input(int v, linkedlist_t* head){\n\tif (v<0) // v negativo: rimuoviamo -v\n\t\treturn remove_el(-v, head);\n\telse if (v%2) // v dispari: aggiungiamo v in fondo\n\t\treturn add_end(v, head);\n\telse if (!(v%2)) // v pari: aggiungiamo v in cima\n\t\treturn add_front(v, head);\n\n}\n\nint main(int argc, char *argv[]){\n\tlinkedlist_t* head = NULL;\n\tlinkedlist_t* curr_node;\n\tint v;\n\tdo{\n\t\tscanf(\"%d\", &v);\n\t\tif (v)\n\t\t\thead = process_input(v, head);\n\t} while (v !=0);\n\n\tcurr_node = head;\n\twhile (curr_node != NULL){\n\t\tprintf(\"%d\\n\",curr_node->dato);\n\t\tcurr_node = curr_node->next;\n\t}\n\treturn 0;\n}",
+    "testcases": [
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "4\n5\n2\n-4\n-5\n-3\n9\n2\n0",
+        "expected_stdout": "2\n2\n9",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "2\n4\n5\n9\n-4\n-5\n0",
+        "expected_stdout": "2\n9",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "-4\n3\n3\n3\n0",
+        "expected_stdout": "3\n3\n3",
+        "testcase_type": 0
+      }
+    ]
+  },
+  {
+    "text": "<p>Scrivere un programma che accetti in input due array <em>ordinati</em> di interi e restituisca in output l'unione ordinata dei due array. Si assuma che la lunghezza di ogni array sia fornita prima dell'immissione degli elementi.</p><p><br></p><p>Per semplicità si assuma che l'intersezione tra i due array sia vuota.</p><p><br></p><p> L'input è formato da:</p><p><br></p><p>-  dimensione del primo array;</p><p> </p><p>-  lista dei valori in ordine crescente del primo array;</p><p> </p><p>-  dimensione del secondo array;</p><p> </p><p>-  lista dei valori in ordine crescente del secondo array.</p><p><br></p><p>L'output contiene l'unione ordinata dei due array, un elemento per riga.</p><p><br></p><p><br></p><p><strong>Esempio</strong></p><p>$\\bf{ Input}$</p><p>5   (numero di elementi)</p><p>1</p><p>3</p><p>5</p><p>10</p><p>20</p><p>3   (numero di elementi)</p><p>2</p><p>4</p><p>21</p><p><br></p><p>$\\bf{ Output}$</p><p>1</p><p>2</p><p>3</p><p>4</p><p>5</p><p>10</p><p>20</p><p>21</p><p><br></p>",
+    "exercise_type": 7,
+    "label": "Unione array",
+    "public_tags": [{ "name": "array" }, { "name": "allocazione dinamica" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "#include <stdio.h>\n#include <stdlib.h>\n\nint* readset(int *size) {\n  int *set, i;\n  scanf(\"%d\",size);\n  set = malloc(*size * sizeof(int));\n  if (set == NULL) exit(-1);\n  for (i = 0 ; i < *size; i++) {\n    scanf(\"%d\",&set[i]);\n  }\n  return set;\n}\n\nvoid sorted_union(int *x, int lenx, int *y, int leny) {\n  int* u = malloc( (lenx + leny) * sizeof(int));\n  int i = 0, j = 0, pos = 0;\n  while ( ( i < lenx ) && (j < leny) ) {\n    if (x[i] < y[j]) {\n      u[pos++] = x[i++];\n      continue;\n    }\n    if (x[i] > y[j]) {\n      u[pos++] = y[j++];\n      continue;\n    }\n    \n  } \n  \n  while ( i < lenx ) {\n    u[pos++] = x[i++];\n  }\n  \n  while ( j < leny ) {\n    u[pos++] = y[j++];\n  }\n  for (i = 0 ; i < lenx+leny; i++) {\n    printf(\"%d\\n\", u[i]);\n  }\n  \n  \n}\n\nint main(void) {\n  int *x, *y, lenx, leny;\n  x = readset(&lenx);\n  y = readset(&leny);\n  sorted_union(x, lenx, y, leny);\n  return 0;\n}",
+    "testcases": [
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "10\n1\n16\n18\n21\n26\n34\n44\n49\n61\n71\n10\n6\n14\n45\n50\n51\n54\n58\n59\n73\n83",
+        "expected_stdout": "1\n6\n14\n16\n18\n21\n26\n34\n44\n45\n49\n50\n51\n54\n58\n59\n61\n71\n73\n83",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "100\n15\n17\n21\n24\n39\n51\n54\n61\n69\n82\n84\n91\n95\n103\n110\n113\n121\n122\n126\n182\n218\n232\n237\n246\n249\n269\n272\n278\n308\n309\n314\n322\n338\n343\n344\n359\n370\n392\n398\n404\n405\n407\n435\n437\n438\n443\n462\n478\n491\n532\n535\n539\n567\n569\n570\n604\n606\n613\n618\n620\n621\n630\n634\n654\n686\n697\n704\n707\n713\n716\n726\n739\n752\n768\n773\n786\n793\n794\n801\n811\n818\n820\n830\n843\n844\n851\n869\n872\n883\n900\n909\n910\n919\n928\n935\n966\n972\n989\n995\n996\n100\n12\n28\n30\n34\n47\n58\n93\n96\n102\n129\n138\n142\n152\n153\n159\n165\n180\n185\n197\n200\n205\n211\n212\n238\n254\n266\n286\n321\n323\n349\n351\n356\n378\n389\n408\n413\n418\n420\n422\n428\n431\n451\n453\n465\n467\n470\n472\n476\n488\n494\n507\n515\n522\n543\n557\n558\n559\n580\n588\n593\n609\n619\n639\n646\n650\n663\n664\n684\n685\n694\n708\n711\n717\n730\n735\n738\n744\n751\n759\n798\n800\n806\n823\n825\n835\n853\n858\n867\n881\n886\n888\n899\n939\n944\n959\n960\n965\n975\n977\n993",
+        "expected_stdout": "12\n15\n17\n21\n24\n28\n30\n34\n39\n47\n51\n54\n58\n61\n69\n82\n84\n91\n93\n95\n96\n102\n103\n110\n113\n121\n122\n126\n129\n138\n142\n152\n153\n159\n165\n180\n182\n185\n197\n200\n205\n211\n212\n218\n232\n237\n238\n246\n249\n254\n266\n269\n272\n278\n286\n308\n309\n314\n321\n322\n323\n338\n343\n344\n349\n351\n356\n359\n370\n378\n389\n392\n398\n404\n405\n407\n408\n413\n418\n420\n422\n428\n431\n435\n437\n438\n443\n451\n453\n462\n465\n467\n470\n472\n476\n478\n488\n491\n494\n507\n515\n522\n532\n535\n539\n543\n557\n558\n559\n567\n569\n570\n580\n588\n593\n604\n606\n609\n613\n618\n619\n620\n621\n630\n634\n639\n646\n650\n654\n663\n664\n684\n685\n686\n694\n697\n704\n707\n708\n711\n713\n716\n717\n726\n730\n735\n738\n739\n744\n751\n752\n759\n768\n773\n786\n793\n794\n798\n800\n801\n806\n811\n818\n820\n823\n825\n830\n835\n843\n844\n851\n853\n858\n867\n869\n872\n881\n883\n886\n888\n899\n900\n909\n910\n919\n928\n935\n939\n944\n959\n960\n965\n966\n972\n975\n977\n989\n993\n995\n996",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "1000\n10\n27\n30\n36\n39\n40\n56\n57\n58\n62\n75\n92\n103\n107\n113\n139\n152\n153\n158\n163\n195\n196\n250\n261\n294\n303\n331\n353\n354\n361\n362\n366\n375\n377\n385\n399\n407\n409\n415\n421\n424\n432\n437\n441\n442\n447\n495\n509\n512\n514\n515\n522\n538\n545\n548\n549\n559\n563\n587\n595\n600\n610\n612\n613\n620\n624\n636\n652\n655\n668\n696\n701\n703\n723\n726\n739\n750\n751\n762\n770\n782\n801\n812\n827\n837\n843\n860\n878\n881\n887\n889\n910\n920\n927\n937\n953\n954\n955\n977\n998\n1005\n1010\n1015\n1018\n1019\n1031\n1047\n1057\n1058\n1072\n1100\n1110\n1120\n1153\n1154\n1161\n1166\n1167\n1172\n1186\n1189\n1190\n1201\n1219\n1221\n1222\n1231\n1233\n1259\n1272\n1279\n1289\n1290\n1294\n1296\n1306\n1324\n1335\n1337\n1348\n1367\n1371\n1372\n1378\n1386\n1392\n1405\n1441\n1446\n1479\n1481\n1488\n1491\n1501\n1507\n1508\n1521\n1523\n1532\n1563\n1569\n1572\n1574\n1576\n1591\n1594\n1614\n1617\n1621\n1625\n1629\n1637\n1647\n1649\n1651\n1666\n1672\n1678\n1698\n1706\n1708\n1710\n1712\n1722\n1757\n1762\n1788\n1809\n1813\n1815\n1821\n1827\n1831\n1836\n1848\n1850\n1863\n1866\n1883\n1906\n1922\n1927\n1931\n1935\n1941\n1964\n1970\n1975\n2001\n2014\n2022\n2037\n2051\n2059\n2066\n2069\n2081\n2084\n2088\n2103\n2112\n2113\n2118\n2124\n2141\n2148\n2193\n2231\n2232\n2254\n2262\n2271\n2272\n2285\n2289\n2322\n2335\n2358\n2359\n2363\n2373\n2374\n2381\n2382\n2386\n2391\n2396\n2407\n2410\n2416\n2436\n2451\n2456\n2458\n2468\n2475\n2480\n2490\n2493\n2495\n2500\n2507\n2511\n2528\n2541\n2558\n2574\n2583\n2591\n2621\n2629\n2639\n2653\n2654\n2669\n2677\n2680\n2690\n2701\n2714\n2729\n2754\n2771\n2777\n2786\n2788\n2796\n2803\n2809\n2812\n2826\n2853\n2863\n2868\n2876\n2878\n2911\n2913\n2914\n2918\n2928\n2944\n2969\n2971\n2974\n2986\n2993\n3008\n3012\n3023\n3044\n3046\n3059\n3085\n3111\n3119\n3120\n3135\n3145\n3155\n3157\n3161\n3175\n3186\n3194\n3197\n3202\n3203\n3212\n3213\n3214\n3222\n3227\n3232\n3233\n3236\n3258\n3260\n3265\n3271\n3283\n3292\n3296\n3300\n3313\n3320\n3322\n3324\n3331\n3338\n3346\n3361\n3363\n3377\n3380\n3381\n3387\n3394\n3411\n3422\n3428\n3430\n3432\n3441\n3450\n3451\n3464\n3476\n3478\n3497\n3548\n3550\n3574\n3584\n3585\n3587\n3590\n3597\n3604\n3614\n3618\n3621\n3662\n3667\n3669\n3674\n3687\n3688\n3689\n3695\n3701\n3712\n3715\n3716\n3721\n3740\n3754\n3761\n3788\n3791\n3806\n3820\n3821\n3827\n3838\n3884\n3885\n3911\n3922\n3946\n3955\n3967\n3979\n3990\n4008\n4013\n4042\n4050\n4051\n4056\n4058\n4070\n4077\n4111\n4134\n4138\n4153\n4155\n4174\n4181\n4182\n4186\n4199\n4207\n4210\n4211\n4212\n4217\n4242\n4252\n4253\n4254\n4263\n4268\n4273\n4308\n4311\n4315\n4317\n4325\n4337\n4338\n4346\n4347\n4351\n4354\n4358\n4369\n4394\n4403\n4422\n4423\n4439\n4441\n4447\n4452\n4483\n4513\n4522\n4545\n4555\n4564\n4577\n4580\n4616\n4619\n4628\n4631\n4645\n4658\n4683\n4701\n4705\n4723\n4730\n4735\n4753\n4756\n4760\n4777\n4797\n4805\n4817\n4821\n4822\n4825\n4829\n4848\n4859\n4895\n4909\n4911\n4913\n4937\n4941\n4948\n4954\n4957\n4962\n4963\n4966\n4968\n4981\n5011\n5024\n5038\n5051\n5054\n5074\n5078\n5121\n5128\n5134\n5140\n5143\n5149\n5161\n5207\n5222\n5231\n5237\n5239\n5243\n5248\n5249\n5260\n5282\n5285\n5288\n5290\n5291\n5296\n5305\n5309\n5316\n5339\n5349\n5361\n5372\n5373\n5380\n5383\n5388\n5389\n5398\n5417\n5421\n5434\n5437\n5445\n5448\n5449\n5450\n5465\n5471\n5486\n5503\n5506\n5513\n5526\n5532\n5552\n5562\n5566\n5584\n5592\n5593\n5605\n5632\n5635\n5647\n5650\n5651\n5670\n5672\n5692\n5713\n5723\n5726\n5739\n5740\n5747\n5748\n5751\n5753\n5756\n5757\n5761\n5765\n5768\n5771\n5773\n5788\n5796\n5815\n5831\n5852\n5864\n5865\n5866\n5867\n5869\n5884\n5898\n5920\n5940\n5959\n5963\n5999\n6006\n6007\n6024\n6031\n6043\n6085\n6102\n6104\n6112\n6116\n6120\n6122\n6127\n6171\n6173\n6191\n6214\n6229\n6277\n6278\n6279\n6302\n6303\n6314\n6316\n6317\n6318\n6328\n6333\n6336\n6345\n6351\n6362\n6377\n6407\n6430\n6443\n6457\n6488\n6492\n6517\n6522\n6524\n6533\n6536\n6539\n6546\n6558\n6560\n6563\n6564\n6568\n6574\n6603\n6610\n6630\n6635\n6658\n6666\n6680\n6685\n6695\n6698\n6714\n6719\n6726\n6733\n6736\n6737\n6753\n6754\n6772\n6803\n6820\n6827\n6839\n6853\n6863\n6868\n6871\n6872\n6876\n6878\n6906\n6910\n6915\n6919\n6927\n6957\n6985\n6986\n6988\n7005\n7060\n7066\n7069\n7074\n7082\n7094\n7102\n7106\n7112\n7134\n7150\n7170\n7187\n7206\n7209\n7224\n7233\n7246\n7258\n7261\n7265\n7276\n7278\n7286\n7288\n7290\n7291\n7294\n7300\n7303\n7304\n7315\n7318\n7382\n7383\n7390\n7394\n7396\n7398\n7401\n7403\n7427\n7454\n7459\n7463\n7465\n7472\n7479\n7482\n7486\n7501\n7520\n7537\n7550\n7562\n7574\n7589\n7590\n7624\n7628\n7643\n7651\n7654\n7680\n7692\n7698\n7699\n7730\n7737\n7738\n7779\n7792\n7802\n7813\n7831\n7832\n7837\n7873\n7874\n7922\n7928\n7936\n7944\n7950\n7951\n7960\n7964\n7965\n7969\n7973\n7994\n7999\n8016\n8027\n8033\n8036\n8039\n8045\n8052\n8063\n8070\n8085\n8135\n8139\n8143\n8145\n8146\n8153\n8156\n8161\n8184\n8193\n8194\n8195\n8208\n8217\n8219\n8229\n8231\n8239\n8245\n8313\n8321\n8326\n8329\n8336\n8356\n8357\n8361\n8362\n8379\n8381\n8399\n8413\n8444\n8460\n8473\n8475\n8479\n8484\n8486\n8495\n8502\n8504\n8511\n8515\n8533\n8535\n8541\n8565\n8581\n8582\n8595\n8602\n8621\n8625\n8636\n8637\n8651\n8654\n8655\n8660\n8673\n8674\n8678\n8685\n8704\n8722\n8729\n8730\n8736\n8740\n8741\n8748\n8759\n8768\n8775\n8783\n8789\n8791\n8813\n8827\n8830\n8833\n8856\n8863\n8874\n8929\n8940\n8948\n8954\n8971\n8974\n8987\n8995\n9032\n9046\n9047\n9094\n9096\n9099\n9120\n9121\n9122\n9125\n9147\n9153\n9155\n9166\n9171\n9193\n9199\n9206\n9217\n9225\n9234\n9252\n9258\n9274\n9275\n9276\n9324\n9340\n9343\n9355\n9356\n9359\n9368\n9378\n9379\n9399\n9417\n9425\n9453\n9466\n9467\n9488\n9496\n9499\n9504\n9544\n9560\n9576\n9579\n9584\n9609\n9615\n9620\n9623\n9633\n9644\n9647\n9656\n9665\n9667\n9691\n9707\n9709\n9710\n9711\n9721\n9745\n9765\n9769\n9775\n9777\n9778\n9796\n9802\n9809\n9835\n9866\n9867\n9868\n9895\n9897\n9916\n9919\n9921\n9932\n9940\n9948\n9961\n9962\n9968\n9977\n9991\n9994\n1000\n8\n22\n26\n37\n73\n91\n95\n99\n102\n106\n112\n117\n121\n147\n148\n175\n190\n197\n199\n203\n208\n210\n216\n226\n231\n244\n262\n281\n283\n290\n296\n311\n312\n314\n316\n317\n327\n332\n346\n349\n360\n368\n373\n374\n380\n387\n414\n416\n418\n430\n435\n438\n443\n448\n469\n471\n477\n483\n487\n488\n497\n506\n507\n531\n540\n561\n586\n589\n591\n598\n611\n614\n628\n632\n637\n640\n656\n659\n661\n677\n688\n699\n700\n711\n737\n756\n758\n769\n781\n792\n803\n805\n813\n818\n823\n826\n829\n833\n857\n877\n882\n904\n939\n956\n959\n964\n969\n978\n1001\n1033\n1048\n1052\n1065\n1070\n1073\n1089\n1114\n1124\n1133\n1141\n1150\n1162\n1174\n1178\n1182\n1192\n1200\n1202\n1205\n1247\n1256\n1261\n1284\n1297\n1299\n1302\n1314\n1331\n1340\n1341\n1342\n1346\n1347\n1352\n1370\n1406\n1414\n1450\n1451\n1464\n1480\n1490\n1513\n1517\n1519\n1526\n1528\n1534\n1538\n1581\n1585\n1589\n1599\n1638\n1654\n1660\n1670\n1691\n1702\n1705\n1721\n1725\n1729\n1736\n1758\n1760\n1769\n1778\n1781\n1796\n1803\n1804\n1810\n1816\n1823\n1838\n1844\n1847\n1862\n1872\n1881\n1902\n1904\n1916\n1932\n1945\n1949\n1951\n1955\n1965\n1968\n1978\n1998\n2009\n2011\n2016\n2018\n2033\n2035\n2055\n2067\n2082\n2090\n2101\n2130\n2140\n2149\n2176\n2203\n2216\n2218\n2222\n2234\n2245\n2282\n2312\n2318\n2320\n2328\n2354\n2357\n2366\n2369\n2384\n2385\n2389\n2408\n2411\n2422\n2429\n2443\n2449\n2450\n2454\n2457\n2462\n2470\n2471\n2497\n2503\n2512\n2525\n2562\n2564\n2566\n2571\n2603\n2609\n2612\n2614\n2620\n2627\n2645\n2649\n2658\n2660\n2662\n2667\n2672\n2685\n2693\n2694\n2698\n2711\n2718\n2724\n2734\n2740\n2752\n2753\n2756\n2762\n2764\n2774\n2781\n2783\n2791\n2795\n2801\n2807\n2833\n2842\n2846\n2847\n2848\n2856\n2861\n2887\n2900\n2919\n2920\n2924\n2949\n2952\n2953\n2956\n2966\n3036\n3065\n3067\n3072\n3086\n3097\n3100\n3121\n3122\n3123\n3127\n3144\n3167\n3168\n3173\n3178\n3193\n3196\n3218\n3221\n3239\n3246\n3252\n3253\n3254\n3256\n3262\n3264\n3266\n3274\n3276\n3281\n3318\n3321\n3323\n3339\n3340\n3355\n3366\n3400\n3403\n3406\n3414\n3421\n3425\n3436\n3447\n3455\n3460\n3477\n3499\n3500\n3507\n3530\n3531\n3535\n3541\n3547\n3564\n3565\n3581\n3608\n3620\n3635\n3642\n3648\n3668\n3671\n3693\n3697\n3700\n3731\n3742\n3744\n3750\n3760\n3765\n3780\n3802\n3835\n3842\n3843\n3848\n3854\n3870\n3873\n3874\n3878\n3886\n3891\n3892\n3902\n3928\n3939\n3944\n3961\n3966\n3978\n3982\n3988\n3989\n4002\n4075\n4085\n4101\n4110\n4119\n4141\n4143\n4145\n4156\n4159\n4163\n4184\n4197\n4202\n4215\n4228\n4234\n4237\n4245\n4258\n4264\n4278\n4284\n4286\n4287\n4300\n4307\n4313\n4322\n4326\n4332\n4339\n4352\n4355\n4371\n4375\n4378\n4384\n4400\n4402\n4404\n4407\n4435\n4475\n4479\n4489\n4504\n4507\n4527\n4528\n4529\n4538\n4550\n4578\n4581\n4600\n4609\n4626\n4627\n4636\n4659\n4661\n4662\n4667\n4672\n4678\n4691\n4693\n4707\n4719\n4721\n4725\n4739\n4746\n4752\n4758\n4759\n4771\n4785\n4795\n4801\n4806\n4807\n4809\n4836\n4843\n4846\n4849\n4850\n4853\n4855\n4861\n4881\n4884\n4890\n4892\n4894\n4912\n4926\n4928\n4938\n4945\n4953\n4972\n4980\n4989\n4997\n5009\n5014\n5016\n5021\n5037\n5057\n5061\n5065\n5106\n5117\n5123\n5125\n5151\n5153\n5158\n5159\n5162\n5168\n5183\n5191\n5204\n5214\n5235\n5244\n5246\n5254\n5258\n5262\n5293\n5295\n5307\n5318\n5333\n5345\n5348\n5362\n5363\n5377\n5390\n5402\n5412\n5427\n5440\n5441\n5447\n5452\n5485\n5492\n5496\n5499\n5515\n5539\n5551\n5558\n5582\n5583\n5585\n5587\n5602\n5617\n5618\n5638\n5656\n5659\n5662\n5676\n5677\n5679\n5680\n5697\n5700\n5704\n5719\n5720\n5745\n5762\n5767\n5774\n5786\n5787\n5809\n5833\n5841\n5854\n5857\n5860\n5871\n5876\n5885\n5911\n5914\n5915\n5932\n5935\n5936\n5950\n5954\n5976\n5982\n5991\n5998\n6047\n6052\n6055\n6106\n6117\n6124\n6126\n6131\n6133\n6149\n6166\n6185\n6200\n6210\n6220\n6225\n6226\n6231\n6232\n6233\n6236\n6243\n6246\n6275\n6276\n6304\n6322\n6327\n6342\n6352\n6367\n6378\n6379\n6386\n6391\n6402\n6422\n6429\n6452\n6456\n6462\n6473\n6476\n6491\n6511\n6514\n6531\n6538\n6569\n6572\n6586\n6601\n6608\n6609\n6612\n6614\n6615\n6616\n6639\n6654\n6672\n6679\n6683\n6696\n6705\n6712\n6722\n6727\n6729\n6732\n6747\n6749\n6758\n6767\n6773\n6778\n6780\n6782\n6790\n6794\n6796\n6799\n6813\n6818\n6824\n6825\n6829\n6831\n6833\n6837\n6838\n6844\n6848\n6855\n6864\n6875\n6883\n6889\n6891\n6905\n6930\n6932\n6937\n6946\n6948\n6958\n6963\n6982\n7029\n7033\n7035\n7053\n7081\n7092\n7093\n7125\n7133\n7155\n7158\n7160\n7168\n7175\n7179\n7200\n7238\n7242\n7254\n7282\n7284\n7292\n7298\n7321\n7326\n7329\n7331\n7351\n7355\n7359\n7364\n7368\n7372\n7381\n7384\n7392\n7437\n7438\n7448\n7457\n7471\n7474\n7483\n7484\n7491\n7500\n7516\n7518\n7525\n7553\n7563\n7569\n7570\n7577\n7587\n7596\n7602\n7617\n7633\n7644\n7650\n7656\n7661\n7666\n7674\n7691\n7694\n7710\n7727\n7731\n7750\n7760\n7761\n7770\n7778\n7793\n7820\n7823\n7825\n7833\n7834\n7838\n7843\n7860\n7869\n7879\n7883\n7895\n7905\n7919\n7926\n7931\n7933\n7943\n7949\n7956\n7974\n7988\n7998\n8005\n8015\n8017\n8022\n8028\n8029\n8037\n8043\n8048\n8087\n8089\n8098\n8102\n8112\n8132\n8133\n8134\n8152\n8186\n8197\n8230\n8252\n8253\n8257\n8278\n8283\n8295\n8305\n8311\n8348\n8363\n8371\n8372\n8376\n8382\n8388\n8401\n8420\n8427\n8428\n8438\n8440\n8471\n8493\n8503\n8506\n8580\n8626\n8628\n8642\n8666\n8667\n8677\n8682\n8711\n8718\n8724\n8744\n8784\n8793\n8799\n8824\n8840\n8849\n8862\n8866\n8878\n8887\n8890\n8891\n8935\n8936\n8950\n8969\n8986\n8988\n9006\n9011\n9012\n9018\n9025\n9030\n9034\n9037\n9056\n9065\n9081\n9084\n9086\n9087\n9095\n9113\n9141\n9146\n9169\n9172\n9173\n9182\n9194\n9205\n9223\n9227\n9237\n9255\n9263\n9265\n9279\n9283\n9286\n9295\n9314\n9318\n9319\n9329\n9332\n9334\n9341\n9349\n9367\n9369\n9376\n9389\n9419\n9422\n9455\n9472\n9483\n9485\n9491\n9495\n9503\n9519\n9528\n9533\n9535\n9548\n9568\n9570\n9571\n9587\n9601\n9619\n9628\n9634\n9655\n9657\n9689\n9702\n9729\n9732\n9742\n9760\n9774\n9791\n9798\n9811\n9822\n9836\n9853\n9854\n9855\n9870\n9883\n9893\n9898\n9900\n9911\n9928\n9943\n9944\n9951\n9967\n9980\n9982\n9985\n9988",
+        "expected_stdout": "8\n10\n22\n26\n27\n30\n36\n37\n39\n40\n56\n57\n58\n62\n73\n75\n91\n92\n95\n99\n102\n103\n106\n107\n112\n113\n117\n121\n139\n147\n148\n152\n153\n158\n163\n175\n190\n195\n196\n197\n199\n203\n208\n210\n216\n226\n231\n244\n250\n261\n262\n281\n283\n290\n294\n296\n303\n311\n312\n314\n316\n317\n327\n331\n332\n346\n349\n353\n354\n360\n361\n362\n366\n368\n373\n374\n375\n377\n380\n385\n387\n399\n407\n409\n414\n415\n416\n418\n421\n424\n430\n432\n435\n437\n438\n441\n442\n443\n447\n448\n469\n471\n477\n483\n487\n488\n495\n497\n506\n507\n509\n512\n514\n515\n522\n531\n538\n540\n545\n548\n549\n559\n561\n563\n586\n587\n589\n591\n595\n598\n600\n610\n611\n612\n613\n614\n620\n624\n628\n632\n636\n637\n640\n652\n655\n656\n659\n661\n668\n677\n688\n696\n699\n700\n701\n703\n711\n723\n726\n737\n739\n750\n751\n756\n758\n762\n769\n770\n781\n782\n792\n801\n803\n805\n812\n813\n818\n823\n826\n827\n829\n833\n837\n843\n857\n860\n877\n878\n881\n882\n887\n889\n904\n910\n920\n927\n937\n939\n953\n954\n955\n956\n959\n964\n969\n977\n978\n998\n1001\n1005\n1010\n1015\n1018\n1019\n1031\n1033\n1047\n1048\n1052\n1057\n1058\n1065\n1070\n1072\n1073\n1089\n1100\n1110\n1114\n1120\n1124\n1133\n1141\n1150\n1153\n1154\n1161\n1162\n1166\n1167\n1172\n1174\n1178\n1182\n1186\n1189\n1190\n1192\n1200\n1201\n1202\n1205\n1219\n1221\n1222\n1231\n1233\n1247\n1256\n1259\n1261\n1272\n1279\n1284\n1289\n1290\n1294\n1296\n1297\n1299\n1302\n1306\n1314\n1324\n1331\n1335\n1337\n1340\n1341\n1342\n1346\n1347\n1348\n1352\n1367\n1370\n1371\n1372\n1378\n1386\n1392\n1405\n1406\n1414\n1441\n1446\n1450\n1451\n1464\n1479\n1480\n1481\n1488\n1490\n1491\n1501\n1507\n1508\n1513\n1517\n1519\n1521\n1523\n1526\n1528\n1532\n1534\n1538\n1563\n1569\n1572\n1574\n1576\n1581\n1585\n1589\n1591\n1594\n1599\n1614\n1617\n1621\n1625\n1629\n1637\n1638\n1647\n1649\n1651\n1654\n1660\n1666\n1670\n1672\n1678\n1691\n1698\n1702\n1705\n1706\n1708\n1710\n1712\n1721\n1722\n1725\n1729\n1736\n1757\n1758\n1760\n1762\n1769\n1778\n1781\n1788\n1796\n1803\n1804\n1809\n1810\n1813\n1815\n1816\n1821\n1823\n1827\n1831\n1836\n1838\n1844\n1847\n1848\n1850\n1862\n1863\n1866\n1872\n1881\n1883\n1902\n1904\n1906\n1916\n1922\n1927\n1931\n1932\n1935\n1941\n1945\n1949\n1951\n1955\n1964\n1965\n1968\n1970\n1975\n1978\n1998\n2001\n2009\n2011\n2014\n2016\n2018\n2022\n2033\n2035\n2037\n2051\n2055\n2059\n2066\n2067\n2069\n2081\n2082\n2084\n2088\n2090\n2101\n2103\n2112\n2113\n2118\n2124\n2130\n2140\n2141\n2148\n2149\n2176\n2193\n2203\n2216\n2218\n2222\n2231\n2232\n2234\n2245\n2254\n2262\n2271\n2272\n2282\n2285\n2289\n2312\n2318\n2320\n2322\n2328\n2335\n2354\n2357\n2358\n2359\n2363\n2366\n2369\n2373\n2374\n2381\n2382\n2384\n2385\n2386\n2389\n2391\n2396\n2407\n2408\n2410\n2411\n2416\n2422\n2429\n2436\n2443\n2449\n2450\n2451\n2454\n2456\n2457\n2458\n2462\n2468\n2470\n2471\n2475\n2480\n2490\n2493\n2495\n2497\n2500\n2503\n2507\n2511\n2512\n2525\n2528\n2541\n2558\n2562\n2564\n2566\n2571\n2574\n2583\n2591\n2603\n2609\n2612\n2614\n2620\n2621\n2627\n2629\n2639\n2645\n2649\n2653\n2654\n2658\n2660\n2662\n2667\n2669\n2672\n2677\n2680\n2685\n2690\n2693\n2694\n2698\n2701\n2711\n2714\n2718\n2724\n2729\n2734\n2740\n2752\n2753\n2754\n2756\n2762\n2764\n2771\n2774\n2777\n2781\n2783\n2786\n2788\n2791\n2795\n2796\n2801\n2803\n2807\n2809\n2812\n2826\n2833\n2842\n2846\n2847\n2848\n2853\n2856\n2861\n2863\n2868\n2876\n2878\n2887\n2900\n2911\n2913\n2914\n2918\n2919\n2920\n2924\n2928\n2944\n2949\n2952\n2953\n2956\n2966\n2969\n2971\n2974\n2986\n2993\n3008\n3012\n3023\n3036\n3044\n3046\n3059\n3065\n3067\n3072\n3085\n3086\n3097\n3100\n3111\n3119\n3120\n3121\n3122\n3123\n3127\n3135\n3144\n3145\n3155\n3157\n3161\n3167\n3168\n3173\n3175\n3178\n3186\n3193\n3194\n3196\n3197\n3202\n3203\n3212\n3213\n3214\n3218\n3221\n3222\n3227\n3232\n3233\n3236\n3239\n3246\n3252\n3253\n3254\n3256\n3258\n3260\n3262\n3264\n3265\n3266\n3271\n3274\n3276\n3281\n3283\n3292\n3296\n3300\n3313\n3318\n3320\n3321\n3322\n3323\n3324\n3331\n3338\n3339\n3340\n3346\n3355\n3361\n3363\n3366\n3377\n3380\n3381\n3387\n3394\n3400\n3403\n3406\n3411\n3414\n3421\n3422\n3425\n3428\n3430\n3432\n3436\n3441\n3447\n3450\n3451\n3455\n3460\n3464\n3476\n3477\n3478\n3497\n3499\n3500\n3507\n3530\n3531\n3535\n3541\n3547\n3548\n3550\n3564\n3565\n3574\n3581\n3584\n3585\n3587\n3590\n3597\n3604\n3608\n3614\n3618\n3620\n3621\n3635\n3642\n3648\n3662\n3667\n3668\n3669\n3671\n3674\n3687\n3688\n3689\n3693\n3695\n3697\n3700\n3701\n3712\n3715\n3716\n3721\n3731\n3740\n3742\n3744\n3750\n3754\n3760\n3761\n3765\n3780\n3788\n3791\n3802\n3806\n3820\n3821\n3827\n3835\n3838\n3842\n3843\n3848\n3854\n3870\n3873\n3874\n3878\n3884\n3885\n3886\n3891\n3892\n3902\n3911\n3922\n3928\n3939\n3944\n3946\n3955\n3961\n3966\n3967\n3978\n3979\n3982\n3988\n3989\n3990\n4002\n4008\n4013\n4042\n4050\n4051\n4056\n4058\n4070\n4075\n4077\n4085\n4101\n4110\n4111\n4119\n4134\n4138\n4141\n4143\n4145\n4153\n4155\n4156\n4159\n4163\n4174\n4181\n4182\n4184\n4186\n4197\n4199\n4202\n4207\n4210\n4211\n4212\n4215\n4217\n4228\n4234\n4237\n4242\n4245\n4252\n4253\n4254\n4258\n4263\n4264\n4268\n4273\n4278\n4284\n4286\n4287\n4300\n4307\n4308\n4311\n4313\n4315\n4317\n4322\n4325\n4326\n4332\n4337\n4338\n4339\n4346\n4347\n4351\n4352\n4354\n4355\n4358\n4369\n4371\n4375\n4378\n4384\n4394\n4400\n4402\n4403\n4404\n4407\n4422\n4423\n4435\n4439\n4441\n4447\n4452\n4475\n4479\n4483\n4489\n4504\n4507\n4513\n4522\n4527\n4528\n4529\n4538\n4545\n4550\n4555\n4564\n4577\n4578\n4580\n4581\n4600\n4609\n4616\n4619\n4626\n4627\n4628\n4631\n4636\n4645\n4658\n4659\n4661\n4662\n4667\n4672\n4678\n4683\n4691\n4693\n4701\n4705\n4707\n4719\n4721\n4723\n4725\n4730\n4735\n4739\n4746\n4752\n4753\n4756\n4758\n4759\n4760\n4771\n4777\n4785\n4795\n4797\n4801\n4805\n4806\n4807\n4809\n4817\n4821\n4822\n4825\n4829\n4836\n4843\n4846\n4848\n4849\n4850\n4853\n4855\n4859\n4861\n4881\n4884\n4890\n4892\n4894\n4895\n4909\n4911\n4912\n4913\n4926\n4928\n4937\n4938\n4941\n4945\n4948\n4953\n4954\n4957\n4962\n4963\n4966\n4968\n4972\n4980\n4981\n4989\n4997\n5009\n5011\n5014\n5016\n5021\n5024\n5037\n5038\n5051\n5054\n5057\n5061\n5065\n5074\n5078\n5106\n5117\n5121\n5123\n5125\n5128\n5134\n5140\n5143\n5149\n5151\n5153\n5158\n5159\n5161\n5162\n5168\n5183\n5191\n5204\n5207\n5214\n5222\n5231\n5235\n5237\n5239\n5243\n5244\n5246\n5248\n5249\n5254\n5258\n5260\n5262\n5282\n5285\n5288\n5290\n5291\n5293\n5295\n5296\n5305\n5307\n5309\n5316\n5318\n5333\n5339\n5345\n5348\n5349\n5361\n5362\n5363\n5372\n5373\n5377\n5380\n5383\n5388\n5389\n5390\n5398\n5402\n5412\n5417\n5421\n5427\n5434\n5437\n5440\n5441\n5445\n5447\n5448\n5449\n5450\n5452\n5465\n5471\n5485\n5486\n5492\n5496\n5499\n5503\n5506\n5513\n5515\n5526\n5532\n5539\n5551\n5552\n5558\n5562\n5566\n5582\n5583\n5584\n5585\n5587\n5592\n5593\n5602\n5605\n5617\n5618\n5632\n5635\n5638\n5647\n5650\n5651\n5656\n5659\n5662\n5670\n5672\n5676\n5677\n5679\n5680\n5692\n5697\n5700\n5704\n5713\n5719\n5720\n5723\n5726\n5739\n5740\n5745\n5747\n5748\n5751\n5753\n5756\n5757\n5761\n5762\n5765\n5767\n5768\n5771\n5773\n5774\n5786\n5787\n5788\n5796\n5809\n5815\n5831\n5833\n5841\n5852\n5854\n5857\n5860\n5864\n5865\n5866\n5867\n5869\n5871\n5876\n5884\n5885\n5898\n5911\n5914\n5915\n5920\n5932\n5935\n5936\n5940\n5950\n5954\n5959\n5963\n5976\n5982\n5991\n5998\n5999\n6006\n6007\n6024\n6031\n6043\n6047\n6052\n6055\n6085\n6102\n6104\n6106\n6112\n6116\n6117\n6120\n6122\n6124\n6126\n6127\n6131\n6133\n6149\n6166\n6171\n6173\n6185\n6191\n6200\n6210\n6214\n6220\n6225\n6226\n6229\n6231\n6232\n6233\n6236\n6243\n6246\n6275\n6276\n6277\n6278\n6279\n6302\n6303\n6304\n6314\n6316\n6317\n6318\n6322\n6327\n6328\n6333\n6336\n6342\n6345\n6351\n6352\n6362\n6367\n6377\n6378\n6379\n6386\n6391\n6402\n6407\n6422\n6429\n6430\n6443\n6452\n6456\n6457\n6462\n6473\n6476\n6488\n6491\n6492\n6511\n6514\n6517\n6522\n6524\n6531\n6533\n6536\n6538\n6539\n6546\n6558\n6560\n6563\n6564\n6568\n6569\n6572\n6574\n6586\n6601\n6603\n6608\n6609\n6610\n6612\n6614\n6615\n6616\n6630\n6635\n6639\n6654\n6658\n6666\n6672\n6679\n6680\n6683\n6685\n6695\n6696\n6698\n6705\n6712\n6714\n6719\n6722\n6726\n6727\n6729\n6732\n6733\n6736\n6737\n6747\n6749\n6753\n6754\n6758\n6767\n6772\n6773\n6778\n6780\n6782\n6790\n6794\n6796\n6799\n6803\n6813\n6818\n6820\n6824\n6825\n6827\n6829\n6831\n6833\n6837\n6838\n6839\n6844\n6848\n6853\n6855\n6863\n6864\n6868\n6871\n6872\n6875\n6876\n6878\n6883\n6889\n6891\n6905\n6906\n6910\n6915\n6919\n6927\n6930\n6932\n6937\n6946\n6948\n6957\n6958\n6963\n6982\n6985\n6986\n6988\n7005\n7029\n7033\n7035\n7053\n7060\n7066\n7069\n7074\n7081\n7082\n7092\n7093\n7094\n7102\n7106\n7112\n7125\n7133\n7134\n7150\n7155\n7158\n7160\n7168\n7170\n7175\n7179\n7187\n7200\n7206\n7209\n7224\n7233\n7238\n7242\n7246\n7254\n7258\n7261\n7265\n7276\n7278\n7282\n7284\n7286\n7288\n7290\n7291\n7292\n7294\n7298\n7300\n7303\n7304\n7315\n7318\n7321\n7326\n7329\n7331\n7351\n7355\n7359\n7364\n7368\n7372\n7381\n7382\n7383\n7384\n7390\n7392\n7394\n7396\n7398\n7401\n7403\n7427\n7437\n7438\n7448\n7454\n7457\n7459\n7463\n7465\n7471\n7472\n7474\n7479\n7482\n7483\n7484\n7486\n7491\n7500\n7501\n7516\n7518\n7520\n7525\n7537\n7550\n7553\n7562\n7563\n7569\n7570\n7574\n7577\n7587\n7589\n7590\n7596\n7602\n7617\n7624\n7628\n7633\n7643\n7644\n7650\n7651\n7654\n7656\n7661\n7666\n7674\n7680\n7691\n7692\n7694\n7698\n7699\n7710\n7727\n7730\n7731\n7737\n7738\n7750\n7760\n7761\n7770\n7778\n7779\n7792\n7793\n7802\n7813\n7820\n7823\n7825\n7831\n7832\n7833\n7834\n7837\n7838\n7843\n7860\n7869\n7873\n7874\n7879\n7883\n7895\n7905\n7919\n7922\n7926\n7928\n7931\n7933\n7936\n7943\n7944\n7949\n7950\n7951\n7956\n7960\n7964\n7965\n7969\n7973\n7974\n7988\n7994\n7998\n7999\n8005\n8015\n8016\n8017\n8022\n8027\n8028\n8029\n8033\n8036\n8037\n8039\n8043\n8045\n8048\n8052\n8063\n8070\n8085\n8087\n8089\n8098\n8102\n8112\n8132\n8133\n8134\n8135\n8139\n8143\n8145\n8146\n8152\n8153\n8156\n8161\n8184\n8186\n8193\n8194\n8195\n8197\n8208\n8217\n8219\n8229\n8230\n8231\n8239\n8245\n8252\n8253\n8257\n8278\n8283\n8295\n8305\n8311\n8313\n8321\n8326\n8329\n8336\n8348\n8356\n8357\n8361\n8362\n8363\n8371\n8372\n8376\n8379\n8381\n8382\n8388\n8399\n8401\n8413\n8420\n8427\n8428\n8438\n8440\n8444\n8460\n8471\n8473\n8475\n8479\n8484\n8486\n8493\n8495\n8502\n8503\n8504\n8506\n8511\n8515\n8533\n8535\n8541\n8565\n8580\n8581\n8582\n8595\n8602\n8621\n8625\n8626\n8628\n8636\n8637\n8642\n8651\n8654\n8655\n8660\n8666\n8667\n8673\n8674\n8677\n8678\n8682\n8685\n8704\n8711\n8718\n8722\n8724\n8729\n8730\n8736\n8740\n8741\n8744\n8748\n8759\n8768\n8775\n8783\n8784\n8789\n8791\n8793\n8799\n8813\n8824\n8827\n8830\n8833\n8840\n8849\n8856\n8862\n8863\n8866\n8874\n8878\n8887\n8890\n8891\n8929\n8935\n8936\n8940\n8948\n8950\n8954\n8969\n8971\n8974\n8986\n8987\n8988\n8995\n9006\n9011\n9012\n9018\n9025\n9030\n9032\n9034\n9037\n9046\n9047\n9056\n9065\n9081\n9084\n9086\n9087\n9094\n9095\n9096\n9099\n9113\n9120\n9121\n9122\n9125\n9141\n9146\n9147\n9153\n9155\n9166\n9169\n9171\n9172\n9173\n9182\n9193\n9194\n9199\n9205\n9206\n9217\n9223\n9225\n9227\n9234\n9237\n9252\n9255\n9258\n9263\n9265\n9274\n9275\n9276\n9279\n9283\n9286\n9295\n9314\n9318\n9319\n9324\n9329\n9332\n9334\n9340\n9341\n9343\n9349\n9355\n9356\n9359\n9367\n9368\n9369\n9376\n9378\n9379\n9389\n9399\n9417\n9419\n9422\n9425\n9453\n9455\n9466\n9467\n9472\n9483\n9485\n9488\n9491\n9495\n9496\n9499\n9503\n9504\n9519\n9528\n9533\n9535\n9544\n9548\n9560\n9568\n9570\n9571\n9576\n9579\n9584\n9587\n9601\n9609\n9615\n9619\n9620\n9623\n9628\n9633\n9634\n9644\n9647\n9655\n9656\n9657\n9665\n9667\n9689\n9691\n9702\n9707\n9709\n9710\n9711\n9721\n9729\n9732\n9742\n9745\n9760\n9765\n9769\n9774\n9775\n9777\n9778\n9791\n9796\n9798\n9802\n9809\n9811\n9822\n9835\n9836\n9853\n9854\n9855\n9866\n9867\n9868\n9870\n9883\n9893\n9895\n9897\n9898\n9900\n9911\n9916\n9919\n9921\n9928\n9932\n9940\n9943\n9944\n9948\n9951\n9961\n9962\n9967\n9968\n9977\n9980\n9982\n9985\n9988\n9991\n9994",
+        "testcase_type": 0
+      }
+    ]
+  },
+  {
+    "text": "Si legga dall'input  due  matrici di interi di dimensione $4\\times 3$ ($4$ righe, $3$ colonne). I valori dati in input sono ordinati per riga (per la prima matrice i primi $3$  interi sono i valori della prima riga della matrice, e così via).  Si dichiari poi una terza matrice C sempre $ 4 \\times 3$.\nSi scriva un programma che calcola la matrice somma di A + B e stampi il risultato.\n\n\\textbf{Nota}: l'input in esempio corrisponde alle matrici:\n$$\nA=\n  2 & 3 &69  \n  78 & 3 &9  \n  5 & 3& 0  \n  1 & 0 &7\n \n \\hspace{1cm}\n B=\n  8 & 3 & 47\n  8& 2 & 9 \n  50& 67 & 3 \n  2& 9 & 4 \n \n$$\ncon\n$$\nA + B=\n  10 &6& 116  \n  86 & 5 &18 \n  55 & 70& 3 \n  3 &9 & 11\n \n$$\n\n<strong>Esempio</strong>\n\n<strong>Input</strong>\n$\\texttt{2\n3\n69\n78\n3\n9\n5\n3\n0\n1\n0\n7\n8\n3\n47\n8\n2\n9\n50\n67\n3\n2\n9\n4\n}$\n\n<strong>Output</strong>\n$\\texttt{10 6 116 \n86 5 18 \n55 70 3 \n3 9 11}$\n\n\n",
+    "exercise_type": 7,
+    "label": "Matrici - somma",
+    "public_tags": [{ "name": "matrici" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "#include <stdio.h>\n#include <stdlib.h>\n\n\n\n\n\n\n#define N 4\n#define M 3\n\n\n\n\n\n\n\n\n            \t\n\n\n\nint main(){\n    int A[N][M], B[N][M], C[N][M];\n\tint i, j, k;\n\tint m,n,t;\n    \n    for(i=0;i<N;i++)\n        for(j=0;j<M;j++)\n            scanf(\"%d\", &(A[i][j]));\n            \n    for(i=0;i<N;i++)\n        for(j=0;j<M;j++)\n                    scanf(\"%d\", &(B[i][j]));\n            \n\t\n    for(i=0;i<N;i++)\n    for(j=0;j<M;j++)\n        C[i][j]=A[i][j]+B[i][j];\n            \n    for (i=0;i<N;i++){\n        for(j=0;j<M;j++){\n            printf(\"%d \",C[i][j]);\n        }\n        printf(\"\\n\");\n\n    }\n\treturn 0;\n}",
+    "testcases": [
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "2\n3\n69\n78\n3\n9\n5\n3\n0\n1\n0\n7\n8\n3\n47\n8\n2\n9\n50\n67\n3\n2\n9\n4",
+        "expected_stdout": "10 6 116 \n86 5 18 \n55 70 3 \n3 9 11",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "0\n0\n0\n0 \n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0\n0",
+        "expected_stdout": "0 0 0 \n0 0 0 \n0 0 0 \n0 0 0",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "4\n78\n10\n4\n90\n5\n3\n9\n34\n2\n7\n8\n0\n11\n4\n8\n2\n6\n7\n2\n0\n4\n5\n6",
+        "expected_stdout": "4 89 14 \n12 92 11 \n10 11 34 \n6 12 14",
+        "testcase_type": 0
+      }
+    ]
+  },
+  {
+    "text": "<p>Si legga dall'input  una matrice di interi di dimensione $4\\times 2$ ($4$ righe, $2$ colonne) e una seconda matrice di dimensione $2 \\times 3$. Per ogni matrice i valori dati in input sono ordinati per riga (per la prima matrice i primi $3$  interi sono i valori della prima riga della matrice, e così via).  Si dichiari poi una terza matrice C di dimensioni $ 4 \\times 3$.</p><p>Si scriva una  funzione che  passate  tre  matrici  A di dimensioni  $n \\times 2$, B di dimensioni  $m\\times 3$ e C di dimensioni $s \\times 3$  (per esempio con prototipo </p><p> $\\texttt{void multiplymatr(int A[][2], int B[][3], int C[][3], int n)}$ )</p><p>  calcoli in C  il prodotto di A  per B. Si stampi il risultato nella funzione main.</p><p><br></p><p>\\textbf{Nota}: l'input in esempio corrisponde alle matrici:</p><p>$$</p><p>A=</p><p>  5 &amp; 3  </p><p>  5 &amp; 6  </p><p>  5 &amp; 21 </p><p>  5 &amp; 6</p><p> </p><p> \\hspace{1cm}</p><p> B=</p><p>  1 &amp; 0 &amp; 2</p><p>  2 &amp; 1 &amp; 1 </p><p> </p><p>$$</p><p>con</p><p>$$</p><p>A\\times B=</p><p>  11 &amp; 3 &amp; 13 </p><p>  17 &amp; 6 &amp; 16 </p><p>  47 &amp; 21 &amp; 31 </p><p>  17 &amp; 6 &amp; 16</p><p> </p><p>$$</p><p><br></p><p><strong>EsempioInput</strong></p><p>$\\texttt{5</p><p>3</p><p>5</p><p>6</p><p>5</p><p>21</p><p>5</p><p>6</p><p>1</p><p>0</p><p>2</p><p>2</p><p>1</p><p>1</p><p>}$</p><p><br></p><p><strong>Output</strong></p><p>$\\texttt{11  3  13 </p><p>  17  6  16 </p><p>  47  21  31 </p><p>  17  6  16}$</p><p><br></p>",
+    "exercise_type": 7,
+    "label": "Matrici - prodotto",
+    "public_tags": [{ "name": "matrici" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "#include <stdio.h>\n#include <stdlib.h>\n\n\n\n\n\n\n#define N 4\n#define M 3\n#define S 2\n\n\n\n\n\n\nvoid multiply_matrices(int A[][2], int B[][3], int C[][3], int n){\n    int i, j, k;\n    \n    for (i=0;i<n;i++)\n        for(j=0;j<M;j++){\n            C[i][j]=0;\n            for (k=0;k<S;k++)\n                C[i][j]+=A[i][k]*B[k][j];\n            \t\n        \n}\n}\n\n\n\nint main(){\n    int A[N][S], B[S][M], C[N][M];\n\tint i, j, k;\n\tint m,n,t;\n    \n    for(i=0;i<N;i++)\n        for(j=0;j<S;j++)\n            scanf(\"%d\", &(A[i][j]));\n            \n    for(i=0;i<S;i++)\n        for(j=0;j<M;j++)\n                    scanf(\"%d\", &(B[i][j]));\n            \n\t\n\tmultiply_matrices(A,B,C,N);\n\t\n    for (i=0;i<N;i++){\n        for(j=0;j<M;j++){\n            printf(\"%d \",C[i][j]);\n        }\n        printf(\"\\n\");\n\n    }\n\treturn 0;\n}",
+    "testcases": [
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "5\n3\n5\n6\n5\n21\n5\n6\n1\n0\n2\n2\n1\n1",
+        "expected_stdout": "11 3 13 \n17 6 16 \n47 21 31 \n17 6 16",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "6\n4\n98\n2\n6\n4\n9\n1\n78\n30\n29\n10\n11\n4\n7\n6\n3\n2\n1",
+        "expected_stdout": "508 224 190 \n7664 2962 2850 \n508 224 190 \n712 281 265",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2 \n2\n2",
+        "expected_stdout": "8 8 8 \n8 8 8 \n8 8 8 \n8 8 8",
+        "testcase_type": 0
+      }
+    ]
+  },
+  {
+    "text": "Realizzare una funzione ricorsiva $\\texttt{RecLength}$ che prenda in input una lista e ne restituisca la lunghezza.\nScrivere poi un programma che acquisisca da tastiera una successione\ndi numeri interi positivi e li inserisca in una lista. La lista puo' contenere duplicati, e l'acquisizione da tastiera termina quando si incontra il primo valore negativo (che non va inserito in lista). Si stampi poi la lunghezza della lista calcolata usando la funzione $\\texttt{RecLength}$.\n\n\n<strong>Esempio</strong>\n\n<strong>Input</strong>\n$\\texttt{5\n7\n1\n10\n-1\n}$\n\n<strong>Output</strong>\n$\\texttt{4}$\n\n\n\n",
+    "exercise_type": 7,
+    "label": "",
+    "public_tags": [{ "name": "liste" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct ll_node_struct\n{\n  int info;\n  struct ll_node_struct* next;\n} ll_node;\n\nint RecLength(ll_node *head);\n\nint main()\n{\n\tint value=0;\n\tll_node *head=NULL;\n\tdo{ \n        scanf(\"%d\",&value);\n\t\tif(value>=0) { \n\t\t\tll_node *node=malloc(sizeof(ll_node));\n\t\t\tnode->info=value;\n\t\t\tnode->next=head;\t\n            head = node;\n        }\n\t}while(value>=0);\n    \n\tprintf(\"%d\\n\",RecLength(head));\n\treturn 0;\n}\n    \nint RecLength(ll_node *head)\n{\n    ll_node *start=head;\n    if (start==NULL) return 0;\n\telse return 1+RecLength(start->next);\n}",
+    "testcases": [
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "5\n7\n1\n10\n-1",
+        "expected_stdout": "4",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "-2",
+        "expected_stdout": "0",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "2\n2\n2\n2\n2\n2\n2\n-2",
+        "expected_stdout": "7",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 3,
+        "stdin": "10\n1000\n100\n10000\n1\n-6",
+        "expected_stdout": "5",
+        "testcase_type": 0
+      }
+    ]
+  },
+  {
+    "text": "Realizzare una funzione ricorsiva $\\texttt{RecStampa}$ che stampi gli elementi di una lista nel formato mostrato nell'esempio.\nScrivere poi un programma che acquisisca da tastiera una successione\ndi numeri interi positivi e li inserisca in ordine di arrivo $\\bf{ in testa}$ ad una lista. \nLa lista puo' contenere duplicati, e l'acquisizione da tastiera termina quando si incontra il primo valore negativo (che non va inserito in lista). Si stampi poi il contenuto corrente della lista usando la funzione $\\texttt{RecStampa}$.\n\n\n<strong>Esempio</strong>\n\n<strong>Input</strong>\n$\\texttt{5\n7\n1\n10\n-1\n}$\n\n<strong>Output</strong>\n$\\texttt{10 -> 1 -> 7 -> 5 -> NULL}$\n\n\n\n",
+    "exercise_type": 7,
+    "label": "",
+    "public_tags": [{ "name": "liste" }],
+    "private_tags": [],
+    "initial_code": "",
+    "state": 2,
+    "requires_typescript": false,
+    "locked_by": null,
+    "child_weight": 0,
+    "all_or_nothing": false,
+    "solution": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct ll_node_struct\n{\n  int info;\n  struct ll_node_struct* next;\n} ll_node;\n\nvoid RECStampaLista(ll_node *head);\n\n\nint main()\n{\n\tint value=0;\n\tll_node *head=NULL;\n\tdo{ \n        scanf(\"%d\",&value);\n\t\tif(value>=0) { \n\t\t\tll_node *node=malloc(sizeof(ll_node));\n\t\t\tnode->info=value;\n\t\t\tnode->next=head;\t\n            head = node;\n        }\n\t}while(value>=0);\n    \n   \n\n\tRECStampaLista(head);\n\treturn 0;\n}\n    \nvoid RECStampaLista(ll_node *head)\n{\n    ll_node *start=head;\n    if (start==NULL) printf(\"NULL \\n\");\n    else\n    {\n        printf(\"%d -> \",start->info);\n        RECStampaLista(start->next);\n    }\n}",
+    "testcases": [
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 0,
+        "stdin": "5\n7\n1\n10\n-1",
+        "expected_stdout": "10 -> 1 -> 7 -> 5 -> NULL",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 1,
+        "stdin": "3\n9\n9\n6\n6\n9\n18\n-1",
+        "expected_stdout": "18 -> 9 -> 6 -> 6 -> 9 -> 9 -> 3 -> NULL",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 2,
+        "stdin": "6\n2\n8\n10\n37\n24\n-2",
+        "expected_stdout": "24 -> 37 -> 10 -> 8 -> 2 -> 6 -> NULL",
+        "testcase_type": 0
+      },
+      {
+        "code": "",
+        "text": "",
+        "_ordering": 3,
+        "stdin": "2\n8\n4\n9\n1\n8\n4\n6\n5\n2\n9\n10\n27\n0\n-2",
+        "expected_stdout": "0 -> 27 -> 10 -> 9 -> 2 -> 5 -> 6 -> 4 -> 8 -> 1 -> 9 -> 4 -> 8 -> 2 -> NULL",
+        "testcase_type": 0
+      }
+    ]
+  }
+]
