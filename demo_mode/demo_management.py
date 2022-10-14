@@ -12,6 +12,7 @@ from courses.models import (
     EventTemplateRule,
     EventTemplateRuleClause,
     Exercise,
+    ExerciseSolution,
 )
 from courses.serializers import EventSerializer, ExerciseSerializer
 from django.db import transaction
@@ -64,7 +65,16 @@ def create_demo_courses_for(user):
                     context={EXERCISE_SHOW_HIDDEN_FIELDS: True, **get_context()},
                 )
                 serializer.is_valid()
-                serializer.save(course_id=new_course.pk, state=Exercise.PUBLIC)
+                new_exercise = serializer.save(
+                    course_id=new_course.pk, state=Exercise.PUBLIC
+                )
+                for solution in exercise.solutions.all():
+                    ExerciseSolution.objects.create(
+                        exercise=new_exercise,
+                        content=solution.content,
+                        state=solution.state,
+                        user=solution.user,
+                    )
 
             # clone events
             for event in blueprint_course.events.filter(event_type=Event.EXAM):
