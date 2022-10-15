@@ -116,6 +116,7 @@ def create_demo_courses_for(user):
                             slot_number=slot_number,
                             exercise=slot.exercise,
                             answer_text=slot.answer_text,
+                            execution_results=slot.execution_results,
                         )
                         new_slot.selected_choices.set(slot.selected_choices.all())
                         slot_number += 1
