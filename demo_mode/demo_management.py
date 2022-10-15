@@ -96,7 +96,7 @@ def create_demo_courses_for(user):
 
                 # clone template rules
                 template = new_event.template
-                for rule in template.rules.all():
+                for rule in event.template.rules.all():
                     new_rule = EventTemplateRule.objects.create(
                         template_id=template.pk, rule_type=rule.rule_type
                     )
