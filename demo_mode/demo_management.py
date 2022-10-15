@@ -1,6 +1,7 @@
 from courses.logic.presentation import (
     EVENT_SHOW_HIDDEN_FIELDS,
     EXERCISE_SHOW_HIDDEN_FIELDS,
+    EXERCISE_SHOW_SOLUTION_FIELDS,
 )
 from django.http import HttpRequest
 
@@ -54,15 +55,21 @@ def create_demo_courses_for(user):
                 creator=user,
             )
 
-            print("CREATED", new_course.pk, new_course.name)
-
             # clone exercises
             for exercise in blueprint_course.exercises.all():
                 serializer = ExerciseSerializer(
                     data=ExerciseSerializer(  # deep clone exercise
-                        exercise, context={EXERCISE_SHOW_HIDDEN_FIELDS: True}
+                        exercise,
+                        context={
+                            EXERCISE_SHOW_HIDDEN_FIELDS: True,
+                            EXERCISE_SHOW_SOLUTION_FIELDS: True,
+                        },
                     ).data,
-                    context={EXERCISE_SHOW_HIDDEN_FIELDS: True, **get_context()},
+                    context={
+                        EXERCISE_SHOW_HIDDEN_FIELDS: True,
+                        EXERCISE_SHOW_SOLUTION_FIELDS: True,
+                        **get_context(),
+                    },
                 )
                 serializer.is_valid()
                 new_exercise = serializer.save(
