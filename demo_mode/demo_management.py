@@ -14,6 +14,7 @@ from courses.models import (
     EventTemplateRuleClause,
     Exercise,
     ExerciseSolution,
+    Tag,
 )
 from courses.serializers import EventSerializer, ExerciseSerializer
 from django.db import transaction
@@ -100,13 +101,21 @@ def create_demo_courses_for(user):
                     new_rule = EventTemplateRule.objects.create(
                         template_id=template.pk, rule_type=rule.rule_type
                     )
-                    new_rule.exercises.set(rule.exercises.all())
+                    for rule_exercise in rule.exercises.all():
+                        new_rule.exercises.add(
+                            Exercise.objects.get(
+                                course=new_course, text=rule_exercise.text
+                            )
+                        )
                     # clone template rule tags
                     for clause in rule.clauses.all():
                         new_clause = EventTemplateRuleClause.objects.create(
                             rule_id=new_rule.pk
                         )
-                        new_clause.tags.set(clause.tags.all())
+                        for tag in clause.tags.all():
+                            new_clause.tags.add(
+                                Tag.objects.get(course=new_course, name=tag.name)
+                            )
 
                 # clone event participation
                 for participation in event.participations.all():
