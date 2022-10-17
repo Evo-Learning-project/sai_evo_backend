@@ -339,6 +339,11 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     def clean(self):
         pass
 
+    def get_logic(self):
+        from courses.logic.exercise_logic import ExerciseLogic
+
+        return ExerciseLogic.from_exercise_instance(self)
+
     def get_max_score(self):
         if self.exercise_type in [Exercise.OPEN_ANSWER, Exercise.ATTACHMENT]:
             return None
