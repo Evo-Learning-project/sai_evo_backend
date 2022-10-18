@@ -42,7 +42,7 @@ class CoursePolicy(BaseAccessPolicy):
             "action": ["set_permissions", "jobe"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_permissions",
+            "condition": "has_teacher_privileges:update_course",
         },
         {
             "action": ["retrieve"],
@@ -88,7 +88,7 @@ class CourseRolePolicy(BaseAccessPolicy):
             "action": ["*"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_permissions",
+            "condition": "has_teacher_privileges:update_course",
         },
     ]
 
