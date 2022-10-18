@@ -3,21 +3,140 @@ import os
 import subprocess
 import json
 from coding.templates.compiler import ProgrammingExerciseTemplateCompiler
-from courses.models import Exercise
-
-
-# TODO define interface for return type
+from courses.models import Exercise, ExerciseTestCase
+import requests
 
 
 class CodeRunner(ABC):
-    def __init__(self, exercise: Exercise, code: str) -> None:
+    def __init__(
+        self, exercise: Exercise, code: str, one_testcase_at_a_time: bool = False
+    ) -> None:
         self.exercise = exercise
         self.code = code
         self.template_compiler = ProgrammingExerciseTemplateCompiler(exercise, code)
+        self.one_testcase_at_a_time = one_testcase_at_a_time
 
     @abstractmethod
-    def run(self):
+    def compile(self):
+        ...
+
+    @abstractmethod
+    def run_testcase(self, testcase: ExerciseTestCase):
+        ...
+
+    @abstractmethod
+    def run_all_testcases(self):
+        ...
+
+    # TODO define interface for return type
+    def run(self) -> "ExecutionResults":
+        if self.one_testcase_at_a_time:
+            execution_results = {"tests": []}
+            for testcase in self.exercise.testcases.all():
+                try:
+                    testcase_execution_results = self.run_testcase(testcase)
+                    execution_results["tests"].append(testcase_execution_results)
+                except Exception:  # TODO handle error
+                    execution_results["error"] = "abc"
+                    break
+        else:
+            execution_results = self.run_all_testcases()
+
+        return execution_results
+
+
+class JobeSandBoxCodeRunner(CodeRunner):
+    JOBE_OUTCOMES = {
+        11: "compilation_error",
+        12: "runtime_error",
+        13: "timeout",
+        15: "ok",
+        17: "memory_limit_exceeded",
+        19: "illegal_system_call",
+        20: "internal_error",
+        21: "overload",
+    }
+
+    JOBE_OK = 15
+    JOBE_COMPILATION_ERROR = 11
+
+    def compile(self):
         pass
+
+    @abstractmethod
+    def get_run_spec_parameters(self):
+        ...
+
+    @abstractmethod
+    def get_language_code(self) -> str:
+        ...
+
+    def run_testcase(self, testcase: ExerciseTestCase):
+        # TODO ensure files exist for testcase files - handle relevant response error
+
+        response = requests.post(
+            os.environ.get(
+                "JOBE_POST_RUN_URL",
+                "http://192.168.1.14:4001/jobe/index.php/restapi/runs",
+            ),
+            data=json.dumps(
+                {
+                    "run_spec": {
+                        "language_id": self.get_language_code(),  # "c",
+                        # TODO handle file testcases here
+                        "input": testcase.stdin,
+                        "sourcecode": self.code,
+                        "parameters": self.get_run_spec_parameters(),
+                        # "file_list": [["555555555", "file1"]]
+                    }
+                }
+            ),
+            headers={"content-type": "application/json"},
+        )
+        response_body = response.json()
+        outcome_code = response_body["outcome"]
+
+        if outcome_code == self.JOBE_COMPILATION_ERROR:
+            # TODO raise an error that will stop the outer loop
+            return {
+                "compilation_errors": response_body["cmpinfo"],
+                "state": "completed",
+            }
+
+        return {
+            "id": testcase.id,
+            "passed": outcome_code == self.JOBE_OK
+            and program_stdout_matches_expected(
+                response_body.get("stdout"), testcase.expected_stdout
+            ),
+            "stdout": response_body.get("stdout"),
+            "stderr": response_body.get("stderr"),
+            "error": self.JOBE_OUTCOMES[outcome_code]
+            if outcome_code != self.JOBE_OK
+            else None,
+        }
+
+    def run_all_testcases(self):
+        return NotImplemented
+
+
+class CCodeRunner(JobeSandBoxCodeRunner):
+    def get_language_code(self):
+        return "c"
+
+    def get_run_spec_parameters(self):
+        # link the commonly used math module
+        return {"linkargs": ["-lm"]}
+
+
+class NodeSandboxTypeScriptCodeRunner(CodeRunner):
+    def run_all_testcases(self):
+        return super().run_all_testcases()
+
+
+# class NodeSandboxJavaScriptCodeRunner(CodeRunner):
+#     def compile(self):
+#         pass
 
 
 class JavaScriptCodeRunner(CodeRunner):
