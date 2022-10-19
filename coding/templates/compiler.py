@@ -1,7 +1,9 @@
+from abc import ABC, abstractmethod
 from functools import cached_property
 import random
 import string
-from courses.models import Exercise
+from typing import Iterable
+from courses.models import Exercise, ExerciseTestCase
 from . import js_dfl
 from django.template import Context, Template
 
@@ -11,7 +13,47 @@ def get_random_identifier(length=20):
     return "".join(random.choice(letters) for _ in range(length))
 
 
-class ProgrammingExerciseTemplateCompiler:
+class ProgrammingExerciseTemplateCompiler(ABC):
+    code: str
+    testcases: Iterable[ExerciseTestCase]
+    template_literal: str
+    compiled_template: str
+
+    ID_REGEX = 1  # TODO write regex EVO_TEMPLATE_ID_something
+
+    @abstractmethod
+    def get_injected_identifiers(self):
+        """
+        Returns a dict where the keys are randomly generated id's and the values
+        are originally provided id's. These are identifiers that need to be passed
+        to the VM that will evaluate the compiled template. For example, the Node
+        VM requires module `assert`, which will be provided as a random id that
+        is also used inside of the template
+        """
+        ...
+
+    def generate_random_identifiers(self):
+        # TODO implement
+        pass
+
+    @abstractmethod
+    def _get_template_context(self):
+        ...
+
+    @cached_property
+    def template_context(self):
+        return self._get_template_context()
+
+    @abstractmethod
+    def preprocess(self):
+        pass
+
+    @abstractmethod
+    def compile(self):
+        pass
+
+
+class _ProgrammingExerciseTemplateCompiler:
     def __init__(self, exercise: Exercise, code: str) -> None:
         self.exercise = exercise
         self.code = code
