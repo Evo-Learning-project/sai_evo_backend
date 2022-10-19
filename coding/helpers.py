@@ -71,7 +71,7 @@ def _create_testcase_attachments_in_jobe(testcase):
 
     for t in attachments:
         file_id = _get_file_id_for_jobe(t.attachment.name)
-        response = requests.post(
+        response = requests.put(
             os.environ.get(
                 "JOBE_FILES_URL",
                 "http://192.168.1.14:4001/jobe/index.php/restapi/files/" + str(file_id),
