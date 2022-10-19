@@ -262,6 +262,7 @@ class CourseRoleViewSet(ScopeQuerySetByCourseMixin):
         return Response(status=status.HTTP_200_OK)
 
 
+# ! TODO make create atomic
 class ExerciseSolutionViewSet(
     viewsets.ModelViewSet,
     RestrictedListMixin,
@@ -413,6 +414,7 @@ class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
         )
 
 
+# ! TODO make create atomic
 class ExerciseViewSet(
     BulkCreateMixin,
     ScopeQuerySetByCourseMixin,
@@ -586,6 +588,7 @@ class TagViewSet(
         )
 
 
+# ! TODO make create atomic?
 class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
     serializer_class = EventSerializer
     queryset = (
