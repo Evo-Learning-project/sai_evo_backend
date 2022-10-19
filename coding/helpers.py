@@ -75,8 +75,9 @@ def _create_testcase_attachments_in_jobe(testcase):
         response = requests.put(
             os.environ.get(
                 "JOBE_FILES_URL",
-                "http://192.168.1.14:4001/jobe/index.php/restapi/files/" + str(file_id),
-            ),
+                "http://192.168.1.14:4001/jobe/index.php/restapi/files/",
+            )
+            + str(file_id),
             data=json.dumps({"file_contents": file_content}),
             headers={"content-type": "application/json"},
         )
