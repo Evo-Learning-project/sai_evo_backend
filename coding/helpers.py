@@ -100,7 +100,7 @@ def _run_c_testcase(code, testcase):
     a C program
     """
     injected_files = [
-        [_get_file_id_for_jobe(s.attachment.name), s.attachment.name]
+        [_get_file_id_for_jobe(s.attachment.name), os.path.basename(s.attachment.name)]
         for s in testcase.attachments.all()
     ]
 
