@@ -86,6 +86,9 @@ def _create_testcase_attachments_in_jobe(testcase):
                 + str(testcase.pk)
                 + ": jobe responded with error: "
                 + str(response.status_code)
+                + " ("
+                + str(response)
+                + ")"
             )
 
 
