@@ -1,13 +1,9 @@
-import time
 from coding.helpers import get_code_execution_results
 from core.celery import app
 from courses.models import EventParticipationSlot
-from django.db import transaction
 
-from djangochannelsrestframework import *
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from celery import shared_task
 
 from celery.exceptions import MaxRetriesExceededError
 
@@ -44,7 +40,6 @@ def run_participation_slot_code_task(self, slot_id):
     Takes in the id of a submission slot, runs the code in it, then
     saves the results to its execution_results field
     """
-    from courses.consumers import SubmissionSlotConsumer
 
     slot = EventParticipationSlot.objects.get(id=slot_id)
     try:
