@@ -71,12 +71,13 @@ def _create_testcase_attachments_in_jobe(testcase):
 
     for t in attachments:
         file_id = _get_file_id_for_jobe(t.attachment.name)
+        file_content = _encode_file_for_jobe(t.attachment)
         response = requests.put(
             os.environ.get(
                 "JOBE_FILES_URL",
                 "http://192.168.1.14:4001/jobe/index.php/restapi/files/" + str(file_id),
             ),
-            data=json.dumps({"file_contents": _encode_file_for_jobe(t.attachment)}),
+            data=json.dumps({"file_contents": file_content}),
             headers={"content-type": "application/json"},
         )
 
@@ -87,8 +88,13 @@ def _create_testcase_attachments_in_jobe(testcase):
                 + ": jobe responded with error: "
                 + str(response.status_code)
                 + " ("
-                + str(response)
-                + ")"
+                + str(response.content)
+                + ")\n"
+                + "file id: "
+                + str(file_id)
+                + "file content: "
+                + str(file_content)
+                + "\n\n---\n\n"
             )
 
 
