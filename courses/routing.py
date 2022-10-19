@@ -13,11 +13,11 @@ websocket_patterns = [
     #     consumers.ExerciseConsumer.as_asgi(),
     #     name="exercise_consumer",
     # ),
-    re_path(
-        r"ws/submission_slots/$",  # (?P<event_id>\w+)/
-        consumers.SubmissionSlotConsumer.as_asgi(),
-        name="submission_slot_consumer",
-    ),
+    # re_path(
+    #     r"ws/submission_slots/$",  # (?P<event_id>\w+)/
+    #     consumers.SubmissionSlotConsumer.as_asgi(),
+    #     name="submission_slot_consumer",
+    # ),
     #     re_path(
     #         r"ws/exam_list/$",
     #         consumers.ExamListConsumer.as_asgi(),
