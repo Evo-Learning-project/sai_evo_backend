@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import os
 import subprocess
 import json
+from typing import Any, Dict, Iterable
+from coding.execution_results import ExecutionResults, TestCaseExecutionResults
 from coding.templates.compiler import ProgrammingExerciseTemplateCompiler
 from courses.models import Exercise, ExerciseTestCase
 import requests
@@ -21,15 +23,15 @@ class CodeRunner(ABC):
         ...
 
     @abstractmethod
-    def run_testcase(self, testcase: ExerciseTestCase):
+    def run_testcase(self, testcase: ExerciseTestCase) -> TestCaseExecutionResults:
         ...
 
     @abstractmethod
-    def run_all_testcases(self):
+    def run_all_testcases(self) -> Iterable[TestCaseExecutionResults]:
         ...
 
     # TODO define interface for return type
-    def run(self) -> "ExecutionResults":
+    def run(self) -> ExecutionResults:
         if self.one_testcase_at_a_time:
             execution_results = {"tests": []}
             for testcase in self.exercise.testcases.all():
@@ -64,7 +66,7 @@ class JobeSandBoxCodeRunner(CodeRunner):
         pass
 
     @abstractmethod
-    def get_run_spec_parameters(self):
+    def get_run_spec_parameters(self) -> Dict[str, Any]:
         ...
 
     @abstractmethod
@@ -121,17 +123,28 @@ class JobeSandBoxCodeRunner(CodeRunner):
 
 
 class CCodeRunner(JobeSandBoxCodeRunner):
-    def get_language_code(self):
+    def __init__(
+        self, exercise: Exercise, code: str, one_testcase_at_a_time: bool = False
+    ) -> None:
+        one_testcase_at_a_time = True
+        super().__init__(exercise, code, one_testcase_at_a_time)
+
+    def get_language_code(self) -> str:
         return "c"
 
-    def get_run_spec_parameters(self):
+    def get_run_spec_parameters(self) -> Dict[str, Any]:
         # link the commonly used math module
         return {"linkargs": ["-lm"]}
 
 
 class NodeSandboxTypeScriptCodeRunner(CodeRunner):
-    def run_all_testcases(self):
-        return super().run_all_testcases()
+    def run_all_testcases(self) -> ExecutionResults:
+        # TODO implement
+        pass
+
+    def run_testcase(self, testcase: ExerciseTestCase) -> TestCaseExecutionResults:
+        # TODO implement
+        return NotImplemented
 
 
 # class NodeSandboxJavaScriptCodeRunner(CodeRunner):
