@@ -58,10 +58,18 @@ from .managers import (
 )
 
 
+# TODO change name to get_participation_slot_attachment_path
 def get_attachment_path(slot, filename):
     event = slot.participation.event
     course = event.course
     return f"{course.pk}/{event.pk}/{slot.slot_number}/{filename}"
+
+
+def get_testcase_attachment_path(testcase_attachment, filename):
+    testcase = testcase_attachment.testcase
+    exercise = testcase.exercise
+    course = exercise.course
+    return f"{course.pk}/testcase_attachments/{exercise.pk}/{testcase.pk}/{filename}"
 
 
 class Course(TimestampableModel):
@@ -670,6 +678,19 @@ class ExerciseTestCase(OrderableModel):
             return self.expected_stdout
 
         return self.expected_stdout[: self.MAX_CODE_LENGTH] + "<...>"
+
+
+class ExerciseTestCaseAttachment(models.Model):
+    testcase = models.ForeignKey(
+        ExerciseTestCase,
+        related_name="attachments",
+        on_delete=models.CASCADE,
+    )
+    attachment = models.FileField(
+        null=True,
+        blank=True,
+        upload_to=get_testcase_attachment_path,
+    )
 
 
 class Event(HashIdModel, TimestampableModel, LockableModel):

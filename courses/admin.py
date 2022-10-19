@@ -22,6 +22,10 @@ class ExerciseTestCaseInline(admin.TabularInline):
     model = ExerciseTestCase
 
 
+class ExerciseTestCaseAttachmentInline(admin.TabularInline):
+    model = ExerciseTestCaseAttachment
+
+
 class SubExerciseInline(admin.TabularInline):
     model = Exercise
 
@@ -56,6 +60,11 @@ class ExerciseChoiceAdmin(admin.ModelAdmin):
 
 @admin.register(ExerciseTestCase)
 class ExerciseTestCaseAdmin(admin.ModelAdmin):
+    inlines = [ExerciseTestCaseAttachmentInline]
+
+
+@admin.register(ExerciseTestCaseAttachment)
+class ExerciseTestCaseAttachmentAdmin(admin.ModelAdmin):
     pass
 
 
