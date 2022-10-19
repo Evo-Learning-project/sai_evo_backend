@@ -143,7 +143,7 @@ def run_c_code_in_vm(code, testcases):
         except MissingTestCaseAttachment:
             # create missing attachments for the testcase and retry
             _create_testcase_attachments_in_jobe(testcase)
-            response = run_c_code_in_vm(code, testcase)
+            response = _run_c_testcase(code, testcase)
 
         response_body = response.json()
         outcome_code = response_body["outcome"]
