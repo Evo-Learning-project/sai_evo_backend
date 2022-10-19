@@ -79,7 +79,7 @@ def _create_testcase_attachments_in_jobe(testcase):
             data=json.dumps({"file_contents": _encode_file_for_jobe(t.attachment)}),
             headers={"content-type": "application/json"},
         )
-        print("\n\n---CREATED---\n\n", t.attachment.name)
+        print("\n\n---CREATED---\n\n", file_id)
 
         if str(response.status_code)[0] != "2":
             logger.error(
