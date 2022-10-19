@@ -79,6 +79,7 @@ def _create_testcase_attachments_in_jobe(testcase):
             data=json.dumps({"file_contents": _encode_file_for_jobe(t.attachment)}),
             headers={"content-type": "application/json"},
         )
+        print("\n\n---CREATED---\n\n", t.attachment.name)
 
         if str(response.status_code)[0] != "2":
             logger.error(
@@ -99,9 +100,11 @@ def _run_c_testcase(code, testcase):
     a C program
     """
     injected_files = [
-        [_get_file_id_for_jobe(s.attachment.name), _encode_file_for_jobe(s.attachment)]
+        [_get_file_id_for_jobe(s.attachment.name), s.attachment.name]
         for s in testcase.attachments.all()
     ]
+
+    print("\n\n---INJECTED FILES---\n\n", injected_files)
 
     response = requests.post(
         os.environ.get(
