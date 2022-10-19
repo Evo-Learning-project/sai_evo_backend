@@ -119,8 +119,8 @@ def _run_c_testcase(code, testcase):
                     "sourcecode": code,
                     "parameters": {
                         "linkargs": ["-lm"],
-                        "file_list": injected_files,  # attach files from test case
                     },
+                    "file_list": injected_files,  # attach files from test case
                 }
             }
         ),
