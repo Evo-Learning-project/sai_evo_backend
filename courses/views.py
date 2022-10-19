@@ -1006,6 +1006,11 @@ class EventParticipationSlotViewSet(
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=True, methods=["get"])
+    def execution_results(self, request, **kwargs):
+        slot = self.get_object()
+        return Response(slot.execution_results, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"])
     def attachment(self, request, **kwargs):
         attachment = self.get_object().attachment
 

@@ -382,7 +382,13 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
                 or has_teacher_privileges:assess_participations",
         },
         {
-            "action": ["update", "partial_update", "run", "attachment"],
+            "action": [
+                "update",
+                "partial_update",
+                "run",
+                "attachment",
+                "execution_results",
+            ],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "\
