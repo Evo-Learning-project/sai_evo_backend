@@ -44,7 +44,7 @@ def send_jobe_request(body, headers, req_method, url=""):
     try:
         ret = response.json()
     except Exception:
-        ret = str(response)
+        ret = "couldn't decode, " + str(response) + " " + str(response.content)
 
     return ret
 
@@ -152,7 +152,19 @@ def run_c_code_in_vm(code, testcases):
             _create_testcase_attachments_in_jobe(testcase)
             response = _run_c_testcase(code, testcase)
 
-        response_body = response.json()
+        try:
+            response_body = response.json()
+        except Exception as e:
+            # TODO better handling
+            logger.error(
+                "couldn't decode "
+                + str(response.status_code)
+                + " ("
+                + str(response.content)
+                + ")\n"
+            )
+            raise
+
         outcome_code = response_body["outcome"]
 
         # compilation errors
