@@ -17,6 +17,11 @@ TEACHER_PRIVILEGES = [
 ]
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def validate_permission_list(lst):
     if not isinstance(lst, list):
         raise ValidationError("Privileges field must be a list")
@@ -60,16 +65,20 @@ def get_user_privileges(user, course):
     try:
         # if data has been prefetched, use the optimized data
         if hasattr(user, "prefetched_privileged_courses"):
+            print("PREFETCHED FOR USER")
             per_user_privileges = [
                 c
                 for c in user.prefetched_privileged_courses
                 if c.course.pk == course.pk
             ][0]
         elif hasattr(course, "prefetched_privileged_users"):
+            print("PREFETCHED FOR COURSES")
             per_user_privileges = [
                 u for u in course.prefetched_privileged_users if u.user.pk == user.pk
             ][0]
         else:
+            # !!
+            print("QUERYING FOR PRIVILEGES")
             per_user_privileges = UserCoursePrivilege.objects.get(
                 user=user, course=course
             )
@@ -89,7 +98,7 @@ def check_privilege(user, course, privilege):
     Returns True if and only `user` has `privilege` for `course`
     `course` can either be a Course object or the id of a course
     """
-
+    # !!
     privileges = get_user_privileges(user, course)
 
     if privilege == "__some__":

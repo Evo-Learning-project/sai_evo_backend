@@ -1,5 +1,4 @@
 from courses.logic.privileges import get_user_privileges
-from courses.models import UserCoursePrivilege
 from rest_framework import serializers
 
 from users.models import User
@@ -33,4 +32,5 @@ class UserSerializer(serializers.ModelSerializer):
             self.fields["course_privileges"] = serializers.SerializerMethodField()
 
     def get_course_privileges(self, obj):
+        # !!
         return get_user_privileges(obj, self.context["course"])

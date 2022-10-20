@@ -49,6 +49,7 @@ class ExerciseQuerySet(models.QuerySet):
         """
         from .models import Exercise, EventParticipationSlot, EventParticipation, Event
 
+        # !!
         privileges = get_user_privileges(user, course_id)
 
         if ACCESS_EXERCISES in privileges or MANAGE_EXERCISES in privileges:
@@ -69,6 +70,7 @@ class ExerciseQuerySet(models.QuerySet):
     def visible_by(self, course_id: str, user: User):
         from .models import Exercise, EventParticipationSlot, EventParticipation, Event
 
+        # !!
         privileges = get_user_privileges(user, course_id)
 
         if ACCESS_EXERCISES in privileges or MANAGE_EXERCISES in privileges:

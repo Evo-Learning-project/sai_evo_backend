@@ -74,6 +74,7 @@ from courses.models import (
     ExerciseSolutionComment,
     ExerciseSolutionVote,
     ExerciseTestCase,
+    ExerciseTestCaseAttachment,
     Tag,
     UserCoursePrivilege,
 )
@@ -93,6 +94,7 @@ from .serializers import (
     ExerciseSolutionCommentSerializer,
     ExerciseSolutionSerializer,
     ExerciseSolutionVoteSerializer,
+    ExerciseTestCaseAttachmentSerializer,
     ExerciseTestCaseSerializer,
     TagSerializer,
 )
@@ -128,7 +130,10 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_teacher:
             qs = qs.public()
 
+        # !! hits twice
+        print("hitting")
         qs = qs.prefetch_related(
+            # !!
             Prefetch(
                 "privileged_users",
                 queryset=UserCoursePrivilege.objects.filter(user=self.request.user),
@@ -551,6 +556,37 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(
             exercise_id=self.kwargs["exercise_pk"],
+        )
+
+
+class ExerciseTestCaseAttachmentViewSet(viewsets.ModelViewSet):
+    serializer_class = ExerciseTestCaseAttachmentSerializer
+    queryset = ExerciseTestCaseAttachment.objects.all()
+    permission_classes = [policies.ExerciseRelatedObjectsPolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(testcase_id=self.kwargs["testcase_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            testcase_id=self.kwargs["testcase_pk"],
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieving an ExerciseTestCaseAttachment downloads
+        the attached file
+        """
+        attachment = self.get_object().attachment
+
+        if not bool(attachment):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return FileResponse(
+            attachment,
+            as_attachment=True,
+            filename=os.path.split(attachment.name)[1],
         )
 
 
