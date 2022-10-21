@@ -130,10 +130,8 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_teacher:
             qs = qs.public()
 
-        # !! hits twice
-        print("hitting")
+        # !! hits db twice
         qs = qs.prefetch_related(
-            # !!
             Prefetch(
                 "privileged_users",
                 queryset=UserCoursePrivilege.objects.filter(user=self.request.user),

@@ -65,20 +65,17 @@ def get_user_privileges(user, course):
     try:
         # if data has been prefetched, use the optimized data
         if hasattr(user, "prefetched_privileged_courses"):
-            # print("PREFETCHED FOR USER")
             per_user_privileges = [
                 c
                 for c in user.prefetched_privileged_courses
                 if c.course.pk == course.pk
             ][0]
         elif hasattr(course, "prefetched_privileged_users"):
-            # print("PREFETCHED FOR COURSES")
             per_user_privileges = [
                 u for u in course.prefetched_privileged_users if u.user.pk == user.pk
             ][0]
         else:
             # !!
-            # print("QUERYING FOR PRIVILEGES")
             per_user_privileges = UserCoursePrivilege.objects.get(
                 user=user, course=course
             )
