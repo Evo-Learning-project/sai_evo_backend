@@ -2,6 +2,8 @@ from decimal import Decimal
 from time import time
 from django.forms import ValidationError
 
+from courses.tests.data import courses
+
 from django.utils import timezone
 
 from courses.models import (
@@ -9,6 +11,7 @@ from courses.models import (
     Event,
     EventParticipation,
     Exercise,
+    ExerciseChoice,
 )
 from django.test import TestCase
 from users.models import User
@@ -201,6 +204,7 @@ class ModelPropertiesTestCase(TestCase):
 
 
 class ModelConstraintsTestCase(TestCase):
+    # TODO test
     def test_event_participation_uniqueness(self):
         pass
 
@@ -222,3 +226,191 @@ class ModelMethodsTestCase(TestCase):
 
     def test_exercise_get_assessment_rule(self):
         pass
+
+
+class AbstractModelsTestCase(TestCase):
+    def test_orderable_model(self):
+        course = Course.objects.create(**courses.course_1)
+        exercise = Exercise.objects.create(
+            course=course,
+            text="a",
+            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+        )
+
+        """
+        Show that ordering is correctly incremented as
+        objects are created
+        """
+        choice_0 = ExerciseChoice.objects.create(
+            correctness=0, text="a", exercise=exercise
+        )
+        self.assertEqual(choice_0._ordering, 0)
+
+        choice_1 = ExerciseChoice.objects.create(
+            correctness=0, text="a", exercise=exercise
+        )
+        self.assertEqual(choice_1._ordering, 1)
+
+        choice_2 = ExerciseChoice.objects.create(
+            correctness=0, text="a", exercise=exercise
+        )
+        self.assertEqual(choice_2._ordering, 2)
+
+        choice_3 = ExerciseChoice.objects.create(
+            correctness=0, text="a", exercise=exercise
+        )
+        self.assertEqual(choice_3._ordering, 3)
+
+        """
+        Show swapping models
+        """
+        # simple case: move choice 3 to position 2
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 2
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_2.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 0)
+        self.assertEqual(choice_1._ordering, 1)
+        self.assertEqual(choice_2._ordering, 3)
+        self.assertEqual(choice_3._ordering, 2)
+
+        # simple case: move choice 3 back to position 3
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 3
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_2.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 0)
+        self.assertEqual(choice_1._ordering, 1)
+        self.assertEqual(choice_2._ordering, 2)
+        self.assertEqual(choice_3._ordering, 3)
+
+        # more complex case, move choice 3 to 0
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 0
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_2.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 1)
+        self.assertEqual(choice_1._ordering, 2)
+        self.assertEqual(choice_2._ordering, 3)
+        self.assertEqual(choice_3._ordering, 0)
+
+        # more complex case, move choice 3 to 2
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 2
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_2.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 0)
+        self.assertEqual(choice_1._ordering, 1)
+        self.assertEqual(choice_2._ordering, 3)
+        self.assertEqual(choice_3._ordering, 2)
+
+        # move choice 3 back to 3
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 3
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_2.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 0)
+        self.assertEqual(choice_1._ordering, 1)
+        self.assertEqual(choice_2._ordering, 2)
+        self.assertEqual(choice_3._ordering, 3)
+
+        """
+        Delete one choice and show this still works
+        """
+
+        choice_2.delete()
+
+        # move choice 3 to a position that's not the one the deleted choice had
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 0
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 1)
+        self.assertEqual(choice_1._ordering, 3)
+        self.assertEqual(choice_3._ordering, 0)
+
+        # move choice 3 back to 3
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 3
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 0)
+        self.assertEqual(choice_1._ordering, 1)
+        self.assertEqual(choice_3._ordering, 3)
+
+        # move choice 3 to the position of the deleted choice
+        choice_3 = ExerciseChoice.objects.get(
+            pk=choice_3.pk
+        )  # re-fetch to trigger from_db
+        choice_3._ordering = 2
+        choice_3.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 0)
+        self.assertEqual(choice_1._ordering, 1)
+        self.assertEqual(choice_3._ordering, 2)
+
+        # move choice 0 to position 2
+        choice_0 = ExerciseChoice.objects.get(
+            pk=choice_0.pk
+        )  # re-fetch to trigger from_db
+        choice_0._ordering = 2
+        choice_0.save()
+
+        choice_0.refresh_from_db()
+        choice_1.refresh_from_db()
+        choice_3.refresh_from_db()
+
+        self.assertEqual(choice_0._ordering, 2)
+        self.assertEqual(choice_1._ordering, 0)
+        self.assertEqual(choice_3._ordering, 1)

@@ -38,46 +38,62 @@ class OrderableModel(TrackFieldsMixin):
         abstract = True
 
     def save(self, force_no_swap=False, *args, **kwargs):
-        # return super().save(*args, **kwargs)
-        if self.pk is None:  # creating new instance
-            # automatically populate the ordering field based on the ordering of siblings
-            setattr(self, "_ordering", self.get_ordering_position())
-
         if (
             self.pk is not None
             and hasattr(self, "_old__ordering")
             and self._old__ordering != self._ordering
             and not force_no_swap
         ):
+            """
+            TODO consider alternative algorithm: when you move an element to the left (right)
+            query for all the elements between the element and the target position and move
+            them to the right (left) or one position, using qs.update(_ordering=F('_ordering')+1)
+            then insert the element into the correct position. This should all be done with a lock
+            """
+
+            # object's ordering has changed: re-arrange ordering of siblings
+            # until target ordering is reached for this object
             target_ordering, self._ordering = self._ordering, self._old__ordering
 
             while target_ordering != self._ordering:
-                # ! TODO fix endless loop when an item is deleted and there's a "hole" (to reproduce, delete a template rule then try to drag&drop)
-                print("TARGET", target_ordering, "SELF", self._ordering)
                 to_be_swapped = (
                     self.get_next()
                     if target_ordering > self._ordering
                     else self.get_previous()
                 )
-                # print("TO BE SWAPPED", to_be_swapped)
-                # self.refresh_from_db()
-                # type(self).objects.get(
-                #     _ordering=self._ordering,
-                #     **{
-                #         self.ORDER_WITH_RESPECT_TO_FIELD: getattr(
-                #             self, self.ORDER_WITH_RESPECT_TO_FIELD
-                #         )
-                #     },
-                # )
                 if to_be_swapped is not None:
-                    self.swap_ordering_with(to_be_swapped)
-
+                    if (
+                        to_be_swapped._ordering < target_ordering < self._ordering
+                        or to_be_swapped._ordering > target_ordering > self._ordering
+                    ):
+                        # object in the target position doesn't exist, and performing
+                        # a swap would take this object past that position; directly
+                        # assign the target position to prevent looping
+                        self._ordering = target_ordering
+                        self.save(force_no_swap=True)
+                    else:
+                        self.swap_ordering_with(to_be_swapped)
+                else:
+                    if (
+                        target_ordering == 0
+                        or target_ordering == self.get_siblings().count() - 1
+                    ):
+                        # edge case: trying to move the object either to position 0
+                        # or to the last position, but the element to be swapped with
+                        # has been deleted
+                        self._ordering = target_ordering
+                        self.save(force_no_swap=True)
         else:
+            if self.pk is None:
+                # automatically populate the _ordering field based on
+                # the ordering of siblings when creating new instance
+                self._ordering = self.get_ordering_position()
+            # TODO calculate _ordering here and use a lock to avoid race conditions
             super().save(*args, **kwargs)
 
     def get_siblings(self):
         if getattr(self, self.ORDER_WITH_RESPECT_TO_FIELD) is None:
-            return []
+            return type(self).objects.none()
 
         return type(self).objects.filter(
             **{
@@ -90,7 +106,7 @@ class OrderableModel(TrackFieldsMixin):
     def get_adjacent(self, step):
         delta = step
         siblings = self.get_siblings()
-        for _ in range(0, len(siblings)):
+        for _ in range(0, siblings.count()):
             try:
                 return siblings.get(_ordering=self._ordering + delta)
             except type(self).DoesNotExist:
@@ -115,6 +131,7 @@ class OrderableModel(TrackFieldsMixin):
             other.save(force_no_swap=True)
             self.save(force_no_swap=True)
 
+    # !! this causes race condition
     def get_ordering_position(self):
         # get all model instances that reference the same parent
         siblings = self.get_siblings()
