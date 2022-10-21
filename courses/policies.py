@@ -20,7 +20,7 @@ class BaseAccessPolicy(AccessPolicy):
 
         try:
             course = Course.objects.get(pk=course_pk)
-        except ValueError:
+        except (ValueError, Course.DoesNotExist):
             return False
 
         return check_privilege(request.user, course, privilege)

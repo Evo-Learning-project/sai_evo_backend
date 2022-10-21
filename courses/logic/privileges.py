@@ -40,8 +40,10 @@ def get_user_privileges(user, course):
         return []
 
     if not isinstance(course, Course):
-        # TODO handle exceptions
-        course = Course.objects.get(pk=course)
+        try:
+            course = Course.objects.get(pk=course)
+        except (ValueError, Course.DoesNotExist):
+            return []
 
     if user == course.creator:
         return TEACHER_PRIVILEGES

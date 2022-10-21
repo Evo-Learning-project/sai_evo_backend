@@ -1,4 +1,5 @@
 from functools import cached_property
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 
@@ -114,4 +115,7 @@ class ScopeQuerySetByCourseMixin(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["course_pk"])
+        try:
+            return qs.filter(course_id=self.kwargs["course_pk"])
+        except ValueError:  # invalid value for course_pk
+            raise Http404
