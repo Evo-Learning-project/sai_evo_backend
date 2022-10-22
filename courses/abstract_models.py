@@ -49,6 +49,9 @@ class OrderableModel(TrackFieldsMixin):
             query for all the elements between the element and the target position and move
             them to the right (left) or one position, using qs.update(_ordering=F('_ordering')+1)
             then insert the element into the correct position. This should all be done with a lock
+
+            TODO Alternatively, consider not using save to implicitly swap but rather to use
+            a move_by method that tells how many steps (positive or negative) to move by
             """
 
             # object's ordering has changed: re-arrange ordering of siblings
@@ -135,7 +138,7 @@ class OrderableModel(TrackFieldsMixin):
     def get_ordering_position(self):
         # get all model instances that reference the same parent
         siblings = self.get_siblings()
-        if isinstance(siblings, list) and len(siblings) == 0:
+        if siblings.count() == 0:
             return 0
 
         max_ordering = siblings.aggregate(max_ordering=Max("_ordering"))["max_ordering"]

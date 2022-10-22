@@ -33,6 +33,8 @@ from django_lifecycle import (
     BEFORE_DELETE,
 )
 
+from courses import signals  # to make signals work
+
 import logging
 
 logger = logging.getLogger(__name__)
