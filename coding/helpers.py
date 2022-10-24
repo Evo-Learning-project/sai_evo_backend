@@ -97,6 +97,7 @@ def _create_testcase_attachments_in_jobe(testcase):
                 + str(file_content)
                 + "\n\n---\n\n"
             )
+            response.raise_for_status()
 
 
 class MissingTestCaseAttachment(Exception):
@@ -136,8 +137,8 @@ def _run_c_testcase(code, testcase):
     if response.status_code == 404:
         raise MissingTestCaseAttachment
     if str(response.status_code)[0] != "2":
-        # TODO handle
         logger.error("jobe responded with error: " + str(response.status_code))
+        response.raise_for_status()
 
     return response
 
