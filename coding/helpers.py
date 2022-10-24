@@ -142,6 +142,20 @@ def _run_c_testcase(code, testcase):
     return response
 
 
+# def _run_c_testcase_with_retry(code, testcase):
+#     MAX_RETRIES = 5
+#     try_n = 0
+
+#     while try_n < MAX_RETRIES:
+#         try:
+#             return _run_c_testcase(code, testcase)
+#         except MissingTestCaseAttachment:
+#             _create_testcase_attachments_in_jobe(testcase)
+#             try_n += 1
+
+#     raise Exception
+
+
 def run_c_code_in_vm(code, testcases):
     ret = {}
     for testcase in testcases:

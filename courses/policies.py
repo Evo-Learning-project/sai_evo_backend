@@ -465,7 +465,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
                 user=request.user,
             ).get(pk=view.kwargs.get("exercise_pk"))
             return True
-        except Exercise.DoesNotExist:
+        except (ValueError, Exercise.DoesNotExist):
             return False
 
     def is_own_solution(self, request, view, action):
