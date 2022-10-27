@@ -32,7 +32,7 @@ class RestrictedListMixin:
 
 
 class BulkCreateMixin:
-    @transaction.atomic()
+    # @transaction.atomic()
     def create(self, request, *args, **kwargs):
         many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=many)
@@ -43,7 +43,7 @@ class BulkCreateMixin:
 
 
 class BulkPatchMixin:
-    @transaction.atomic()
+    # @transaction.atomic()
     @action(detail=False, methods=["patch"])
     def bulk_patch(self, request, **kwargs):
         try:

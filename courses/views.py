@@ -473,7 +473,7 @@ class ExerciseViewSet(
             creator=self.request.user,
         )
 
-    @transaction.atomic()
+    # @transaction.atomic()
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
         exercise = self.get_object()
@@ -878,8 +878,7 @@ class EventParticipationViewSet(
         except ValueError:
             raise Http404
 
-    # TODO see if you can move transaction.atomic to the create method on the manager
-    @transaction.atomic()
+    # @transaction.atomic()
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
         try:
@@ -1011,7 +1010,7 @@ class EventParticipationSlotViewSet(
             .prefetch_related("sub_slots", "selected_choices")
         )
 
-    @transaction.atomic()
+    # @transaction.atomic()
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
