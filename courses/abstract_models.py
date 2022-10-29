@@ -1,3 +1,4 @@
+from datetime import timedelta
 from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -6,6 +7,10 @@ from django.utils import timezone
 
 
 from users.models import User
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TrackFieldsMixin(models.Model):
@@ -239,6 +244,7 @@ class LockableModel(models.Model):
 
     # TODO actually enforce the locking at api level
 
+    # user who currently has ownership of the lock
     locked_by = models.ForeignKey(
         User,
         null=True,
@@ -246,32 +252,62 @@ class LockableModel(models.Model):
         on_delete=models.SET_NULL,
         related_name="locked_%(class)ss",
     )
+
+    # last time the owner of the lock was updated
     last_lock_update = models.DateTimeField(null=True, blank=True)
+
+    # last time the owner of the lock sent a heartbeat
+    last_heartbeat = models.DateTimeField(null=True, blank=True)
+
+    # contains users that are in queue for acquiring the lock on the instance
     awaiting_users = models.ManyToManyField(
         User,
         blank=True,
         related_name="awaiting_on_%(class)ss",
     )
 
+    LOCK_TIMEOUT_SECONDS = 40
+
     class Meta:
         abstract = True
 
-    def lock(self, user):
-        if self.locked_by is None:
+    def try_lock(self, user):
+        # TODO manage race conditions for all methods
+        """
+        Locks instance is not locked by another user, otherwise adds the requesting
+        user to the waiting list for this instance.
+
+        Returns whether the user successfully acquired the lock.
+        """
+        if self.locked_by is None or self.has_lock_timed_out():
             now = timezone.localtime(timezone.now())
             self.locked_by = user
+
             self.last_lock_update = now
-            self.save(update_fields=["locked_by", "last_lock_update"])
+            self.last_heartbeat = now
+
+            self.save(update_fields=["locked_by", "last_lock_update", "last_heartbeat"])
             return True
 
+        # another user owns the lock; add current user to waiting list
         if self.locked_by != user:
             self.awaiting_users.add(user)
 
         return self.locked_by == user
 
-    def unlock(self, user):
+    def unlock_or_give_up(self, user):
+        """
+        Releases lock over the instance if user owns it, or removes them
+        from the waiting list.
+
+        If the requesting user is the owner of the lock, the lock is then
+        given to the first user in the waiting list.
+
+        Returns True if no one detains the lock on the object anymore,
+        False otherwise.
+        """
+        # TODO race condition - what happens if a user leaves the waiting line at the same time it is given the lock?
         if self.locked_by == user:
-            now = timezone.localtime(timezone.now())
             if self.awaiting_users.exists():
                 first_in_line = self.awaiting_users.first()
                 self.locked_by = first_in_line
@@ -279,10 +315,37 @@ class LockableModel(models.Model):
             else:
                 self.locked_by = None
 
+            now = timezone.localtime(timezone.now())
             self.last_lock_update = now
-            self.save(update_fields=["locked_by", "last_lock_update"])
+            self.last_heartbeat = now
+
+            self.save(update_fields=["locked_by", "last_lock_update", "last_heartbeat"])
             return True
 
         self.awaiting_users.remove(user)
 
         return self.locked_by is None
+
+    def heartbeat(self, user):
+        """
+        Updates the value of last_heartbeat to now if the requesting
+        user owns the lock on the instance.
+        """
+        if self.locked_by == user:
+            now = timezone.localtime(timezone.now())
+            self.last_heartbeat = now
+            self.save(update_fields=["last_heartbeat"])
+            return True
+        return False
+
+    def has_lock_timed_out(self):
+        """
+        Returns True if the last heartbeat sent to this instance
+        is older than `LOCK_TIMEOUT_SECONDS`
+        """
+        if self.last_heartbeat is None:
+            logger.warning(str(self) + " last heartbeat is None")
+            return True
+        now = timezone.localtime(timezone.now())
+
+        return self.last_heartbeat < now - timedelta(seconds=self.LOCK_TIMEOUT_SECONDS)
