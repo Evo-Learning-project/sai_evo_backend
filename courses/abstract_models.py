@@ -346,6 +346,7 @@ class LockableModel(models.Model):
         if self.last_heartbeat is None:
             logger.warning(str(self) + " last heartbeat is None")
             return True
+
         now = timezone.localtime(timezone.now())
 
         return self.last_heartbeat < now - timedelta(seconds=self.LOCK_TIMEOUT_SECONDS)
