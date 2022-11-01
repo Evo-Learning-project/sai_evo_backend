@@ -2,6 +2,7 @@ from functools import cached_property
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
+from courses.abstract_models import LockableModel
 
 from courses.logic.privileges import get_user_privileges
 from rest_framework.decorators import action
@@ -9,7 +10,34 @@ from rest_framework.response import Response
 
 from courses.models import Course
 
-from django.db import transaction
+
+class LockableModelViewSetMixin:
+    @action(detail=True, methods=["post"])
+    def lock(self, request, **kwargs):
+        obj: LockableModel = self.get_object()
+        success = obj.try_lock(request.user)
+
+        if not success:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        return self.retrieve(request, **kwargs)
+
+    @action(detail=True, methods=["post"])
+    def unlock(self, request, **kwargs):
+        obj: LockableModel = self.get_object()
+        obj.unlock_or_give_up(request.user)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"])
+    def heartbeat(self, request, **kwargs):
+        obj: LockableModel = self.get_object()
+        success = obj.heartbeat(request.user)
+        status_code = (
+            status.HTTP_204_NO_CONTENT if success else status.HTTP_403_FORBIDDEN
+        )
+
+        return Response(status=status_code)
 
 
 class RequestingUserPrivilegesMixin:
