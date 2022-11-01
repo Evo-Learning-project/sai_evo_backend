@@ -40,26 +40,20 @@ def run_participation_slot_code_task(self, slot_id):
     Takes in the id of a submission slot, runs the code in it, then
     saves the results to its execution_results field
     """
-
     slot = EventParticipationSlot.objects.get(id=slot_id)
+
     try:
         # run code and save outcome to slot
         results = get_code_execution_results(slot=slot)
-        # strip off \u0000 char
+        # strip off \u0000 char to avoid issues with postgres JSON field
         sanitized_results = EventParticipationSlot.sanitize_json(results)
+        # update slot's execution_results object
         slot.execution_results = sanitized_results
         slot.save(update_fields=["execution_results"])
     except Exception as e:
-        logger.critical("RUN SLOT CODE TASK EXCEPTION: %s", e, exc_info=1)
+        logger.critical("Run slot code exception: %s", e, exc_info=1)
         try:
             self.retry(countdown=1)
         except MaxRetriesExceededError:
             slot.execution_results = {"state": "internal_error"}
             slot.save(update_fields=["execution_results"])
-
-    # TODO this can be generalized (a notify_task_complete function) to decrease coupling with Channels
-    # send completion message to consumer
-    async_to_sync(channel_layer.group_send)(
-        "submission_slot_" + str(slot_id),
-        {"type": "task_message", "action": "execution_complete", "pk": slot_id},
-    )
