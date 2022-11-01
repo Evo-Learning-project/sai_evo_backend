@@ -346,7 +346,9 @@ class LockableModel(models.Model):
             self.last_lock_update = now
             self.last_heartbeat = now
 
-            self.save(update_fields=["locked_by", "last_lock_update", "last_heartbeat"])
+            self.save(
+                update_fields=["_locked_by", "last_lock_update", "last_heartbeat"]
+            )
             return True
 
         self.awaiting_users.remove(user)
