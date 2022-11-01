@@ -697,7 +697,7 @@ class ExerciseTestCaseAttachment(models.Model):
     )
 
 
-class Event(HashIdModel, TimestampableModel, LockableModel):
+class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel):
     """
     An Event represents some type of quiz/exam students can participate in.
     Teachers can create exam events, and students can create "self-service
