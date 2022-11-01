@@ -245,8 +245,9 @@ class LockableModel(models.Model):
     # TODO actually enforce the locking at api level
 
     # user who currently has ownership of the lock
-    locked_by = models.ForeignKey(
+    _locked_by = models.ForeignKey(
         User,
+        db_column="locked_by",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -271,6 +272,30 @@ class LockableModel(models.Model):
     class Meta:
         abstract = True
 
+    @property
+    def locked_by(self):
+        """
+        Before returning the user who has the lock over the instance, check if
+        the lock is expired, i.e. the last heartbeat is older than LOCK_TIMEOUT_SECONDS.
+        If so, pass the lock onto the first user in line or release the lock if the
+        waiting list is empty.
+        """
+        if self.has_lock_timed_out():
+            if self.awaiting_users.exists():
+                first_in_line = self.awaiting_users.first()
+                self._locked_by = first_in_line
+                self.awaiting_users.remove(first_in_line)
+            else:
+                self._locked_by = None
+
+            self.save(update_fields=["_locked_by"])
+
+        return self._locked_by
+
+    @locked_by.setter
+    def locked_by(self, value):
+        self._locked_by = value
+
     def try_lock(self, user):
         # TODO manage race conditions for all methods
         """
@@ -279,14 +304,16 @@ class LockableModel(models.Model):
 
         Returns whether the user successfully acquired the lock.
         """
-        if self.locked_by is None or self.has_lock_timed_out():
+        if self.locked_by is None:
             now = timezone.localtime(timezone.now())
             self.locked_by = user
 
             self.last_lock_update = now
             self.last_heartbeat = now
 
-            self.save(update_fields=["locked_by", "last_lock_update", "last_heartbeat"])
+            self.save(
+                update_fields=["_locked_by", "last_lock_update", "last_heartbeat"]
+            )
             return True
 
         # another user owns the lock; add current user to waiting list

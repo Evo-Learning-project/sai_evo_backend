@@ -102,7 +102,14 @@ class EventPolicy(BaseAccessPolicy):
             "condition": "is_course_visible_to",
         },
         {
-            "action": ["create", "update", "partial_update"],
+            "action": [
+                "create",
+                "update",
+                "partial_update",
+                "lock",
+                "unlock",
+                "heartbeat",
+            ],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "is_self_service_practice or has_teacher_privileges:manage_events",
