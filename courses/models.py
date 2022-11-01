@@ -824,15 +824,6 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         rules = self.template.rules.all()
         return sum([(r.weight or 0) * r.amount for r in rules])
 
-    # TODO remove as this is unused
-    @max_score.setter
-    def max_score(self, value):
-        # divides the given value evenly among the template
-        # rules and sets it as their weight property
-        rules = self.template.rules.all()
-        per_rule_value = value / sum([r.amount for r in rules])
-        rules.update(weight=per_rule_value)
-
     @property
     def state(self):
         now = timezone.localtime(timezone.now())
@@ -884,11 +875,13 @@ class Event(HashIdModel, TimestampableModel, LockableModel):
         done in order to be forgiving with students that wrote an answer but forgot
         to run it, and to prevent teachers from having to manually grade it
         """
-        # TODO add checks for execution_results referring to an old answer
         slots_to_run = EventParticipationSlot.objects.filter(
             participation__event_id=self.pk,
             exercise__exercise_type__in=Exercise.PROGRAMMING_TYPES,
             execution_results__isnull=True,
+            # TODO put the above in OR with NOT(execution_results__for_code=F('answer_text'))
+            # to also re-run slots who ran for an older version of code
+            # https://docs.djangoproject.com/en/4.1/ref/models/database-functions/#md5
         )
         if slots_to_run.exists():
             from courses.tasks import bulk_run_participation_slot_code_task
