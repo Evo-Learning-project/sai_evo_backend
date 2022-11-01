@@ -12,17 +12,18 @@ DATABASES = {
     "default": {
         **dj_database_url.parse(
             os.environ.get("DATABASE_URL", False),  #
-            engine="django_postgrespool2",
+            engine=os.environ.get("DATABASE_ENGINE", None),  # "django_postgrespool2"
             conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", 60)),
         ),
         "ATOMIC_REQUESTS": True,
     }
 }
 
+# applies if using django_postgrespool2
 DATABASE_POOL_ARGS = {
-    "max_overflow": 50,
-    "pool_size": 150,
-    "recycle": 300,
+    "max_overflow": int(os.environ.get("DJANGO_POSTGRESPOOL2_MAX_OVERFLOW", 20)),
+    "pool_size": int(os.environ.get("DJANGO_POSTGRESPOOL2_POOL_SIZE", 80)),
+    "recycle": int(os.environ.get("DJANGO_POSTGRESPOOL2_RECYCLE", 300)),
 }
 
 MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"] + MIDDLEWARE
@@ -31,9 +32,10 @@ WHITENOISE_MAX_AGE = 604800 * 2  # 2 weeks
 
 SECRET_KEY = os.environ.get("SECRET_KEY", None)
 
-# ALLOWED_HOSTS = [
-#     "*",
-# ]  # * to test on DO
+if DEMO_MODE:
+    ALLOWED_HOSTS = [
+        "*",
+    ]  # * to test on DO
 
 # force https on heroku
 # SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -86,20 +88,19 @@ LOGGING = {
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATIC_URL = '/static/'
 
-# import sentry_sdk
-# from sentry_sdk.integrations.django import DjangoIntegration
 
-sentry_sdk.init(
-    dsn="https://36f5d66ec4a44fa8965a3adfef7d289f@o1003719.ingest.sentry.io/6265953",
-    integrations=[DjangoIntegration()],
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=0.5,
-    # If you wish to associate users to errors (assuming you are using
-    # django.contrib.auth) you may enable sending PII data.
-    send_default_pii=True,
-)
+if os.environ.get("SENTRY_URL", None) is not None:
+    sentry_sdk.init(
+        dsn=os.environ.get("SENTRY_URL"),
+        integrations=[DjangoIntegration()],
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=0.5,
+        # If you wish to associate users to errors (assuming you are using
+        # django.contrib.auth) you may enable sending PII data.
+        send_default_pii=True,
+    )
 
 
 CHANNEL_LAYERS = {
@@ -114,4 +115,7 @@ CHANNEL_LAYERS = {
     },
 }
 
-CSRF_TRUSTED_ORIGINS = ["https://*.di.unipi.it"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.di.unipi.it",
+    "https://*.evo-learning.com",
+]  # TODO use env var

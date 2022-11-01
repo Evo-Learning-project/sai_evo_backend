@@ -1,4 +1,5 @@
 from functools import cached_property
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 
@@ -7,6 +8,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from courses.models import Course
+
+from django.db import transaction
 
 
 class RequestingUserPrivilegesMixin:
@@ -29,6 +32,7 @@ class RestrictedListMixin:
 
 
 class BulkCreateMixin:
+    # @transaction.atomic()
     def create(self, request, *args, **kwargs):
         many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=many)
@@ -39,6 +43,7 @@ class BulkCreateMixin:
 
 
 class BulkPatchMixin:
+    # @transaction.atomic()
     @action(detail=False, methods=["patch"])
     def bulk_patch(self, request, **kwargs):
         try:
@@ -110,4 +115,7 @@ class ScopeQuerySetByCourseMixin(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(course_id=self.kwargs["course_pk"])
+        try:
+            return qs.filter(course_id=self.kwargs["course_pk"])
+        except ValueError:  # invalid value for course_pk
+            raise Http404

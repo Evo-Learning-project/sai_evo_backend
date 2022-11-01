@@ -20,7 +20,7 @@ class BaseAccessPolicy(AccessPolicy):
 
         try:
             course = Course.objects.get(pk=course_pk)
-        except ValueError:
+        except (ValueError, Course.DoesNotExist):
             return False
 
         return check_privilege(request.user, course, privilege)
@@ -42,7 +42,7 @@ class CoursePolicy(BaseAccessPolicy):
             "action": ["set_permissions", "jobe"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_permissions",
+            "condition": "has_teacher_privileges:update_course",
         },
         {
             "action": ["retrieve"],
@@ -71,6 +71,11 @@ class CoursePolicy(BaseAccessPolicy):
     ]
 
     def is_visible_to(self, request, view, action):
+        from demo_mode.logic import is_demo_mode
+
+        # if is_demo_mode():
+        #     return is_course_accessible_in_demo_mode(view.get_object(), request.user)
+
         return True
 
     def is_teacher(self, request, view, action):
@@ -83,7 +88,7 @@ class CourseRolePolicy(BaseAccessPolicy):
             "action": ["*"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "has_teacher_privileges:manage_permissions",
+            "condition": "has_teacher_privileges:update_course",
         },
     ]
 
@@ -377,7 +382,13 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
                 or has_teacher_privileges:assess_participations",
         },
         {
-            "action": ["update", "partial_update", "run", "attachment"],
+            "action": [
+                "update",
+                "partial_update",
+                "run",
+                "attachment",
+                "execution_results",
+            ],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "\
@@ -454,7 +465,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
                 user=request.user,
             ).get(pk=view.kwargs.get("exercise_pk"))
             return True
-        except Exercise.DoesNotExist:
+        except (ValueError, Exercise.DoesNotExist):
             return False
 
     def is_own_solution(self, request, view, action):

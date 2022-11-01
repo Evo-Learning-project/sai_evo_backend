@@ -41,6 +41,7 @@ from courses.models import (
     ExerciseSolutionComment,
     ExerciseSolutionVote,
     ExerciseTestCase,
+    ExerciseTestCaseAttachment,
     Tag,
 )
 from courses.serializer_fields import (
@@ -97,6 +98,7 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
         self.remove_unsatisfied_condition_fields()
 
     def get_privileges(self, obj):
+        # !!
         return get_user_privileges(self.context["request"].user, obj)
 
     def get_public_exercises_count(self, obj):
@@ -224,6 +226,14 @@ class ExerciseTestCaseSerializer(serializers.ModelSerializer, ConditionalFieldsM
         )
 
 
+class ExerciseTestCaseAttachmentSerializer(serializers.ModelSerializer):
+    attachment = FileWithPreviewField()
+
+    class Meta:
+        model = ExerciseTestCaseAttachment
+        fields = ["id", "attachment"]
+
+
 class ExerciseSolutionVoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExerciseSolutionVote
@@ -274,12 +284,14 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer, ConditionalFieldsM
         self.remove_unsatisfied_condition_fields()
 
     def get_has_upvote(self, obj):
+        # !! causes lots of queries
         # TODO FIXME optimize, prefetch specifically upvotes
         return obj.votes.filter(
             vote_type=VoteModel.UP_VOTE, user=self.context["request"].user
         ).exists()
 
     def get_has_downvote(self, obj):
+        # !! causes lots of queries
         # TODO FIXME optimize, prefetch specifically downvotes
         return obj.votes.filter(
             vote_type=VoteModel.DOWN_VOTE, user=self.context["request"].user
@@ -344,6 +356,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "child_weight",
             "max_score",
             "all_or_nothing",
+            # "solution",
         ]
 
         conditional_fields = {
@@ -511,12 +524,7 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     locked_by = UserSerializer(read_only=True)
     template = serializers.SerializerMethodField()
     participation_exists = serializers.SerializerMethodField()
-    max_score = serializers.DecimalField(
-        max_digits=5,
-        decimal_places=1,
-        allow_null=True,
-        required=False,
-    )
+    max_score = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
 
     class Meta:
         model = Event
@@ -770,13 +778,6 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
         }
 
     def __init__(self, *args, **kwargs):
-        # loggererror("instantiating PARTICIPATION")
-        # loggerdebug("debug")
-        # loggerinfo("info")
-        # loggerwarning("warning")
-        # loggererror("error")
-        # logger.critical("critical")
-
         super().__init__(*args, **kwargs)
 
         self.remove_unsatisfied_condition_fields()

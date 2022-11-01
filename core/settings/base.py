@@ -28,6 +28,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
+DEMO_MODE = os.environ.get("DEMO_MODE", "False") == "True"
+
+
 ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = "users.User"
@@ -61,6 +65,7 @@ INSTALLED_APPS = [
     "gamification",
     "notifications",
     "user_notifications",
+    "demo_mode"
     # "silk",
 ]
 
@@ -128,7 +133,8 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-        "ATOMIC_REQUESTS": True,
+        "ATOMIC_REQUESTS": False,
+        #  "CONN_MAX_AGE": 10,
     }
 }
 
@@ -189,6 +195,13 @@ oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
     os.environ.get("TOKEN_EXPIRE_SECONDS", 2592000)
 )
 
+# TODO move to separate settings module for demo mode
+if DEMO_MODE:
+    # in demo mode, make tokens last a week
+    oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
+        os.environ.get("TOKEN_EXPIRE_SECONDS", 60 * 60 * 24 * 7)
+    )
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
@@ -215,3 +228,22 @@ MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
 
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_BROKER_URL = os.environ.get("RABBITMQ_URL", "amqp://localhost:5672")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "CRITICAL",
+            "class": "logging.FileHandler",
+            "filename": "debug.log",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}

@@ -57,9 +57,16 @@ class ExerciseSolutionFilter(FilterSet):
 
 
 class EventFilter(FilterSet):
+    state = django_filters.NumberFilter(method="state_filter")
+
     class Meta:
         model = Event
         fields = ["event_type"]
+
+    def state_filter(self, queryset, name, value):
+        if value:
+            queryset = queryset.filter(_event_state=value)
+        return queryset
 
 
 class EventParticipationFilter(FilterSet):

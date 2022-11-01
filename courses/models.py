@@ -5,7 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
 from django.utils import timezone
-
+from demo_mode.logic import is_demo_mode
+from demo_mode.querysets import DemoCoursesQuerySet
 from gamification.actions import (
     CORRECTLY_ANSWERED_EXERCISE,
     EXERCISE_SOLUTION_APPROVED,
@@ -32,6 +33,8 @@ from django_lifecycle import (
     BEFORE_DELETE,
 )
 
+from courses import signals  # to make signals work
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,10 +60,18 @@ from .managers import (
 )
 
 
+# TODO change name to get_participation_slot_attachment_path
 def get_attachment_path(slot, filename):
     event = slot.participation.event
     course = event.course
     return f"{course.pk}/{event.pk}/{slot.slot_number}/{filename}"
+
+
+def get_testcase_attachment_path(testcase_attachment, filename):
+    testcase = testcase_attachment.testcase
+    exercise = testcase.exercise
+    course = exercise.course
+    return f"{course.pk}/testcase_attachments/{exercise.pk}/{testcase.pk}/{filename}"
 
 
 class Course(TimestampableModel):
@@ -83,6 +94,9 @@ class Course(TimestampableModel):
     hidden = models.BooleanField(default=False)
 
     objects = CourseManager()
+
+    if is_demo_mode():
+        demo_manager = DemoCoursesQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created", "pk"]
@@ -670,7 +684,20 @@ class ExerciseTestCase(OrderableModel):
         return self.expected_stdout[: self.MAX_CODE_LENGTH] + "<...>"
 
 
-class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel):
+class ExerciseTestCaseAttachment(models.Model):
+    testcase = models.ForeignKey(
+        ExerciseTestCase,
+        related_name="attachments",
+        on_delete=models.CASCADE,
+    )
+    attachment = models.FileField(
+        null=True,
+        blank=True,
+        upload_to=get_testcase_attachment_path,
+    )
+
+
+class Event(HashIdModel, TimestampableModel, LockableModel):
     """
     An Event represents some type of quiz/exam students can participate in.
     Teachers can create exam events, and students can create "self-service
@@ -797,6 +824,7 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
         rules = self.template.rules.all()
         return sum([(r.weight or 0) * r.amount for r in rules])
 
+    # TODO remove as this is unused
     @max_score.setter
     def max_score(self, value):
         # divides the given value evenly among the template

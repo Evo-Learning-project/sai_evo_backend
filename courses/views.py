@@ -11,6 +11,9 @@ from courses.filters import (
     ExerciseFilter,
     ExerciseSolutionFilter,
 )
+from demo_mode.logic import is_demo_mode
+
+from django.db import transaction
 
 from .view_mixins import (
     BulkCreateMixin,
@@ -71,6 +74,7 @@ from courses.models import (
     ExerciseSolutionComment,
     ExerciseSolutionVote,
     ExerciseTestCase,
+    ExerciseTestCaseAttachment,
     Tag,
     UserCoursePrivilege,
 )
@@ -90,6 +94,7 @@ from .serializers import (
     ExerciseSolutionCommentSerializer,
     ExerciseSolutionSerializer,
     ExerciseSolutionVoteSerializer,
+    ExerciseTestCaseAttachmentSerializer,
     ExerciseTestCaseSerializer,
     TagSerializer,
 )
@@ -118,9 +123,14 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         # TODO use scope_queryset https://rsinger86.github.io/drf-access-policy/multi_tenacy/
+
+        if is_demo_mode():  # !!!
+            return Course.demo_manager.visible_in_demo_mode_to(self.request.user)
+
         if not self.request.user.is_teacher:
             qs = qs.public()
 
+        # !! hits db twice
         qs = qs.prefetch_related(
             Prefetch(
                 "privileged_users",
@@ -135,6 +145,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
 
         return qs
+
+    # @action(methods=["get"], detail=False)
+    # def test(self, request, **kwargs):
+    #     Course.objects.create(name="wenfioheirowr")
+    #     raise Exception
 
     def perform_create(self, serializer):
         serializer.save(
@@ -250,6 +265,7 @@ class CourseRoleViewSet(ScopeQuerySetByCourseMixin):
         return Response(status=status.HTTP_200_OK)
 
 
+# ! TODO make create atomic
 class ExerciseSolutionViewSet(
     viewsets.ModelViewSet,
     RestrictedListMixin,
@@ -401,6 +417,7 @@ class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
         )
 
 
+# ! TODO make create atomic
 class ExerciseViewSet(
     BulkCreateMixin,
     ScopeQuerySetByCourseMixin,
@@ -456,6 +473,7 @@ class ExerciseViewSet(
             creator=self.request.user,
         )
 
+    # @transaction.atomic()
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
         exercise = self.get_object()
@@ -539,6 +557,37 @@ class ExerciseTestCaseViewSet(viewsets.ModelViewSet):
         )
 
 
+class ExerciseTestCaseAttachmentViewSet(viewsets.ModelViewSet):
+    serializer_class = ExerciseTestCaseAttachmentSerializer
+    queryset = ExerciseTestCaseAttachment.objects.all()
+    permission_classes = [policies.ExerciseRelatedObjectsPolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(testcase_id=self.kwargs["testcase_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            testcase_id=self.kwargs["testcase_pk"],
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieving an ExerciseTestCaseAttachment downloads
+        the attached file
+        """
+        attachment = self.get_object().attachment
+
+        if not bool(attachment):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return FileResponse(
+            attachment,
+            as_attachment=True,
+            filename=os.path.split(attachment.name)[1],
+        )
+
+
 class TagViewSet(
     RequestingUserPrivilegesMixin,
     ScopeQuerySetByCourseMixin,
@@ -573,6 +622,7 @@ class TagViewSet(
         )
 
 
+# ! TODO make create atomic?
 class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
     serializer_class = EventSerializer
     queryset = (
@@ -771,6 +821,7 @@ class EventParticipationViewSet(
         Returns a dict for usage inside serializers' context in order to decide whether
         to display some fields ans whether to make them writable
         """
+        # TODO improve this by checking for truthy values
         force_student = "as_student" in self.request.query_params
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
@@ -827,6 +878,7 @@ class EventParticipationViewSet(
         except ValueError:
             raise Http404
 
+    # @transaction.atomic()
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
         try:
@@ -838,6 +890,7 @@ class EventParticipationViewSet(
                 ).pk
                 participation = self.get_queryset().get(pk=participation_pk)
             except IntegrityError:  # race condition detected
+                logger.error("race condition detected for user " + str(request.user))
                 return self.create(request, *args, **kwargs)
             except Event.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
@@ -918,6 +971,7 @@ class EventParticipationSlotViewSet(
         Returns a dict for usage inside serializers' context in order to decide whether
         to display some fields ans whether to make them writable
         """
+        # TODO improve this by checking for truthy values
         force_student = "as_student" in self.request.query_params
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
@@ -956,6 +1010,7 @@ class EventParticipationSlotViewSet(
             .prefetch_related("sub_slots", "selected_choices")
         )
 
+    # @transaction.atomic()
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()
@@ -982,6 +1037,11 @@ class EventParticipationSlotViewSet(
             context=self.get_serializer_context(),
         )
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=["get"])
+    def execution_results(self, request, **kwargs):
+        slot = self.get_object()
+        return Response(slot.execution_results, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"])
     def attachment(self, request, **kwargs):
