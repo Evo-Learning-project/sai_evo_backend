@@ -19,6 +19,7 @@ from .view_mixins import (
     BulkCreateMixin,
     BulkGetMixin,
     BulkPatchMixin,
+    LockableModelViewSetMixin,
     RequestingUserPrivilegesMixin,
     RestrictedListMixin,
     ScopeQuerySetByCourseMixin,
@@ -622,8 +623,9 @@ class TagViewSet(
         )
 
 
-# ! TODO make create atomic?
-class EventViewSet(ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin):
+class EventViewSet(
+    ScopeQuerySetByCourseMixin, RequestingUserPrivilegesMixin, LockableModelViewSetMixin
+):
     serializer_class = EventSerializer
     queryset = (
         Event.objects.all()

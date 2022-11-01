@@ -16,11 +16,11 @@ class LockableModelViewSetMixin:
     def lock(self, request, **kwargs):
         obj: LockableModel = self.get_object()
         success = obj.try_lock(request.user)
-        status_code = (
-            status.HTTP_204_NO_CONTENT if success else status.HTTP_403_FORBIDDEN
-        )
 
-        return Response(status=status_code)
+        if not success:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        return self.retrieve(request, **kwargs)
 
     @action(detail=True, methods=["post"])
     def unlock(self, request, **kwargs):
