@@ -1435,6 +1435,8 @@ class EventParticipationSlot(models.Model):
 
     def save(self, *args, **kwargs):
         pre_save_pk = self.pk
+
+        self.full_clean()
         super().save(*args, **kwargs)
 
         # run on transaction commit because, for multiple choice exercises,
@@ -1454,7 +1456,35 @@ class EventParticipationSlot(models.Model):
         if self.answered_at is None and pre_save_pk is not None:
             transaction.on_commit(update_answered_at_if_answer_exists)
 
-    # TODO clean
+    def clean(self):
+        super().clean()
+
+        event = self.participation.event
+        course = event.course
+
+        # prevent assigning exercises from another course
+        if self.exercise.course != course:
+            raise ValidationError(
+                str(self.exercise) + " is not a valid exercise for slot " + str(self.pk)
+            )
+
+        # prevent assigning rules from another event
+        if (
+            self.populating_rule is not None
+            and self.populating_rule.template.event != event
+        ):
+            raise ValidationError(
+                str(self.populating_rule)
+                + " is not a valid rule for slot "
+                + str(self.pk)
+            )
+
+        # TODO review & test
+        # prevent assigning a parent whose exercise isn't a parent of the slot's exercise
+        if self.parent is not None and self.parent.exercise != self.exercise.parent:
+            raise ValidationError(
+                str(self.parent) + " is not a valid parent for slot " + str(self.pk)
+            )
 
     def is_in_scope(self):
         """

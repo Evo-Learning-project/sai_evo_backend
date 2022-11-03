@@ -102,7 +102,7 @@ class EventAdmin(admin.ModelAdmin):
 @admin.register(EventParticipationSlot)
 class EventParticipationSlotAdmin(admin.ModelAdmin):
     readonly_fields = (
-        "exercise",
+        # "exercise",
         "selected_choices",
         "participation",
         "parent",
