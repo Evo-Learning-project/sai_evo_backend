@@ -976,6 +976,21 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("correctness", exercise["choices"][0])
 
         """
+        Show user cannot select choices that don't belong to the exercise or that don't exist
+        """
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_2.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [123101]},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        """
         Show failure in updating an out-of-scope slot
         """
         response = self.client.patch(
