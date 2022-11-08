@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 import requests
 from coding.python.runPython import get_python_program_for_vm
 from coding.runner.runner import JavaScriptCodeRunner
-from courses.models import Exercise, ExerciseTestCaseAttachment
+from courses.models import Exercise, ExerciseTestCase, ExerciseTestCaseAttachment
 from courses.serializers import ExerciseTestCaseSerializer
 from django.db.models.fields.files import FieldFile
 from django.db.models import QuerySet
@@ -307,23 +307,26 @@ Exposed function
 
 
 def get_code_execution_results(slot=None, **kwargs):
-    exercise = (
+    ret = None
+    exercise: Exercise = (
         slot.exercise if kwargs.get("exercise") is None else kwargs.get("exercise")
     )
-    code = slot.answer_text if kwargs.get("code") is None else kwargs.get("code")
+    code: str = slot.answer_text if kwargs.get("code") is None else kwargs.get("code")
 
-    testcases = exercise.testcases.all()
+    testcases: QuerySet[ExerciseTestCase] = exercise.testcases.all()
 
     if exercise.exercise_type == Exercise.JS:
         # return run_js_code_in_vm(code, exercise, [], False)
-        return run_js_code_in_vm(
-            code, exercise, testcases, exercise.requires_typescript
-        )
+        ret = run_js_code_in_vm(code, exercise, testcases, exercise.requires_typescript)
 
-    if exercise.exercise_type == Exercise.C:
-        return run_c_code_in_vm(code, testcases)
+    elif exercise.exercise_type == Exercise.C:
+        ret = run_c_code_in_vm(code, testcases)
 
-    if exercise.exercise_type == Exercise.PYTHON:
-        return run_python_code_in_vm(code, testcases)
+    elif exercise.exercise_type == Exercise.PYTHON:
+        ret = run_python_code_in_vm(code, testcases)
 
-    raise ValidationError("Non-coding exercise " + str(exercise.pk))
+    if ret is None:
+        raise ValidationError("Non-coding exercise " + str(exercise.pk))
+
+    # TODO add md5 of executed code to result
+    return ret
