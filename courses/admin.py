@@ -37,6 +37,7 @@ class ExerciseAdmin(admin.ModelAdmin):
         ExerciseTestCaseInline,
         SubExerciseInline,
     ]
+    readonly_fields = ("parent", "public_tags", "private_tags")
 
 
 class ContentInline(admin.TabularInline):
