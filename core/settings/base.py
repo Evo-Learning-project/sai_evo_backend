@@ -65,17 +65,16 @@ INSTALLED_APPS = [
     "gamification",
     "notifications",
     "user_notifications",
-    "demo_mode"
-    # "silk",
+    "demo_mode",
+    "silk",
 ]
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
 
 SILKY_PYTHON_PROFILER = False
-SILKY_INTERCEPT_PERCENT = 50  # log only 50% of requests
 
 MIDDLEWARE = [
-    # "silk.middleware.SilkyMiddleware",
+    "silk.middleware.SilkyMiddleware",
     "drf_viewset_profiler.middleware.LineProfilerViewSetMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -133,7 +132,7 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-        "ATOMIC_REQUESTS": False,
+        "ATOMIC_REQUESTS": True,
         #  "CONN_MAX_AGE": 10,
     }
 }

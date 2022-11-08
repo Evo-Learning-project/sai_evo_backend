@@ -91,7 +91,7 @@ class OrderableModel(TrackFieldsMixin):
                 # automatically populate the _ordering field based on
                 # the ordering of siblings when creating new instance
                 self._ordering = self.get_ordering_position()
-            # TODO calculate _ordering here and use a lock to avoid race conditions
+            # TODO fix race conditions in calculation of _ordering
             super().save(*args, **kwargs)
 
     def get_siblings(self):

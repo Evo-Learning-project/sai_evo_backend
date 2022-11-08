@@ -346,8 +346,15 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
     def __str__(self):
         return self.text[:100]
 
+    def save(self, *args, **kwargs) -> None:
+        self.clean()
+        return super().save(*args, **kwargs)
+
     def clean(self):
-        pass
+        if self.parent is not None and self.parent.course != self.course:
+            raise ValidationError(
+                str(self.pk) + " cannot be child of " + str(self.parent.pk)
+            )
 
     def get_max_score(self):
         if self.exercise_type in [Exercise.OPEN_ANSWER, Exercise.ATTACHMENT]:
@@ -583,19 +590,6 @@ class ExerciseChoice(OrderableModel):
             + str(self._ordering)
             + ")"
         )
-
-    # def save(self, *args, **kwargs):
-    #     # TODO resolve conflict with _ordering field, which is non-nullable
-    #     # self.full_clean()
-    #     return super().save(*args, **kwargs)
-
-    # def clean(self, *args, **kwargs):
-    #     if self.correctness_percentage is not None and (
-    #         self.correctness_percentage > 100 or self.correctness_percentage < -100
-    #     ):
-    #         raise ValidationError(
-    #             f"invalid correctness_percentage value {self.access_rule_exceptions}"
-    #         )
 
 
 class ExerciseTestCase(OrderableModel):
@@ -1436,7 +1430,7 @@ class EventParticipationSlot(models.Model):
     def save(self, *args, **kwargs):
         pre_save_pk = self.pk
 
-        self.full_clean()
+        self.clean()
         super().save(*args, **kwargs)
 
         # run on transaction commit because, for multiple choice exercises,
@@ -1457,13 +1451,11 @@ class EventParticipationSlot(models.Model):
             transaction.on_commit(update_answered_at_if_answer_exists)
 
     def clean(self):
-        super().clean()
-
         event = self.participation.event
         course = event.course
 
         # prevent assigning exercises from another course
-        if self.exercise.course != course:
+        if self.exercise.course_id != course.pk:
             raise ValidationError(
                 str(self.exercise) + " is not a valid exercise for slot " + str(self.pk)
             )
@@ -1479,9 +1471,11 @@ class EventParticipationSlot(models.Model):
                 + str(self.pk)
             )
 
-        # TODO review & test
-        # prevent assigning a parent whose exercise isn't a parent of the slot's exercise
-        if self.parent is not None and self.parent.exercise != self.exercise.parent:
+        # prevent assigning a parent whose exercise isn't a parent of the slot's exercise or that's a slot for a different participation
+        if self.parent is not None and (
+            self.parent.exercise != self.exercise.parent
+            or self.parent.participation != self.participation
+        ):
             raise ValidationError(
                 str(self.parent) + " is not a valid parent for slot " + str(self.pk)
             )
