@@ -424,6 +424,7 @@ class ExerciseViewSet(
     ScopeQuerySetByCourseMixin,
     BulkGetMixin,
     RequestingUserPrivilegesMixin,
+    LockableModelViewSetMixin,
 ):
     serializer_class = ExerciseSerializer
     queryset = Exercise.objects.all().with_prefetched_related_objects()
