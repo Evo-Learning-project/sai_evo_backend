@@ -467,6 +467,7 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
     _ordering = serializers.IntegerField(required=False)
+    # TODO move this to a separate api view
     satisfying = serializers.SerializerMethodField()
 
     class Meta:
@@ -580,6 +581,9 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     def get_state(self, obj):
         state = obj.state
         user = self.context["request"].user
+
+        # if user doesn't have privileges, bypass RESTRICTED state
+        # and show them the relevant state for them
         if state == Event.RESTRICTED and not check_privilege(
             user,
             obj.course,
@@ -690,13 +694,28 @@ class EventParticipationSlotSerializer(
         if capabilities.get("submission_fields_read", False):
             submission_fields_write = capabilities.get("submission_fields_write", False)
             selected_choices_kwargs = {"read_only": (not submission_fields_write)}
+
             if not selected_choices_kwargs["read_only"]:
-                selected_choices_kwargs["queryset"] = ExerciseChoice.objects.all()
+                # specify a queryset for the selected_choices field - include only choices
+                # for the exercise that's assigned to this slot
+                try:
+                    slot_instance = args[0]
+                except:
+                    # DRF sometimes seems to call serializers spuriously without passing instance
+                    slot_instance = None
+
+                selected_choices_kwargs["queryset"] = (
+                    ExerciseChoice.objects.all()
+                    if slot_instance is None
+                    else ExerciseChoice.objects.filter(
+                        exercise_id=slot_instance.exercise_id
+                    )
+                )
             self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
                 many=True, **selected_choices_kwargs
             )
 
-            # TODO find a better way to handle attachment
+            # TODO change below logic to use args[0] which contains the slot
             # pass slot and participation id's to file field's extras
             attachment_extras = {}
             if self.instance is not None:
@@ -707,11 +726,6 @@ class EventParticipationSlotSerializer(
                 else:
                     instance = self.instance
 
-                # instance = (
-                #     self.instance
-                #     if not isinstance(self.instance, list)
-                #     else (self.instance[0] if len(self.instance) > 0 else None)
-                # )
                 if instance is not None:
                     attachment_extras["slot_id"] = instance.pk
                     attachment_extras["participation_id"] = instance.participation.pk

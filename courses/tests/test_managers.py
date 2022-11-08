@@ -258,6 +258,16 @@ class ExerciseManagerTestCase(TestCase):
             len(sub_exercises),
         )
 
+        # show that a sub-exercise cannot be assigned to a parent from another course
+        sub_1 = e1.sub_exercises.first()
+        another_course = Course.objects.create(name="another")
+        another_exercise = Exercise.objects.create(
+            course=another_course, text="", exercise_type=Exercise.OPEN_ANSWER
+        )
+        with self.assertRaises(ValidationError):
+            sub_1.parent = another_exercise
+            sub_1.save()
+
         i = 0
         for sub_exercise in e1.sub_exercises.all():
             self.assertDictEqual(
@@ -480,8 +490,12 @@ class EventParticipationManagerTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(email="aaa@bbb.com", username="a")
         self.course = Course.objects.create(name="course")
+        self.other_course = Course.objects.create(name="course2")
         self.event = Event.objects.create(
             name="event", event_type=Event.EXAM, course=self.course
+        )
+        self.event_other_course = Event.objects.create(
+            name="event", event_type=Event.EXAM, course=self.other_course
         )
         self.tag1 = Tag.objects.create(name="tag1", course=self.course)
         self.tag2 = Tag.objects.create(name="tag2", course=self.course)
@@ -495,6 +509,17 @@ class EventParticipationManagerTestCase(TestCase):
         self.e1 = Exercise.objects.create(
             text="a",
             course=self.course,
+            state=Exercise.PRIVATE,
+            exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+            choices=[
+                {
+                    "text": "aa",
+                }
+            ],
+        )
+        self.e1_other_course = Exercise.objects.create(
+            text="a",
+            course=self.other_course,
             state=Exercise.PRIVATE,
             exercise_type=Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
             choices=[
@@ -610,6 +635,13 @@ class EventParticipationManagerTestCase(TestCase):
         for rule in rules:
             EventTemplateRule.objects.create(template=self.event.template, **rule)
 
+        # dummy rule from another course to test validation
+        self.rule_template_other_course = EventTemplateRule.objects.create(
+            template=self.event_other_course.template,
+            rule_type=EventTemplateRule.ID_BASED,
+        )
+        self.rule_template_other_course.exercises.set([self.e1_other_course])
+
         self.template = self.event.template
 
         self.e1.public_tags.set([self.tag1, self.tag3])  # satisfies rule 1 and rule 2
@@ -674,6 +706,16 @@ class EventParticipationManagerTestCase(TestCase):
             slot_0 = participation.slots.base_slots().get(slot_number=0)
             self.assertIn(slot_0.exercise.pk, [self.e1.pk, self.e2.pk])
 
+            # show that assigning an exercise from another course isn't allowed
+            with self.assertRaises(ValidationError):
+                slot_0.exercise = self.e1_other_course
+                slot_0.save()
+
+            # show that assigning a populating rule from another course isn't allowed
+            with self.assertRaises(ValidationError):
+                slot_0.populating_rule = self.rule_template_other_course
+                slot_0.save()
+
             slot_1 = participation.slots.base_slots().get(slot_number=1)
             self.assertIn(slot_1.exercise.pk, [self.e1.pk, self.e2.pk, self.e5.pk])
 
@@ -682,6 +724,12 @@ class EventParticipationManagerTestCase(TestCase):
 
             if slot_2.exercise.pk == self.e4.pk:
                 self.assertEqual(slot_2.sub_slots.count(), 2)
+                # show that a sub-slot cannot be assigned a parent with an exercise that doesn't have
+                # a parent exercise assigned to it
+                with self.assertRaises(ValidationError):
+                    sub_slot = slot_2.sub_slots.first()
+                    sub_slot.parent = slot_1
+                    sub_slot.save()
 
             slot_3 = participation.slots.get(slot_number=3)
             self.assertIn(slot_3.exercise.pk, [self.e6.pk])
