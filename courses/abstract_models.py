@@ -281,14 +281,25 @@ class LockableModel(models.Model):
         waiting list is empty.
         """
         if self.has_lock_timed_out():
+            update_fields = ["_locked_by"]
             if self.awaiting_users.exists():
+                # pass lock onto first user in line
                 first_in_line = self.awaiting_users.first()
                 self._locked_by = first_in_line
                 self.awaiting_users.remove(first_in_line)
+
+                # automatically send a heartbeat to prevent the lock from
+                # staying in a timed out state, which would cause it to be
+                # released immediately if accessed until the first heartbeat
+                # is sent by the new user who holds it
+                now = timezone.localtime(timezone.now())
+                self.last_heartbeat = now
+                update_fields.append("last_heartbeat")
+
             else:
                 self._locked_by = None
 
-            self.save(update_fields=["_locked_by"])
+            self.save(update_fields=update_fields)
 
         return self._locked_by
 
@@ -373,7 +384,7 @@ class LockableModel(models.Model):
         is older than `LOCK_TIMEOUT_SECONDS`
         """
         if self.last_heartbeat is None:
-            logger.warning(str(self) + " last heartbeat is None")
+            # logger.warning(str(self) + " last heartbeat is None")
             return True
 
         now = timezone.localtime(timezone.now())
