@@ -46,6 +46,7 @@ def bulk_run_participation_slot_code_task(self, slot_ids):
             try:
                 self.retry(countdown=1)
             except MaxRetriesExceededError:
+                # TODO put this logic inside a method for participation slot, e.g. set_execution_results_error_condition
                 slot.execution_results = {"state": "internal_error"}
                 slot.save(update_fields=["execution_results"])
 
