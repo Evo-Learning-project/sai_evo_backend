@@ -315,8 +315,14 @@ class LockableModel(models.Model):
 
         Returns whether the user successfully acquired the lock.
         """
+        now = timezone.localtime(timezone.now())
+
+        if self.locked_by == user:
+            # if the instance is already locked by the requesting user,
+            # treat this as a heartbeat
+            return self.heartbeat(user)
+
         if self.locked_by is None:
-            now = timezone.localtime(timezone.now())
             self.locked_by = user
 
             self.last_lock_update = now
