@@ -19,6 +19,9 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
     can_be_root = False
     can_have_children = True
 
+    def get_course(self) -> Course:
+        return self.get_root().course
+
     # class Meta(PolymorphicMPTTModel.Meta):
     #     verbose_name = _("Tree node")
     #     verbose_name_plural = _("Tree nodes")
