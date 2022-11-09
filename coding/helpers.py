@@ -11,6 +11,7 @@ from courses.models import Exercise, ExerciseTestCase, ExerciseTestCaseAttachmen
 from courses.serializers import ExerciseTestCaseSerializer
 from django.db.models.fields.files import FieldFile
 from django.db.models import QuerySet
+import hashlib
 
 JOBE_OUTCOMES = {
     11: "compilation_error",
@@ -328,5 +329,6 @@ def get_code_execution_results(slot=None, **kwargs):
     if ret is None:
         raise ValidationError("Non-coding exercise " + str(exercise.pk))
 
-    # TODO add md5 of executed code to result
+    # add md5 of executed code to results object to keep track of what code the object refers to
+    ret["code_md5"] = hashlib.md5(code.encode("utf-8")).hexdigest()
     return ret

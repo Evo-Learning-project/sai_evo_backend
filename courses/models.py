@@ -4,6 +4,7 @@ from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
+from django.db.models.functions import MD5
 from django.utils import timezone
 from demo_mode.logic import is_demo_mode
 from demo_mode.querysets import DemoCoursesQuerySet
@@ -870,12 +871,13 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
         to run it, and to prevent teachers from having to manually grade it
         """
         slots_to_run = EventParticipationSlot.objects.filter(
+            (
+                Q(execution_results__isnull=True)
+                # answer was updated since the last time it was run without running again
+                | ~Q(execution_results__code_md5=MD5(F("answer_text")))
+            ),
             participation__event_id=self.pk,
             exercise__exercise_type__in=Exercise.PROGRAMMING_TYPES,
-            execution_results__isnull=True,
-            # TODO put the above in OR with NOT(execution_results__for_code=F('answer_text'))
-            # to also re-run slots who ran for an older version of code
-            # https://docs.djangoproject.com/en/4.1/ref/models/database-functions/#md5
         )
         if slots_to_run.exists():
             from courses.tasks import bulk_run_participation_slot_code_task
