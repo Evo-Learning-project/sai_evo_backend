@@ -6,6 +6,7 @@ from users.models import User
 
 
 class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
+    # TODO write docs for all nodes
     parent = PolymorphicTreeForeignKey(
         "self",
         blank=True,
