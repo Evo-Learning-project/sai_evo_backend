@@ -41,6 +41,8 @@ django-lifecycle = "*"
 django-notifications-rest = "*"
 django-notifications-hq = "*"
 django-postgrespool2 = "*"
+django-polymorphic-tree = "*"
+django-rest-polymorphic = "*"
 
 [dev-packages]
 mypy = "*"

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "courses",
     "users",
+    "course_tree",
     "content",
     "django_extensions",
     "nested_admin",
@@ -66,6 +67,9 @@ INSTALLED_APPS = [
     "notifications",
     "user_notifications",
     "demo_mode",
+    "polymorphic_tree",
+    "polymorphic",
+    "mptt",
     # "silk",
 ]
 
