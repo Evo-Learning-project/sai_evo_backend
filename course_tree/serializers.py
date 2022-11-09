@@ -62,7 +62,7 @@ class FileNodeSerializer(CourseTreeNodeSerializer):
         ]
 
 
-class NodePolymorphicSerializer(PolymorphicSerializer):
+class CourseTreeNodePolymorphicSerializer(PolymorphicSerializer):
     # TODO write docs
     model_serializer_mapping = {
         RootCourseTreeNode: RootNodeSerializer,
