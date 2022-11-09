@@ -4,7 +4,7 @@ from core.models import HashIdModel
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Max, Q
-from django.db.models.functions import MD5
+from django.db.models.functions import MD5, Cast
 from django.utils import timezone
 from demo_mode.logic import is_demo_mode
 from demo_mode.querysets import DemoCoursesQuerySet
@@ -870,11 +870,14 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
         done in order to be forgiving with students that wrote an answer but forgot
         to run it, and to prevent teachers from having to manually grade it
         """
-        slots_to_run = EventParticipationSlot.objects.filter(
+        slots_to_run = EventParticipationSlot.objects.annotate(
+            # explicit cast to text needed for postgres
+            code_md5_as_text=Cast("execution_results__code_md5", models.TextField())
+        ).filter(
             (
                 Q(execution_results__isnull=True)
                 # answer was updated since the last time it was run without running again
-                | ~Q(execution_results__code_md5=MD5(F("answer_text")))
+                | ~Q(code_md5_as_text=MD5(F("answer_text")))
             ),
             participation__event_id=self.pk,
             exercise__exercise_type__in=Exercise.PROGRAMMING_TYPES,
