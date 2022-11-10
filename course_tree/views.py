@@ -5,14 +5,34 @@ from rest_framework.response import Response
 from .serializers import CourseTreeNodePolymorphicSerializer
 from .models import Course, BaseCourseTreeNode, RootCourseTreeNode
 
+from django.db.models import OuterRef, Subquery
+
 
 class TreeNodeViewSet(viewsets.ModelViewSet):
     serializer_class = CourseTreeNodePolymorphicSerializer
     queryset = BaseCourseTreeNode.objects.all()
     # TODO permissions
+    # TODO pagination, maybe dynamic depending on whether the user is requesting top level nodes or children
 
     def get_queryset(self):
         qs = super().get_queryset()
+
+        if self.kwargs.get("course_pk") is not None:
+            """TODO note to self
+            to get top level nodes, one should do courses/<pk>/tree/?page=1
+
+            to get the children of a node:
+            courses/<pk>/tree/<node_id>/children?page=1
+            """
+            node_root_subquery = BaseCourseTreeNode.objects.all().filter(
+                tree_id=OuterRef("tree_id"), parent_id__isnull=True
+            )
+            nodes_with_course_qs = BaseCourseTreeNode.objects.annotate(
+                root_course_id=Subquery(
+                    node_root_subquery.values("rootcoursetreenode__course_id")[:1]
+                )
+            )
+            qs = nodes_with_course_qs.filter(root_course_id=self.kwargs["course_id"])
         if self.kwargs.get("parent_pk") is not None:
             # using the viewset as a sub-route to get the children of a node
             qs = qs.filter(parent_id=self.kwargs["parent_pk"])
