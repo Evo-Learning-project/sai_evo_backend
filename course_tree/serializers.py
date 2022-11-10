@@ -25,7 +25,7 @@ class CourseTreeNodeSerializer(serializers.ModelSerializer):
 
         self.fields["children"] = serializers.ListSerializer(
             read_only=True,
-            child=RecursiveField(to="NodePolymorphicSerializer"),
+            child=RecursiveField(to="CourseTreeNodePolymorphicSerializer"),
         )
 
 

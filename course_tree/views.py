@@ -33,8 +33,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
                     node_root_subquery.values("rootcoursetreenode__course_id")[:1]
                 )
             )
-            qs = nodes_with_course_qs.filter(root_course_id=self.kwargs["course_id"])
-            print("QS", qs.query)
+            qs = nodes_with_course_qs.filter(root_course_id=self.kwargs["course_pk"])
         if self.kwargs.get("parent_pk") is not None:
             # using the viewset as a sub-route to get the children of a node
             qs = qs.filter(parent_id=self.kwargs["parent_pk"])
