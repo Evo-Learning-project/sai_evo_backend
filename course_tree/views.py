@@ -2,6 +2,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from course_tree.pagination import CourseTreeNodePagination
 from .serializers import CourseTreeNodePolymorphicSerializer
 from .models import BaseCourseTreeNode, RootCourseTreeNode
 from django.http import Http404
@@ -14,7 +16,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
     serializer_class = CourseTreeNodePolymorphicSerializer
     queryset = BaseCourseTreeNode.objects.all()
     permission_classes = [policies.TreeNodePolicy]
-    # TODO pagination, maybe dynamic depending on whether the user is requesting top level nodes or children
+    pagination_class = CourseTreeNodePagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -27,6 +29,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
             )
             nodes_with_course_qs = BaseCourseTreeNode.objects.annotate(
                 root_course_id=Subquery(
+                    # ! assumes that there is at most one tree per course - currently enforced
                     node_root_subquery.values("rootcoursetreenode__course_id")[:1]
                 )
             )
