@@ -1,4 +1,5 @@
 import nested_admin
+
 from django.contrib import admin
 
 from courses.models import *

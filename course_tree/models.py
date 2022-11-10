@@ -19,6 +19,18 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
     can_be_root = False
     can_have_children = True
 
+    @property
+    def displayed_name(self):
+        """For admin"""
+        child_display_attrs = ("topicnode", "rootnode", "lessonnode", "filenode")
+        for at in child_display_attrs:
+            try:
+                hasattr(self, at)
+                return getattr(self, at)
+            except:
+                pass
+        return "Root"
+
     def get_course(self) -> Course:
         return self.get_root().course
 

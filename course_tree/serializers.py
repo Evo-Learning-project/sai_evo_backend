@@ -28,6 +28,8 @@ class CourseTreeNodeSerializer(serializers.ModelSerializer):
             child=RecursiveField(to="CourseTreeNodePolymorphicSerializer"),
         )
 
+        self.fields["parent_id"] = serializers.IntegerField()
+
 
 class RootNodeSerializer(CourseTreeNodeSerializer):
     class Meta:
