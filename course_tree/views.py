@@ -18,6 +18,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
 
+        # this is always true with the current route definition
         if self.kwargs.get("course_pk") is not None:
             """TODO note to self
             to get top level nodes, one should do courses/<pk>/tree/?page=1
@@ -40,12 +41,17 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
                 )
             except ValueError:  # invalid value for course_pk
                 raise Http404
-        if self.kwargs.get("parent_pk") is not None:
+
+        if self.request.query_params.get("top_level", "").lower() in ["true", "1"]:
+            # request is for nodes that are direct child of the root node for the tree
+            qs = qs.filter(level=1)
+        elif self.kwargs.get("parent_pk") is not None:
             # using the viewset as a sub-route to get the children of a node
             try:
                 qs = qs.filter(parent_id=self.kwargs["parent_pk"])
             except ValueError:  # invalid value for parent_pk
                 raise Http404
+
         return qs
 
     @action(detail=False, methods=["get"])
