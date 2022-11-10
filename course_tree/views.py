@@ -3,7 +3,8 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import CourseTreeNodePolymorphicSerializer
-from .models import Course, BaseCourseTreeNode, RootCourseTreeNode
+from .models import BaseCourseTreeNode, RootCourseTreeNode
+from django.http import Http404
 
 from django.db.models import OuterRef, Subquery
 
@@ -33,10 +34,18 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
                     node_root_subquery.values("rootcoursetreenode__course_id")[:1]
                 )
             )
-            qs = nodes_with_course_qs.filter(root_course_id=self.kwargs["course_pk"])
+            try:
+                qs = nodes_with_course_qs.filter(
+                    root_course_id=self.kwargs["course_pk"]
+                )
+            except ValueError:  # invalid value for course_pk
+                raise Http404
         if self.kwargs.get("parent_pk") is not None:
             # using the viewset as a sub-route to get the children of a node
-            qs = qs.filter(parent_id=self.kwargs["parent_pk"])
+            try:
+                qs = qs.filter(parent_id=self.kwargs["parent_pk"])
+            except ValueError:  # invalid value for parent_pk
+                raise Http404
         return qs
 
     @action(detail=False, methods=["get"])
