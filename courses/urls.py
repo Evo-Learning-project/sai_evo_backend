@@ -138,7 +138,7 @@ participation_router.register(
 # `/courses/<pk>/nodes` entry point
 course_router.register(r"nodes", TreeNodeViewSet, basename="course-nodes")
 
-tree_router = routers.NestedSimpleRouter(course_router, r"nodes", lookup="event")
+tree_router = routers.NestedSimpleRouter(course_router, r"nodes", lookup="parent")
 
 # `/courses/<pk>/nodes/<pk>/children` entry point
 tree_router.register(r"children", TreeNodeViewSet, basename="node-children")
