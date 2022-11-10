@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
-
+from course_tree.views import TreeNodeViewSet
 from courses import views
 
 # `/courses` entry point
@@ -131,6 +131,18 @@ participation_router.register(
     r"slots", views.EventParticipationSlotViewSet, basename="participation-slots"
 )
 
+"""
+    course_tree module urls
+"""
+
+# `/courses/<pk>/nodes` entry point
+course_router.register(r"nodes", TreeNodeViewSet, basename="course-nodes")
+
+tree_router = routers.NestedSimpleRouter(course_router, r"nodes", lookup="event")
+
+# `/courses/<pk>/nodes/<pk>/children` entry point
+tree_router.register(r"children", TreeNodeViewSet, basename="node-children")
+
 
 urlpatterns = [
     path("", include(router.urls)),
@@ -142,4 +154,5 @@ urlpatterns = [
     path("", include(exercise_solution_router.urls)),
     path("", include(template_router.urls)),
     path("", include(template_rule_router.urls)),
+    path("", include(tree_router.urls)),
 ]
