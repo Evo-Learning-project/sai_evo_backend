@@ -43,6 +43,7 @@ django-notifications-hq = "*"
 django-postgrespool2 = "*"
 django-polymorphic-tree = "*"
 django-rest-polymorphic = "*"
+bandit = "*"
 
 [dev-packages]
 mypy = "*"
