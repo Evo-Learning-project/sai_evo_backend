@@ -841,6 +841,7 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
             self._event_state = Event.CLOSED
             self.save()
 
+        # TODO this doesn't seem to work, fix (might have to do with transactions)
         if (
             self._event_state == Event.RESTRICTED
             and not self.users_allowed_past_closure.exists()
