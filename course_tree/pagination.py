@@ -2,8 +2,8 @@ from core.pagination import CatchEmptyResultsPageNumberPagination
 
 
 class CourseTreeNodePagination(CatchEmptyResultsPageNumberPagination):
-    page_size = 2
+    page_size = 10
 
 
 class CourseTreeChildrenNodePagination(CatchEmptyResultsPageNumberPagination):
-    page_size = 1
+    page_size = 10
