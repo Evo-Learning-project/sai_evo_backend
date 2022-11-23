@@ -280,7 +280,7 @@ class LockableModel(models.Model):
         If so, pass the lock onto the first user in line or release the lock if the
         waiting list is empty.
         """
-        if self.has_lock_timed_out():
+        if self._locked_by is not None and self.has_lock_timed_out():
             update_fields = ["_locked_by"]
             if self.awaiting_users.exists():
                 # pass lock onto first user in line
