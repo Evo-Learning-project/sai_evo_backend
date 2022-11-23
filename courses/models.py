@@ -69,10 +69,11 @@ def get_attachment_path(slot, filename):
 
 
 def get_testcase_attachment_path(testcase_attachment, filename):
+    now = timezone.localtime(timezone.now())
     testcase = testcase_attachment.testcase
     exercise = testcase.exercise
     course = exercise.course
-    return f"{course.pk}/testcase_attachments/{exercise.pk}/{testcase.pk}/{filename}"
+    return f"{course.pk}/testcase_attachments/{exercise.pk}/{testcase.pk}/{now.strftime('%Y_%m_%d_%H_%M_%S_%f')}/{filename}"
 
 
 class Course(TimestampableModel):

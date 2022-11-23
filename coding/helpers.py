@@ -60,7 +60,6 @@ def _program_stdout_matches_expected(stdout, expected_stdout):
 
 
 def _get_file_id_for_jobe(filename):
-    # TODO hash other data (such as the full path, or creation timestamp, testcase id, exercise id) in order to prevent files with the same name from clashing
     return hashlib.md5(filename.encode("utf-8")).hexdigest()
 
 
