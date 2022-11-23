@@ -69,10 +69,11 @@ def get_attachment_path(slot, filename):
 
 
 def get_testcase_attachment_path(testcase_attachment, filename):
+    now = timezone.localtime(timezone.now())
     testcase = testcase_attachment.testcase
     exercise = testcase.exercise
     course = exercise.course
-    return f"{course.pk}/testcase_attachments/{exercise.pk}/{testcase.pk}/{filename}"
+    return f"{course.pk}/testcase_attachments/{exercise.pk}/{testcase.pk}/{now.strftime('%Y_%m_%d_%H_%M_%S_%f')}/{filename}"
 
 
 class Course(TimestampableModel):
@@ -841,6 +842,7 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
             self._event_state = Event.CLOSED
             self.save()
 
+        # TODO this doesn't seem to work, fix (might have to do with transactions)
         if (
             self._event_state == Event.RESTRICTED
             and not self.users_allowed_past_closure.exists()
