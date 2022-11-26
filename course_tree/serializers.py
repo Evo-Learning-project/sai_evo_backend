@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from course_tree.pagination import CourseTreeChildrenNodePagination
+from users.serializers import UserSerializer
 
 from .models import (
     RootCourseTreeNode,
@@ -61,22 +62,27 @@ class TopicNodeSerializer(CourseTreeNodeSerializer):
 
 
 class LessonNodeSerializer(CourseTreeNodeSerializer):
+    creator = UserSerializer(read_only=True)
+
     class Meta:
         model = LessonNode
         fields = [
             "id",
             "title",
+            "creator",
             "body",
         ]
 
 
 class FileNodeSerializer(CourseTreeNodeSerializer):
     file = FileWithPreviewField()
+    creator = UserSerializer(read_only=True)
 
     class Meta:
         model = FileNode
         fields = [
             "id",
+            "creator",
             "file",
         ]
 

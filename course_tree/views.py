@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
@@ -6,7 +7,7 @@ from rest_framework.response import Response
 from course_tree.pagination import CourseTreeNodePagination
 from .serializers import CourseTreeNodePolymorphicSerializer
 from .models import BaseCourseTreeNode, RootCourseTreeNode
-from django.http import Http404
+from django.http import FileResponse, Http404
 from . import policies
 from django.db.models import OuterRef, Subquery
 from mptt.exceptions import InvalidMove
@@ -52,21 +53,15 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    # @action(detail=False, methods=["get"])
-    # def root_for_course(self, request, **kwargs):
-    #     try:
-    #         course_id = request.query_params["course_id"]
-    #     except KeyError:
-    #         return Response(status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=["get"])
+    def root_id(self, request, **kwargs):
+        try:
+            # TODO this assumes there's only one tree per course, keep an eye on it
+            root = get_object_or_404(self.get_queryset(), parent_id=None)
+        except ValueError:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
-    #     try:
-    #         # TODO this assumes there's only one tree per course, keep an eye on it
-    #         root = get_object_or_404(RootCourseTreeNode, course_id=course_id)
-    #     except ValueError:
-    #         return Response(status=status.HTTP_404_NOT_FOUND)
-
-    #     serializer = self.get_serializer(root)
-    #     return Response(serializer.data)
+        return Response(root.id)
 
     @action(detail=True, methods=["post"])
     def move(self, request, **kwargs):
@@ -87,3 +82,16 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"])
+    def download(self, request, **kwargs):
+        file = self.get_object().file
+
+        if not bool(file):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return FileResponse(
+            file,
+            as_attachment=True,
+            filename=os.path.split(file.name)[1],
+        )

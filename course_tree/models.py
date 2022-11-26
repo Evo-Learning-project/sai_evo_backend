@@ -1,8 +1,14 @@
 from django.db import models
-
+import os
 from polymorphic_tree.models import PolymorphicMPTTModel, PolymorphicTreeForeignKey
 from courses.models import Course, TimestampableModel
 from users.models import User
+
+
+def get_filenode_file_path(node: "FileNode", filename: str):
+    root: RootCourseTreeNode = node.get_root()
+    course = root.course
+    return f"course_tree/{str(course.pk)}/file_nodes/{str(node.pk)}/{filename}"
 
 
 class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
@@ -19,6 +25,15 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
     can_be_root = False
     can_have_children = True
 
+    class MPTTMeta:
+        order_insertion_by = [
+            "-created"
+        ]  # TODO need something more sophisticated in order to handle reodering
+
+    # class Meta(PolymorphicMPTTModel.Meta):
+    #     verbose_name = _("Tree node")
+    #     verbose_name_plural = _("Tree nodes")
+
     @property
     def displayed_name(self):
         """For admin"""
@@ -33,10 +48,6 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
 
     def get_course(self) -> Course:
         return self.get_root().course
-
-    # class Meta(PolymorphicMPTTModel.Meta):
-    #     verbose_name = _("Tree node")
-    #     verbose_name_plural = _("Tree nodes")
 
 
 class RootCourseTreeNode(BaseCourseTreeNode):
@@ -69,9 +80,9 @@ class LessonNode(BaseCourseTreeNode):
 class FileNode(BaseCourseTreeNode):
     can_have_children = False
 
-    def get_file_path(self, node: "FileNode", filename: str):
-        root: RootCourseTreeNode = node.get_root()
-        course = root.course
-        return f"course_tree/{str(course.pk)}/file_nodes/{str(self.pk)}/{filename}"
+    file = models.FileField(blank=True, null=True, upload_to=get_filenode_file_path)
 
-    file = models.FileField(blank=True, null=True, upload_to=get_file_path)
+    @property
+    def file_type(self):
+        # TODO use python_magic to return the actual type
+        return os.path.splitext(self.file.name)[1]
