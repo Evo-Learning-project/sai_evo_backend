@@ -57,7 +57,9 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
     def root_id(self, request, **kwargs):
         try:
             # TODO this assumes there's only one tree per course, keep an eye on it
-            root = get_object_or_404(self.get_queryset(), parent_id=None)
+            root, _ = RootCourseTreeNode.objects.get_or_create(
+                course_id=self.kwargs["course_pk"]
+            )
         except ValueError:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
