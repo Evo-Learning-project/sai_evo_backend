@@ -71,11 +71,12 @@ class LessonNodeSerializer(CourseTreeNodeSerializer):
             "title",
             "creator",
             "body",
+            "state",
         ]
 
 
 class FileNodeSerializer(CourseTreeNodeSerializer):
-    file = FileWithPreviewField()
+    file = FileWithPreviewField(allow_null=True)
     creator = UserSerializer(read_only=True)
 
     class Meta:
