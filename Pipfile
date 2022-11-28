@@ -45,6 +45,7 @@ django-polymorphic-tree = "*"
 django-rest-polymorphic = "*"
 bandit = "*"
 python-magic = "*"
+pymupdf = "*"
 
 [dev-packages]
 mypy = "*"

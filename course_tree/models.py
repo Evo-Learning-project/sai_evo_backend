@@ -1,9 +1,11 @@
+import io
 from django.db import models
 import os
 from polymorphic_tree.models import PolymorphicMPTTModel, PolymorphicTreeForeignKey
-from course_tree.helpers import detect_content_type
+from course_tree.helpers import detect_content_type, get_file_thumbnail
 from courses.models import Course, TimestampableModel
 from users.models import User
+from django.core.files.images import ImageFile
 
 
 def get_filenode_file_path(node: "FileNode", filename: str):
@@ -85,6 +87,19 @@ class FileNode(BaseCourseTreeNode):
         db_column="file", blank=True, null=True, upload_to=get_filenode_file_path
     )
     mime_type = models.CharField(max_length=255, blank=True)
+    thumbnail = models.ImageField(
+        blank=True,
+        null=True,
+        upload_to=get_filenode_file_path,
+    )
+
+    def save(self, generate_thumbnail=True, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.file is not None and generate_thumbnail:
+            thumbnail = get_file_thumbnail(self.file, self.mime_type)
+            if thumbnail is not None:
+                self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
+                self.save(update_fields=["thumbnail"], generate_thumbnail=False)
 
     @property
     def file(self):
@@ -95,6 +110,7 @@ class FileNode(BaseCourseTreeNode):
         # intercept file updates to update mime type
         self._file = value
         self.mime_type = detect_content_type(value)
+        # self.thumbnail = get_file_thumbnail(value, self.mime_type)
 
     @property
     def file_type(self):
