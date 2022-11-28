@@ -93,24 +93,20 @@ class FileNode(BaseCourseTreeNode):
         upload_to=get_filenode_file_path,
     )
 
-    def save(self, generate_thumbnail=True, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.file is not None and generate_thumbnail:
-            thumbnail = get_file_thumbnail(self.file, self.mime_type)
-            if thumbnail is not None:
-                self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
-                self.save(update_fields=["thumbnail"], generate_thumbnail=False)
-
     @property
     def file(self):
         return self._file
 
     @file.setter
     def file(self, value):
-        # intercept file updates to update mime type
         self._file = value
+
+        # intercept file updates to update mime type
         self.mime_type = detect_content_type(value)
-        # self.thumbnail = get_file_thumbnail(value, self.mime_type)
+        # also update thumbnail
+        thumbnail = get_file_thumbnail(self.file, self.mime_type)
+        if thumbnail is not None:
+            self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
 
     @property
     def file_type(self):
