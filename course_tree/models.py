@@ -1,6 +1,7 @@
 from django.db import models
 import os
 from polymorphic_tree.models import PolymorphicMPTTModel, PolymorphicTreeForeignKey
+from course_tree.helpers import detect_content_type
 from courses.models import Course, TimestampableModel
 from users.models import User
 
@@ -80,7 +81,20 @@ class LessonNode(BaseCourseTreeNode):
 class FileNode(BaseCourseTreeNode):
     can_have_children = False
 
-    file = models.FileField(blank=True, null=True, upload_to=get_filenode_file_path)
+    _file = models.FileField(
+        db_column="file", blank=True, null=True, upload_to=get_filenode_file_path
+    )
+    mime_type = models.CharField(max_length=255, blank=True)
+
+    @property
+    def file(self):
+        return self._file
+
+    @file.setter
+    def file(self, value):
+        # intercept file updates to update mime type
+        self._file = value
+        self.mime_type = detect_content_type(value)
 
     @property
     def file_type(self):

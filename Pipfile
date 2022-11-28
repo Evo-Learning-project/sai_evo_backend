@@ -44,6 +44,7 @@ django-postgrespool2 = "*"
 django-polymorphic-tree = "*"
 django-rest-polymorphic = "*"
 bandit = "*"
+python-magic = "*"
 
 [dev-packages]
 mypy = "*"
