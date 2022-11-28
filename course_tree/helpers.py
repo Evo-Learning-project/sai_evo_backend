@@ -17,8 +17,8 @@ def get_file_thumbnail(file, mime_type: str):
 
         first_page = pdf_document.load_page(0)
         thumbnail = first_page.get_pixmap()
-        print("\n\n\thumb", thumbnail, dir(thumbnail))
-        print("BYTES", ContentFile(thumbnail.tobytes()))
         return thumbnail.tobytes()
+
+    # TODO thumbnails for other file types
 
     return None

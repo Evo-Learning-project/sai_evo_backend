@@ -97,3 +97,16 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
             as_attachment=True,
             filename=os.path.split(file.name)[1],
         )
+
+    @action(detail=True, methods=["get"])
+    def thumbnail(self, request, **kwargs):
+        file = self.get_object().thumbnail
+
+        if not bool(file):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return FileResponse(
+            file,
+            as_attachment=True,
+            filename=os.path.split(file.name)[1],
+        )

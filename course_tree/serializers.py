@@ -81,12 +81,7 @@ class FileNodeSerializer(CourseTreeNodeSerializer):
 
     class Meta:
         model = FileNode
-        fields = [
-            "id",
-            "creator",
-            "file",
-            "mime_type",
-        ]
+        fields = ["id", "creator", "file", "mime_type", "thumbnail"]
 
     def create(self, validated_data):
         # getting the path to a FileNode's file requires knowing its primary key.

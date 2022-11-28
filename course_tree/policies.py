@@ -5,7 +5,7 @@ from courses.policies import BaseAccessPolicy
 class TreeNodePolicy(BaseAccessPolicy):
     statements = [
         {
-            "action": ["retrieve", "list", "download", "root_id"],
+            "action": ["retrieve", "list", "download", "root_id", "thumbnail"],
             "principal": ["*"],
             "effect": "allow",
             # "condition": "is_visible_to",
