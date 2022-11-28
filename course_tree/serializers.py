@@ -87,6 +87,17 @@ class FileNodeSerializer(CourseTreeNodeSerializer):
             "file",
         ]
 
+    def create(self, validated_data):
+        # getting the path to a FileNode's file requires knowing its primary key.
+        # therefore, if the creation payload contains a file, the node is created
+        # first without the file, and the file is subsequently assigned to it
+        file = validated_data.pop("file", None)
+        instance = super().create(validated_data)
+        if file is not None:
+            instance.file = file
+            instance.save()
+        return instance
+
 
 class CourseTreeNodePolymorphicSerializer(PolymorphicSerializer):
     # TODO write docs
