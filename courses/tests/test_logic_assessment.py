@@ -94,19 +94,19 @@ class SubmissionAssessorTestCase(TestCase):
         distribute the new value
         """
 
-        self.event.max_score = 21
+        # self.event.max_score = 21
 
-        self.rule_msc.refresh_from_db()
-        self.rule_mmc.refresh_from_db()
-        self.rule_clz.refresh_from_db()
-        self.rule_open.refresh_from_db()
-        self.rule_js.refresh_from_db()
+        # self.rule_msc.refresh_from_db()
+        # self.rule_mmc.refresh_from_db()
+        # self.rule_clz.refresh_from_db()
+        # self.rule_open.refresh_from_db()
+        # self.rule_js.refresh_from_db()
 
-        self.assertEqual(self.rule_msc.weight, 3.5)
-        self.assertEqual(self.rule_mmc.weight, 3.5)
-        self.assertEqual(self.rule_clz.weight, 3.5)
-        self.assertEqual(self.rule_open.weight, 3.5)
-        self.assertEqual(self.rule_js.weight, 3.5)
+        # self.assertEqual(self.rule_msc.weight, 3.5)
+        # self.assertEqual(self.rule_mmc.weight, 3.5)
+        # self.assertEqual(self.rule_clz.weight, 3.5)
+        # self.assertEqual(self.rule_open.weight, 3.5)
+        # self.assertEqual(self.rule_js.weight, 3.5)
 
         # reset rules
         self.rule_msc.weight = 2
