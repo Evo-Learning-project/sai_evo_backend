@@ -1215,30 +1215,40 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def current_slots(self):
-        ret = self.base_slots
         if (
-            self.event.exercises_shown_at_a_time is not None
-            # if the participation has been turned in, show all slots to allow reviewing answers
-            and self.state != EventParticipation.TURNED_IN
-        ):
-            # slots are among the "current" ones iff their number is between the `current_slot_cursor`
-            # of the EventParticipation and the next `exercises_shown_at_a_time` slots
-            ret = (
-                ret.filter(
-                    slot_number__gte=self.current_slot_cursor,
-                    slot_number__lt=(
-                        self.current_slot_cursor + self.event.exercises_shown_at_a_time
-                    ),
-                )
-                if not isinstance(ret, list)
-                else [
-                    s
-                    for s in ret
-                    if s.slot_number >= self.current_slot_cursor
-                    and s.slot_number
-                    < self.current_slot_cursor + self.event.exercises_shown_at_a_time
-                ]
+            # event shows all exercises at once
+            self.event.exercises_shown_at_a_time is None
+            # user has turned in
+            or self.state == EventParticipation.TURNED_IN
+            # event is closed
+            or self.event.state == Event.CLOSED
+            or (  # event is closed for this specific user
+                self.event.state == Event.RESTRICTED
+                and self.user not in self.event.users_allowed_past_closure.all()
             )
+        ):
+            # in the above cases, show all slots
+            return self.base_slots
+
+        ret = self.base_slots
+        # slots are among the "current" ones iff their number is between the `current_slot_cursor`
+        # of the EventParticipation and the next `exercises_shown_at_a_time` slots
+        ret = (
+            ret.filter(
+                slot_number__gte=self.current_slot_cursor,
+                slot_number__lt=(
+                    self.current_slot_cursor + self.event.exercises_shown_at_a_time
+                ),
+            )
+            if not isinstance(ret, list)
+            else [
+                s
+                for s in ret
+                if s.slot_number >= self.current_slot_cursor
+                and s.slot_number
+                < self.current_slot_cursor + self.event.exercises_shown_at_a_time
+            ]
+        )
         return ret
 
     def save(self, *args, **kwargs):
