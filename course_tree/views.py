@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from course_tree.filters import CourseTreeNodeFilter
 
 from course_tree.pagination import CourseTreeNodePagination
 from .serializers import CourseTreeNodePolymorphicSerializer
@@ -11,6 +12,7 @@ from django.http import FileResponse, Http404
 from . import policies
 from django.db.models import OuterRef, Subquery
 from mptt.exceptions import InvalidMove
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class TreeNodeViewSet(viewsets.ModelViewSet):
@@ -18,6 +20,15 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
     queryset = BaseCourseTreeNode.objects.all()
     permission_classes = [policies.TreeNodePolicy]
     pagination_class = CourseTreeNodePagination
+    filter_backends = [
+        DjangoFilterBackend,
+    ]
+    filterset_class = CourseTreeNodeFilter
+
+    def perform_create(self, serializer):
+        serializer.save(
+            creator=self.request.user,
+        )
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -25,11 +36,13 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
         # this is always true with the current route definition
         if self.kwargs.get("course_pk") is not None:
             # filter to only get nodes in a tree whose root references the requested course
-            node_root_subquery = BaseCourseTreeNode.objects.all().filter(
-                tree_id=OuterRef("tree_id"), parent_id__isnull=True
+            node_root_subquery = (
+                BaseCourseTreeNode.objects.all().filter(  # get root nodes
+                    tree_id=OuterRef("tree_id"), parent_id__isnull=True
+                )
             )
             nodes_with_course_qs = BaseCourseTreeNode.objects.annotate(
-                root_course_id=Subquery(
+                root_course_id=Subquery(  # annotate nodes with the course_id attribute of the root node of their tree
                     # ! assumes that there is at most one tree per course - currently enforced
                     node_root_subquery.values("rootcoursetreenode__course_id")[:1]
                 )
@@ -51,7 +64,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
             except ValueError:  # invalid value for parent_pk
                 raise Http404
 
-        return qs
+        return qs.order_by("-created")  # TODO temporary, remove
 
     @action(detail=False, methods=["get"])
     def root_id(self, request, **kwargs):
