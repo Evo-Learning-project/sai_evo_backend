@@ -17,7 +17,7 @@ class TreeNodePolicy(BaseAccessPolicy):
             "condition": "has_create_permission_over_resource_type",
         },
         {
-            "action": ["update", "partial_update", "move"],
+            "action": ["update", "partial_update", "move", "destroy"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_update_permission_over_resource_type",

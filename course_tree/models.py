@@ -47,7 +47,7 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
                 return getattr(self, at)
             except:
                 pass
-        return "Root"
+        return "Root " + str(self.pk)
 
     def get_course(self) -> Course:
         return self.get_root().course
