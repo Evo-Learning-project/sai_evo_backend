@@ -28,14 +28,23 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
     can_be_root = False
     can_have_children = True
 
+    # TODO take care of this
+    # class Meta:
+    #     ordering = (
+    #         "tree_id",
+    #         "-lft",
+    #     )
+
     class MPTTMeta:
-        order_insertion_by = [
-            "-created"
-        ]  # TODO need something more sophisticated in order to handle reodering
+        order_insertion_by = ["lft"]
 
     # class Meta(PolymorphicMPTTModel.Meta):
     #     verbose_name = _("Tree node")
     #     verbose_name_plural = _("Tree nodes")
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     print("META", self.Meta.ordering)
 
     @property
     def displayed_name(self):

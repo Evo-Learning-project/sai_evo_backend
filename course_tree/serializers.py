@@ -32,6 +32,10 @@ class CourseTreeNodeSerializer(serializers.ModelSerializer):
 
         self.fields["parent_id"] = serializers.IntegerField()
 
+        # ! TODO remove after debug
+        self.fields["lft"] = serializers.IntegerField(read_only=True)
+        self.fields["tree_id"] = serializers.IntegerField(read_only=True)
+
     def get_paginated_children(self, obj):
         paginator = CourseTreeChildrenNodePagination()
         request = self.context.get("request")
@@ -81,7 +85,13 @@ class FileNodeSerializer(CourseTreeNodeSerializer):
 
     class Meta:
         model = FileNode
-        fields = ["id", "creator", "file", "mime_type", "thumbnail"]
+        fields = [
+            "id",
+            "creator",
+            "file",
+            "mime_type",
+            "thumbnail",
+        ]
 
     def create(self, validated_data):
         # getting the path to a FileNode's file requires knowing its primary key.

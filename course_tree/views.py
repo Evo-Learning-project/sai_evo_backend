@@ -64,7 +64,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
             except ValueError:  # invalid value for parent_pk
                 raise Http404
 
-        return qs.order_by("-created")  # TODO temporary, remove
+        return qs  # .order_by("tree_id", "-lft")  # .order_by("-created")  # TODO temporary, remove
 
     @action(detail=False, methods=["get"])
     def root_id(self, request, **kwargs):
