@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from course_tree.filters import CourseTreeNodeFilter
 
 from course_tree.pagination import CourseTreeNodePagination
-from .serializers import CourseTreeNodePolymorphicSerializer
-from .models import BaseCourseTreeNode, RootCourseTreeNode
+from .serializers import CourseTreeNodePolymorphicSerializer, NodeCommentSerializer
+from .models import BaseCourseTreeNode, NodeComment, RootCourseTreeNode
 from django.http import FileResponse, Http404
 from . import policies
 from django.db.models import OuterRef, Subquery
@@ -57,11 +57,11 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("top_level", "").lower() in ["true", "1"]:
             # request is for nodes that are direct child of the root node for the tree
             qs = qs.filter(level=1)
-        elif self.kwargs.get("parent_pk") is not None:
+        elif self.kwargs.get("node_pk") is not None:
             # using the viewset as a sub-route to get the children of a node
             try:
-                qs = qs.filter(parent_id=self.kwargs["parent_pk"])
-            except ValueError:  # invalid value for parent_pk
+                qs = qs.filter(parent_id=self.kwargs["node_pk"])
+            except ValueError:  # invalid value for node_pk
                 raise Http404
 
         return qs  # .order_by("tree_id", "-lft")  # .order_by("-created")  # TODO temporary, remove
@@ -123,3 +123,26 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
             as_attachment=True,
             filename=os.path.split(file.name)[1],
         )
+
+
+class NodeCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = NodeCommentSerializer
+    queryset = NodeComment.objects.all()
+    permission_classes = [policies.NodeCommentPolicy]
+
+    def perform_create(self, serializer):
+        serializer.save(
+            node_id=self.kwargs["node_pk"],
+            user=self.request.user,
+        )
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        # ! TODO currently you can do /courses/i/nodes/n/comments where n isn't a node of course i and it'll still work: FIX
+        try:
+            qs = qs.filter(node_id=self.kwargs["node_pk"])
+        except ValueError:  # invalid value for node_pk
+            raise Http404
+
+        return qs

@@ -4,6 +4,7 @@ from course_tree.pagination import CourseTreeChildrenNodePagination
 from users.serializers import UserSerializer
 
 from .models import (
+    NodeComment,
     RootCourseTreeNode,
     TopicNode,
     LessonNode,
@@ -113,3 +114,15 @@ class CourseTreeNodePolymorphicSerializer(PolymorphicSerializer):
         LessonNode: LessonNodeSerializer,
         FileNode: FileNodeSerializer,
     }
+
+
+class NodeCommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    is_edited = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NodeComment
+        fields = ["id", "user", "created", "is_edited", "comment"]
+
+    def get_is_edited(self, obj):
+        return obj.created != obj.modified

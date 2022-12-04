@@ -28,23 +28,8 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
     can_be_root = False
     can_have_children = True
 
-    # TODO take care of this
-    # class Meta:
-    #     ordering = (
-    #         "tree_id",
-    #         "-lft",
-    #     )
-
     class MPTTMeta:
         order_insertion_by = ["lft"]
-
-    # class Meta(PolymorphicMPTTModel.Meta):
-    #     verbose_name = _("Tree node")
-    #     verbose_name_plural = _("Tree nodes")
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     print("META", self.Meta.ordering)
 
     @property
     def displayed_name(self):
@@ -121,3 +106,24 @@ class FileNode(BaseCourseTreeNode):
     def file_type(self):
         # TODO use python_magic to return the actual type
         return os.path.splitext(self.file.name)[1]
+
+
+class NodeComment(TimestampableModel):
+    user = models.ForeignKey(
+        User,
+        related_name="comments",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    node = models.ForeignKey(
+        BaseCourseTreeNode,
+        related_name="comments",
+        on_delete=models.CASCADE,
+    )
+    comment = models.CharField(max_length=500)
+
+    class Meta:
+        ordering = (
+            "node_id",
+            "created",
+        )

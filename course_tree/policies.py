@@ -62,3 +62,18 @@ class TreeNodePolicy(BaseAccessPolicy):
         return check_privilege(
             request.user, view.kwargs.get("course_pk"), MANAGE_COURSE_TREE_NODES
         )
+
+
+class NodeCommentPolicy(BaseAccessPolicy):
+    statements = [
+        {
+            "action": [
+                "retrieve",
+                "list",
+                "create",
+            ],
+            "principal": ["*"],
+            "effect": "allow",
+            # "condition": "is_visible_to",
+        },
+    ]

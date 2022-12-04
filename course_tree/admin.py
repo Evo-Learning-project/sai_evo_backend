@@ -8,6 +8,7 @@ from course_tree.models import (
     BaseCourseTreeNode,
     LessonNode,
     FileNode,
+    NodeComment,
     TopicNode,
     RootCourseTreeNode,
 )
@@ -63,6 +64,11 @@ class TreeNodeParentAdmin(PolymorphicMPTTParentModelAdmin):
 
     class Media:
         css = {"all": ("admin/treenode/admin.css",)}
+
+
+@admin.register(NodeComment)
+class NodeCommentAdmin(admin.ModelAdmin):
+    readonly_fields = ("created", "modified")
 
 
 admin.site.register(RootCourseTreeNode, RootNodeAdmin)
