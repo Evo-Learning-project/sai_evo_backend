@@ -14,7 +14,12 @@ class CourseTreeNodeFilter(FilterSet):
 
     def resourcetype_filter(self, queryset, name, value):
         if value:
-            if value.lower() not in ["topicnode", "lessonnode", "filenode"]:
+            if value.lower() not in [
+                "topicnode",
+                "lessonnode",
+                "filenode",
+                "announcementnode",
+            ]:
                 return queryset.none()
             filter_cond = {value.lower() + "__isnull": False}
             queryset = queryset.filter(**filter_cond)

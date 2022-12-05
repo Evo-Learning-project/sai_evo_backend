@@ -74,6 +74,18 @@ class LessonNode(BaseCourseTreeNode):
     )
 
 
+class AnnouncementNode(BaseCourseTreeNode):
+    class AnnouncementState(models.IntegerChoices):
+        DRAFT = 0
+        PUBLISHED = 1
+        # SCHEDULED = 2
+
+    body = models.TextField(blank=True)
+    state = models.PositiveSmallIntegerField(
+        default=AnnouncementState.DRAFT, choices=AnnouncementState.choices
+    )
+
+
 class FileNode(BaseCourseTreeNode):
     can_have_children = False
 

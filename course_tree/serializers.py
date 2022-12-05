@@ -4,6 +4,7 @@ from course_tree.pagination import CourseTreeChildrenNodePagination
 from users.serializers import UserSerializer
 
 from .models import (
+    AnnouncementNode,
     NodeComment,
     RootCourseTreeNode,
     TopicNode,
@@ -80,6 +81,19 @@ class LessonNodeSerializer(CourseTreeNodeSerializer):
         ]
 
 
+class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
+    creator = UserSerializer(read_only=True)
+
+    class Meta:
+        model = AnnouncementNode
+        fields = [
+            "id",
+            "creator",
+            "body",
+            "state",
+        ]
+
+
 class FileNodeSerializer(CourseTreeNodeSerializer):
     file = FileWithPreviewField(allow_null=True)
     creator = UserSerializer(read_only=True)
@@ -113,6 +127,7 @@ class CourseTreeNodePolymorphicSerializer(PolymorphicSerializer):
         TopicNode: TopicNodeSerializer,
         LessonNode: LessonNodeSerializer,
         FileNode: FileNodeSerializer,
+        AnnouncementNode: AnnouncementNodeSerializer,
     }
 
 
