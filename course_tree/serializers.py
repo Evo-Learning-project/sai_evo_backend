@@ -97,7 +97,7 @@ class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
         ]
 
 
-class PollNodeChoiceSerializer(CourseTreeNodeSerializer):
+class PollNodeChoiceSerializer(serializers.ModelSerializer):
     votes = serializers.SerializerMethodField()
     selected = serializers.SerializerMethodField()
 
@@ -115,11 +115,12 @@ class PollNodeChoiceSerializer(CourseTreeNodeSerializer):
 
 
 class PollNodeSerializer(CourseTreeNodeSerializer):
-    choices = PollNodeChoiceSerializer(many=True)
+    choices = PollNodeChoiceSerializer(many=True, read_only=True)
+    creator = UserSerializer(read_only=True)
 
     class Meta:
         model = PollNode
-        fields = ["id", "text", "state", "choices"]
+        fields = ["id", "text", "state", "choices", "creator"]
 
 
 class FileNodeSerializer(CourseTreeNodeSerializer):

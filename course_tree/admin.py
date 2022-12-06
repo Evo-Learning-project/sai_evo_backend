@@ -5,10 +5,13 @@ from polymorphic_tree.admin import (
 )
 
 from course_tree.models import (
+    AnnouncementNode,
     BaseCourseTreeNode,
     LessonNode,
     FileNode,
     NodeComment,
+    PollNode,
+    PollNodeChoice,
     TopicNode,
     RootCourseTreeNode,
 )
@@ -34,6 +37,14 @@ class RootNodeAdmin(BaseChildAdmin):
 
 
 class TopicNodeAdmin(BaseChildAdmin):
+    pass
+
+
+class AnnouncementNodeAdmin(BaseChildAdmin):
+    pass
+
+
+class PollNodeAdmin(BaseChildAdmin):
     pass
 
 
@@ -71,8 +82,15 @@ class NodeCommentAdmin(admin.ModelAdmin):
     readonly_fields = ("created", "modified")
 
 
+@admin.register(PollNodeChoice)
+class PollNodeChoiceAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(RootCourseTreeNode, RootNodeAdmin)
 admin.site.register(TopicNode, TopicNodeAdmin)
 admin.site.register(LessonNode, LessonNodeAdmin)
 admin.site.register(FileNode, FileNodeAdmin)
 admin.site.register(BaseCourseTreeNode, TreeNodeParentAdmin)
+admin.site.register(AnnouncementNode, AnnouncementNodeAdmin)
+admin.site.register(PollNode, PollNodeAdmin)
