@@ -115,7 +115,7 @@ class PollNodeChoiceSerializer(CourseTreeNodeSerializer):
 
 
 class PollNodeSerializer(CourseTreeNodeSerializer):
-    polls = PollNodeChoiceSerializer(many=True)
+    choices = PollNodeChoiceSerializer(many=True)
 
     class Meta:
         model = PollNode

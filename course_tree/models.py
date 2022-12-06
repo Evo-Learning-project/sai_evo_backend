@@ -99,6 +99,11 @@ class PollNode(BaseCourseTreeNode):
 
 
 class PollNodeChoice(models.Model):
+    poll = models.ForeignKey(
+        PollNode,
+        related_name="choices",
+        on_delete=models.CASCADE,
+    )
     text = models.CharField(max_length=500)
     selections = models.ManyToManyField(
         User,
