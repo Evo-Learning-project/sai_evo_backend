@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Sum, Case, When, Value
 
 from course_tree.pagination import CourseTreeChildrenNodePagination
 from users.serializers import UserSerializer
@@ -6,6 +7,8 @@ from users.serializers import UserSerializer
 from .models import (
     AnnouncementNode,
     NodeComment,
+    PollNode,
+    PollNodeChoice,
     RootCourseTreeNode,
     TopicNode,
     LessonNode,
@@ -94,6 +97,31 @@ class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
         ]
 
 
+class PollNodeChoiceSerializer(CourseTreeNodeSerializer):
+    votes = serializers.SerializerMethodField()
+    selected = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PollNodeChoice
+        fields = ["id", "text", "votes", "selected"]
+
+    def get_votes(self, obj):
+        # return obj.choices.aggregate(votes=Sum("selections__count", default=0))["votes"]
+        return obj.selections.count()
+
+    def get_selected(self, obj):
+        user = self.context["request"].user
+        return user in obj.selections.all()
+
+
+class PollNodeSerializer(CourseTreeNodeSerializer):
+    polls = PollNodeChoiceSerializer(many=True)
+
+    class Meta:
+        model = PollNode
+        fields = ["id", "text", "state", "choices"]
+
+
 class FileNodeSerializer(CourseTreeNodeSerializer):
     file = FileWithPreviewField(allow_null=True)
     creator = UserSerializer(read_only=True)
@@ -128,6 +156,7 @@ class CourseTreeNodePolymorphicSerializer(PolymorphicSerializer):
         LessonNode: LessonNodeSerializer,
         FileNode: FileNodeSerializer,
         AnnouncementNode: AnnouncementNodeSerializer,
+        PollNode: PollNodeSerializer,
     }
 
 

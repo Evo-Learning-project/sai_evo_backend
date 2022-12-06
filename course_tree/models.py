@@ -86,6 +86,32 @@ class AnnouncementNode(BaseCourseTreeNode):
     )
 
 
+class PollNode(BaseCourseTreeNode):
+    class PollState(models.IntegerChoices):
+        DRAFT = 0
+        OPEN = 1
+        CLOSED = 2
+
+    text = models.TextField(blank=True)
+    state = models.PositiveSmallIntegerField(
+        default=PollState.DRAFT, choices=PollState.choices
+    )
+
+
+class PollNodeChoice(models.Model):
+    text = models.CharField(max_length=500)
+    selections = models.ManyToManyField(
+        User,
+        related_name="selected_by",
+        through="PollNodeChoiceSelection",
+    )
+
+
+class PollNodeChoiceSelection(TimestampableModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    poll_node_choice = models.ForeignKey(PollNodeChoice, on_delete=models.CASCADE)
+
+
 class FileNode(BaseCourseTreeNode):
     can_have_children = False
 
