@@ -12,6 +12,7 @@ from course_tree.models import (
     NodeComment,
     PollNode,
     PollNodeChoice,
+    PollNodeParticipation,
     TopicNode,
     RootCourseTreeNode,
 )
@@ -84,6 +85,11 @@ class NodeCommentAdmin(admin.ModelAdmin):
 
 @admin.register(PollNodeChoice)
 class PollNodeChoiceAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(PollNodeParticipation)
+class PollNodeParticipation(admin.ModelAdmin):
     pass
 
 

@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
-from course_tree.views import NodeCommentViewSet, TreeNodeViewSet
+from course_tree.views import NodeCommentViewSet, PollNodeChoiceViewSet, TreeNodeViewSet
 from courses import views
 
 # `/courses` entry point
@@ -145,6 +145,8 @@ tree_router.register(r"children", TreeNodeViewSet, basename="node-children")
 
 # `/courses/<pk>/nodes/<pk>/comments` entry point
 tree_router.register(r"comments", NodeCommentViewSet, basename="node-comments")
+# `/courses/<pk>/nodes/<pk>/choices` entry point (only for poll nodes)
+tree_router.register(r"choices", PollNodeChoiceViewSet, basename="node-choices")
 
 urlpatterns = [
     path("", include(router.urls)),

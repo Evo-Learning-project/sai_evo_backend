@@ -6,8 +6,19 @@ from rest_framework.response import Response
 from course_tree.filters import CourseTreeNodeFilter
 
 from course_tree.pagination import CourseTreeNodePagination
-from .serializers import CourseTreeNodePolymorphicSerializer, NodeCommentSerializer
-from .models import BaseCourseTreeNode, NodeComment, RootCourseTreeNode
+from .serializers import (
+    CourseTreeNodePolymorphicSerializer,
+    NodeCommentSerializer,
+    PollNodeChoiceSerializer,
+)
+from .models import (
+    BaseCourseTreeNode,
+    NodeComment,
+    PollNode,
+    PollNodeChoice,
+    PollNodeParticipation,
+    RootCourseTreeNode,
+)
 from django.http import FileResponse, Http404
 from . import policies
 from django.db.models import OuterRef, Subquery
@@ -146,3 +157,34 @@ class NodeCommentViewSet(viewsets.ModelViewSet):
             raise Http404
 
         return qs
+
+
+class PollNodeChoiceViewSet(viewsets.ModelViewSet):
+    serializer_class = PollNodeChoiceSerializer
+    queryset = PollNodeChoice.objects.all()
+    permission_classes = [policies.PollNodeChoicePolicy]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        try:
+            qs = qs.filter(poll_id=self.kwargs["node_pk"])
+        except ValueError:  # invalid value for node_pk
+            raise Http404
+        return qs
+
+    @action(detail=True, methods=["put", "delete"])
+    def vote(self, *args, **kwargs):
+        choice = self.get_object()
+        poll = choice.poll
+        user = self.request.user
+
+        if self.request.method == "DELETE":
+            PollNodeParticipation.objects.filter(poll=poll, user=user).delete()
+        else:
+            PollNodeParticipation.objects.update_or_create(
+                poll=poll,
+                user=user,
+                defaults={"selected_choice": choice},
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

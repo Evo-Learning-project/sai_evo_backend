@@ -107,11 +107,11 @@ class PollNodeChoiceSerializer(serializers.ModelSerializer):
 
     def get_votes(self, obj):
         # return obj.choices.aggregate(votes=Sum("selections__count", default=0))["votes"]
-        return obj.selections.count()
+        return obj.get_selection_count()
 
     def get_selected(self, obj):
         user = self.context["request"].user
-        return user in obj.selections.all()
+        return obj.is_selected_by(user)  # user in obj.selections.all()
 
 
 class PollNodeSerializer(CourseTreeNodeSerializer):

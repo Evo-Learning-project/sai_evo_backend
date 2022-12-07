@@ -64,6 +64,7 @@ class TreeNodePolicy(BaseAccessPolicy):
         )
 
 
+# TODO review
 class NodeCommentPolicy(BaseAccessPolicy):
     statements = [
         {
@@ -72,8 +73,25 @@ class NodeCommentPolicy(BaseAccessPolicy):
                 "list",
                 "create",
             ],
-            "principal": ["*"],
+            "principal": ["authenticated"],
             "effect": "allow",
             # "condition": "is_visible_to",
+        },
+    ]
+
+
+# TODO review
+class PollNodeChoicePolicy(BaseAccessPolicy):
+    statements = [
+        {
+            "action": ["retrieve", "list", "vote"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+        },
+        {
+            "action": ["create", "update", "delete"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition": "has_teacher_privileges:manage_course_tree_nodes",
         },
     ]

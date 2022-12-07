@@ -105,16 +105,34 @@ class PollNodeChoice(models.Model):
         on_delete=models.CASCADE,
     )
     text = models.CharField(max_length=500)
-    selections = models.ManyToManyField(
-        User,
-        related_name="selected_by",
-        through="PollNodeChoiceSelection",
-    )
+
+    def get_selection_count(self):
+        return self.poll.participations.filter(selected_choice=self).count()
+
+    def is_selected_by(self, user):
+        try:
+            participation = self.poll.participations.get(user=user)
+        except PollNodeParticipation.DoesNotExist:
+            return False
+        return participation.selected_choice == self
 
 
-class PollNodeChoiceSelection(TimestampableModel):
+class PollNodeParticipation(TimestampableModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    poll_node_choice = models.ForeignKey(PollNodeChoice, on_delete=models.CASCADE)
+    poll = models.ForeignKey(
+        PollNode,
+        related_name="participations",
+        on_delete=models.CASCADE,
+    )
+    selected_choice = models.ForeignKey(PollNodeChoice, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["poll_id", "user_id"],
+                name="poll_participation_unique_user",
+            )
+        ]
 
 
 class FileNode(BaseCourseTreeNode):
