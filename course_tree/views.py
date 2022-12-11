@@ -10,6 +10,7 @@ from .serializers import (
     CourseTreeNodePolymorphicSerializer,
     NodeCommentSerializer,
     PollNodeChoiceSerializer,
+    PollNodeSerializer,
 )
 from .models import (
     BaseCourseTreeNode,
@@ -164,6 +165,11 @@ class PollNodeChoiceViewSet(viewsets.ModelViewSet):
     queryset = PollNodeChoice.objects.all()
     permission_classes = [policies.PollNodeChoicePolicy]
 
+    def perform_create(self, serializer):
+        serializer.save(
+            poll_id=self.kwargs["node_pk"],
+        )
+
     def get_queryset(self):
         qs = super().get_queryset()
         try:
@@ -187,4 +193,7 @@ class PollNodeChoiceViewSet(viewsets.ModelViewSet):
                 defaults={"selected_choice": choice},
             )
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = PollNodeSerializer(
+            self.get_object().poll, context={"request": self.request}
+        )
+        return Response(status=status.HTTP_200_OK, data=serializer.data)

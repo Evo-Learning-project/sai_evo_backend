@@ -89,7 +89,7 @@ class PollNodeChoicePolicy(BaseAccessPolicy):
             "effect": "allow",
         },
         {
-            "action": ["create", "update", "delete"],
+            "action": ["create", "partial_update", "update", "destroy"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:manage_course_tree_nodes",
