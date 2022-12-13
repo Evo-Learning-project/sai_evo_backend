@@ -41,6 +41,7 @@ django-lifecycle = "*"
 django-notifications-rest = "*"
 django-notifications-hq = "*"
 django-postgrespool2 = "*"
+twisted = "*"
 
 [dev-packages]
 mypy = "*"
