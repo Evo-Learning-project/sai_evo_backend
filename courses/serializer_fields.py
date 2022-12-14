@@ -144,6 +144,8 @@ class ReadWriteSerializerMethodField(SerializerMethodField):
 class FileWithPreviewField(serializers.FileField):
     def __init__(self, *args, **kwargs):
         self.extras = kwargs.pop("extras", {})
+        if "allow_empty_file" not in kwargs:
+            kwargs["allow_empty_file"] = True
         super().__init__(*args, **kwargs)
 
     def to_representation(self, value):

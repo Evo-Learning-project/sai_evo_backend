@@ -46,6 +46,8 @@ django-rest-polymorphic = "*"
 bandit = "*"
 python-magic = "*"
 pymupdf = "*"
+twisted = "*"
+pillow = "*"
 
 [dev-packages]
 mypy = "*"

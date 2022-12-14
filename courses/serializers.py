@@ -161,6 +161,9 @@ class ExerciseChoiceSerializer(serializers.ModelSerializer, ConditionalFieldsMix
 
 class ExerciseTestCaseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     _ordering = serializers.IntegerField(required=False)
+    code = serializers.CharField(trim_whitespace=False, allow_blank=True)
+    stdin = serializers.CharField(trim_whitespace=False, allow_blank=True)
+    expected_stdout = serializers.CharField(trim_whitespace=False, allow_blank=True)
 
     class Meta:
         model = ExerciseTestCase
@@ -738,6 +741,7 @@ class EventParticipationSlotSerializer(
                 self.fields["answer_text"] = serializers.CharField(
                     read_only=(not submission_fields_write),
                     allow_blank=True,
+                    trim_whitespace=False,
                 )
 
             self.fields["execution_results"] = serializers.JSONField(read_only=True)
