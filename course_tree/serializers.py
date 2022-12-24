@@ -72,6 +72,7 @@ class TopicNodeSerializer(CourseTreeNodeSerializer):
 
 class LessonNodeSerializer(CourseTreeNodeSerializer):
     creator = UserSerializer(read_only=True)
+    comment_count = serializers.SerializerMethodField()
 
     class Meta:
         model = LessonNode
@@ -81,7 +82,11 @@ class LessonNodeSerializer(CourseTreeNodeSerializer):
             "creator",
             "body",
             "state",
+            "comment_count"
         ]
+        
+    def get_comment_count(self, obj):
+        return obj.comments.count()
 
 
 class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
