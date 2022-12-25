@@ -93,7 +93,16 @@ class NodeCommentPolicy(BaseAccessPolicy):
             "effect": "allow",
             # "condition": "is_visible_to",
         },
+        {
+            "action": ["destroy"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "is_own_comment or has_teacher_privileges:manage_course_tree_nodes"
+        }
     ]
+    
+    def is_own_comment(self, request, view, action):
+        return view.get_object().user == request.user
 
 
 # TODO review
