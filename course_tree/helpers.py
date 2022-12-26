@@ -3,7 +3,6 @@ import magic
 import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
 from django.core.files.base import ContentFile
 
-
 def detect_content_type(f):
     sample = f.read(2048)
     f.seek(0)
@@ -17,7 +16,12 @@ def get_file_thumbnail(file, mime_type: str):
 
         first_page = pdf_document.load_page(0)
         thumbnail = first_page.get_pixmap()
+        # TODO resize & lower quality
         return thumbnail.tobytes()
+    
+    if mime_type.split("/")[0] == "image":
+        # TODO resize & compress
+        return file.read()
 
     # TODO thumbnails for other file types
 

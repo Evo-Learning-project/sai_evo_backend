@@ -158,15 +158,12 @@ class FileNode(BaseCourseTreeNode):
 
         # intercept file updates to update mime type
         self.mime_type = detect_content_type(value)
+        
         # also update thumbnail
         thumbnail = get_file_thumbnail(self.file, self.mime_type)
         if thumbnail is not None:
             self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
 
-    @property
-    def file_type(self):
-        # TODO use python_magic to return the actual type
-        return os.path.splitext(self.file.name)[1]
 
 
 class NodeComment(TimestampableModel):
