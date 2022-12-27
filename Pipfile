@@ -48,6 +48,7 @@ python-magic = "*"
 pymupdf = "*"
 twisted = "*"
 pillow = "*"
+opencv-python = "*"
 
 [dev-packages]
 mypy = "*"
