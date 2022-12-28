@@ -23,7 +23,7 @@ def get_file_thumbnail(file, mime_type: str):
     base_type = mime_type.split("/")[0] 
     
     if base_type == "image":
-        # TODO resize & co
+        # TODO resize & compress
         return file.read()
     
     if base_type == "video":

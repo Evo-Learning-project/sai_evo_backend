@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Sum, Case, When, Value
 
-from course_tree.pagination import CourseTreeChildrenNodePagination
+#from course_tree.pagination import CourseTreeChildrenNodePagination
 from users.serializers import UserSerializer
 
 from .models import (
@@ -21,19 +21,19 @@ from rest_framework import serializers
 
 
 class CourseTreeNodeSerializer(serializers.ModelSerializer):
-    include_children = False
+    #include_children = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.include_children:
-            # self.fields["children"] = serializers.ListSerializer(
-            #     read_only=True,
-            #     child=RecursiveField(to="CourseTreeNodePolymorphicSerializer"),
-            # )
-            self.fields["children"] = serializers.SerializerMethodField(
-                "get_paginated_children"
-            )
+        # if self.include_children:
+        #     # self.fields["children"] = serializers.ListSerializer(
+        #     #     read_only=True,
+        #     #     child=RecursiveField(to="CourseTreeNodePolymorphicSerializer"),
+        #     # )
+        #     self.fields["children"] = serializers.SerializerMethodField(
+        #         "get_paginated_children"
+        #     )
 
         self.fields["parent_id"] = serializers.IntegerField()
 
@@ -41,21 +41,21 @@ class CourseTreeNodeSerializer(serializers.ModelSerializer):
         self.fields["lft"] = serializers.IntegerField(read_only=True)
         self.fields["tree_id"] = serializers.IntegerField(read_only=True)
 
-    def get_paginated_children(self, obj):
-        paginator = CourseTreeChildrenNodePagination()
-        request = self.context.get("request")
-        children = paginator.paginate_queryset(
-            obj.children.all(),
-            request,
-        )
+    # def get_paginated_children(self, obj):
+    #     paginator = CourseTreeChildrenNodePagination()
+    #     request = self.context.get("request")
+    #     children = paginator.paginate_queryset(
+    #         obj.children.all(),
+    #         request,
+    #     )
 
-        serializer = CourseTreeNodePolymorphicSerializer(
-            children,
-            read_only=True,
-            many=True,
-            context=self.context,
-        )
-        return paginator.get_paginated_response(serializer.data).data
+    #     serializer = CourseTreeNodePolymorphicSerializer(
+    #         children,
+    #         read_only=True,
+    #         many=True,
+    #         context=self.context,
+    #     )
+    #     return paginator.get_paginated_response(serializer.data).data
 
 
 class RootNodeSerializer(CourseTreeNodeSerializer):
