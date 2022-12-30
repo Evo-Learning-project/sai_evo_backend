@@ -100,6 +100,12 @@ class PollNode(BaseCourseTreeNode):
         default=PollState.DRAFT, choices=PollState.choices
     )
 
+    def can_vote(self, user: User):
+        return (
+            self.state == self.PollState.OPEN
+            and not self.participations.filter(user=user).exists()
+        )
+
 
 class PollNodeChoice(models.Model):
     poll = models.ForeignKey(

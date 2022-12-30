@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.db.models import Sum, Case, When, Value
+from courses.logic.privileges import MANAGE_COURSE_TREE_NODES, check_privilege
 
-#from course_tree.pagination import CourseTreeChildrenNodePagination
+# from course_tree.pagination import CourseTreeChildrenNodePagination
 from users.serializers import UserSerializer
 
 from .models import (
@@ -21,7 +22,7 @@ from rest_framework import serializers
 
 
 class CourseTreeNodeSerializer(serializers.ModelSerializer):
-    #include_children = False
+    # include_children = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,15 +77,8 @@ class LessonNodeSerializer(CourseTreeNodeSerializer):
 
     class Meta:
         model = LessonNode
-        fields = [
-            "id",
-            "title",
-            "creator",
-            "body",
-            "state",
-            "comment_count"
-        ]
-        
+        fields = ["id", "title", "creator", "body", "state", "comment_count"]
+
     def get_comment_count(self, obj):
         return obj.comments.count()
 
@@ -103,12 +97,16 @@ class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
 
 
 class PollNodeChoiceSerializer(serializers.ModelSerializer):
-    votes = serializers.SerializerMethodField()
     selected = serializers.SerializerMethodField()
 
     class Meta:
         model = PollNodeChoice
-        fields = ["id", "text", "votes", "selected"]
+        fields = ["id", "text", "selected"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.context.get("hide_selection_count", False):
+            self.fields["votes"] = serializers.SerializerMethodField()
 
     def get_votes(self, obj):
         # return obj.choices.aggregate(votes=Sum("selections__count", default=0))["votes"]
@@ -120,12 +118,24 @@ class PollNodeChoiceSerializer(serializers.ModelSerializer):
 
 
 class PollNodeSerializer(CourseTreeNodeSerializer):
-    choices = PollNodeChoiceSerializer(many=True, read_only=True)
+    choices = serializers.SerializerMethodField()  # to pass context
     creator = UserSerializer(read_only=True)
 
     class Meta:
         model = PollNode
         fields = ["id", "text", "state", "choices", "creator"]
+
+    def get_choices(self, obj):
+        user = self.context.get("request").user
+        hide_selection_count = obj.can_vote(user) and not check_privilege(
+            user, obj.get_course(), MANAGE_COURSE_TREE_NODES
+        )
+        return PollNodeChoiceSerializer(
+            obj.choices.all(),
+            many=True,
+            read_only=True,
+            context={"hide_selection_count": hide_selection_count, **self.context},
+        ).data
 
 
 class FileNodeSerializer(CourseTreeNodeSerializer):
