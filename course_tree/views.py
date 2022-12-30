@@ -1,5 +1,7 @@
 import os
 from django.shortcuts import get_object_or_404
+from courses.logic.privileges import MANAGE_COURSE_TREE_NODES
+from courses.view_mixins import RequestingUserPrivilegesMixin
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,7 +29,7 @@ from mptt.exceptions import InvalidMove
 from django_filters.rest_framework import DjangoFilterBackend
 
 
-class TreeNodeViewSet(viewsets.ModelViewSet):
+class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     serializer_class = CourseTreeNodePolymorphicSerializer
     queryset = BaseCourseTreeNode.objects.all()
     permission_classes = [policies.TreeNodePolicy]
@@ -75,6 +77,10 @@ class TreeNodeViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(parent_id=self.kwargs["node_pk"])
             except ValueError:  # invalid value for node_pk
                 raise Http404
+
+        if MANAGE_COURSE_TREE_NODES not in self.user_privileges:
+            # hide draft nodes to unprivileged users
+            qs = qs.restrict_to_public_states()
 
         return qs  # .order_by("tree_id", "-lft")  # .order_by("-created")  # TODO temporary, remove
 

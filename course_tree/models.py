@@ -3,6 +3,7 @@ from django.db import models
 import os
 from polymorphic_tree.models import PolymorphicMPTTModel, PolymorphicTreeForeignKey
 from course_tree.helpers import detect_content_type, get_file_thumbnail
+from course_tree.managers import CourseTreeNodeManager
 from courses.models import Course, TimestampableModel
 from users.models import User
 from django.core.files.images import ImageFile
@@ -27,6 +28,8 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
 
     can_be_root = False
     can_have_children = True
+
+    objects = CourseTreeNodeManager()
 
     class MPTTMeta:
         order_insertion_by = ["lft"]
@@ -158,12 +161,11 @@ class FileNode(BaseCourseTreeNode):
 
         # intercept file updates to update mime type
         self.mime_type = detect_content_type(value)
-        
+
         # also update thumbnail
         thumbnail = get_file_thumbnail(self.file, self.mime_type)
         if thumbnail is not None:
             self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
-
 
 
 class NodeComment(TimestampableModel):
