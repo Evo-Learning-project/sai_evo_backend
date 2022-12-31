@@ -1,18 +1,72 @@
 import io
 from django.db import models
+from django.db.models import Q
 import os
 from polymorphic_tree.models import PolymorphicMPTTModel, PolymorphicTreeForeignKey
+from mptt.models import MPTTOptions
 from course_tree.helpers import detect_content_type, get_file_thumbnail
 from course_tree.managers import CourseTreeNodeManager
 from courses.models import Course, TimestampableModel
 from users.models import User
 from django.core.files.images import ImageFile
+from polymorphic_tree.models import _get_base_polymorphic_model
 
 
 def get_filenode_file_path(node: "FileNode", filename: str):
     root: RootCourseTreeNode = node.get_root()
     course = root.course
     return f"course_tree/{str(course.pk)}/file_nodes/{str(node.pk)}/{filename}"
+
+
+# monkey patch MPTTOptions to fix https://github.com/django-polymorphic/django-polymorphic-tree/issues/87
+def get_ordered_insertion_target(self, node, parent):
+    """
+    Attempts to retrieve a suitable right sibling for ``node``
+    underneath ``parent`` (which may be ``None`` in the case of root
+    nodes) so that ordering by the fields specified by the node's class'
+    ``order_insertion_by`` option is maintained.
+
+    Returns ``None`` if no suitable sibling can be found.
+    """
+    right_sibling = None
+    # Optimisation - if the parent doesn't have descendants,
+    # the node will always be its last child.
+    if self.order_insertion_by and (
+        parent is None or parent.get_descendant_count() > 0
+    ):
+        opts = node._mptt_meta
+        order_by = opts.order_insertion_by[:]
+        filters = self.insertion_target_filters(node, order_by)
+        if parent:
+            filters = filters & Q(**{opts.parent_attr: parent})
+            # Fall back on tree ordering if multiple child nodes have
+            # the same values.
+            order_by.append(opts.left_attr)
+        else:
+            filters = filters & Q(**{opts.parent_attr: None})
+            # Fall back on tree id ordering if multiple root nodes have
+            # the same values.
+            order_by.append(opts.tree_id_attr)
+        queryset = (
+            # the original code does `node.__class__`, here we need to get
+            # the base polymorphic model instead, so insertion order can
+            # query all nodes that inherit from our base node model
+            _get_base_polymorphic_model(node.__class__)
+            ._tree_manager.db_manager(node._state.db)
+            .filter(filters)
+            .order_by(*order_by)
+        )
+        if node.pk:
+            queryset = queryset.exclude(pk=node.pk)
+        try:
+            right_sibling = queryset[:1][0]
+        except IndexError:
+            # No suitable right sibling could be found
+            pass
+    return right_sibling
+
+
+MPTTOptions.get_ordered_insertion_target = get_ordered_insertion_target
 
 
 class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
@@ -33,6 +87,9 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
 
     class MPTTMeta:
         order_insertion_by = ["lft"]
+
+    # def __new__(cls: type[Self]) -> Self:
+    #     return super().__new__()
 
     @property
     def displayed_name(self):
