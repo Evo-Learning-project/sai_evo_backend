@@ -36,7 +36,7 @@ class SubmissionAssessor:
             )
             return passed_testcases
         except KeyError:
-            # no test cases in execution results (e.g. compilation error in the code)
+            # no test cases in execution results (e.g. compilation error in code)
             return 0
 
     def get_composite_exercise_submission_correctness(self, slot):
