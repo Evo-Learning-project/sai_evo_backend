@@ -76,6 +76,7 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     privileges = serializers.SerializerMethodField()
     creator = UserSerializer(read_only=True)
     public_exercises_count = serializers.SerializerMethodField()
+    bookmarked = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -87,6 +88,7 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "privileges",
             "hidden",
             "public_exercises_count",
+            "bookmarked",
         ]
         read_only_fields = ["creator"]
         conditional_fields = {
@@ -103,6 +105,9 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
 
     def get_public_exercises_count(self, obj):
         return obj.exercises.public().count()
+
+    def get_bookmarked(self, obj):
+        return self.context.get("request").user in obj.bookmarked_by.all()
 
 
 class TagSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):

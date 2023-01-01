@@ -95,6 +95,12 @@ class Course(TimestampableModel):
     )
     hidden = models.BooleanField(default=False)
 
+    bookmarked_by = models.ManyToManyField(
+        User,
+        related_name="bookmarked_courses",
+        blank=True,
+    )
+
     objects = CourseManager()
 
     if is_demo_mode():

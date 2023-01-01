@@ -167,6 +167,23 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         return Response(res)
 
+    @action(detail=True, methods=["put", "delete"])
+    def bookmark(self, request, **kwargs):
+        # TODO could possibly extract as this is shared with ExerciseSolution
+        course = self.get_object()
+
+        if self.request.method == "DELETE":
+            course.bookmarked_by.remove(self.request.user)
+        else:
+            course.bookmarked_by.add(self.request.user)
+
+        return Response(
+            data=self.get_serializer_class()(
+                self.get_object(),
+                context=self.get_serializer_context(),
+            ).data
+        )
+
     @action(detail=True, methods=["post"])
     def set_permissions(self, request, **kwargs):
         course = self.get_object()

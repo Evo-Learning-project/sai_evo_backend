@@ -33,6 +33,7 @@ class CoursePolicy(BaseAccessPolicy):
                 "list",
                 "unstarted_practice_events",
                 "gamification_context",
+                "bookmark",
             ],
             "principal": ["authenticated"],
             "effect": "allow",
