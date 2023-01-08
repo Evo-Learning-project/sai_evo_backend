@@ -48,6 +48,8 @@ class TreeNodeViewSetTestCase(BaseTestCase):
             f"/courses/{self.course.pk}/nodes/",
             {**data.lesson_node_1, "parent_id": root_id},
         )
+        lesson1_id = response.json()["id"]
+
         self.assertEquals(response.status_code, 201)
 
         # show a user without privileges cannot create nodes
@@ -73,6 +75,7 @@ class TreeNodeViewSetTestCase(BaseTestCase):
             f"/courses/{self.course.pk}/nodes/",
             {**data.lesson_node_2, "parent_id": topic_id},
         )
+        lesson2_id = response.json()["id"]
         self.assertEquals(response.status_code, 201)
 
         # invalid resourcetype
@@ -86,7 +89,27 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         Test scoping of nodes
         """
 
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertSetEqual(
+            set([lesson2_id, topic_id, lesson1_id, root_id]),
+            set([n["id"] for n in res_data]),
+        )
+
+        # test top_level only returns direct children of root
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertListEqual([topic_id, lesson1_id], [n["id"] for n in res_data])
+
         # show a user without privileges cannot see draft nodes
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertNotIn(lesson1_id, [n["id"] for n in res_data])
+        self.assertIn(topic_id, [n["id"] for n in response.json()["results"]])
 
         """
         Test ordering of nodes
