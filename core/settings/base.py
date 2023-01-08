@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
 import os
 from pathlib import Path
 from oauth2_provider import settings as oauth2_settings
@@ -193,6 +192,14 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
+
+# Limit allowed email domains
+# to limit addresses shown - SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {"hd": "unipi.it"}
+
+# TODO read from env
+# TODO create subclass of social_core.backends.google.GoogleOAuth2 to handle wildcard domains
+# SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = ["studenti.unipi.it", "unipi.it"]
+
 
 oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
     os.environ.get("TOKEN_EXPIRE_SECONDS", 2592000)
