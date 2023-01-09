@@ -75,7 +75,7 @@ class TreeNodeViewSetTestCase(BaseTestCase):
             f"/courses/{self.course.pk}/nodes/",
             {**data.lesson_node_2, "parent_id": topic_id},
         )
-        lesson2_id = response.json()["id"]
+        topic_lesson2_id = response.json()["id"]
         self.assertEquals(response.status_code, 201)
 
         # invalid resourcetype
@@ -93,7 +93,7 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         res_data = response.json()["results"]
         self.assertSetEqual(
-            set([lesson2_id, topic_id, lesson1_id, root_id]),
+            set([topic_lesson2_id, topic_id, lesson1_id, root_id]),
             set([n["id"] for n in res_data]),
         )
 
@@ -114,10 +114,126 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         """
         Test ordering of nodes
         """
+        self.client.force_authenticate(user=self.teacher1)
+
+        # create a few more nodes
+        lesson2_id = self.client.post(
+            f"/courses/{self.course.pk}/nodes/",
+            {**data.lesson_node_2, "parent_id": root_id},
+        ).json()["id"]
+        poll1_id = self.client.post(
+            f"/courses/{self.course.pk}/nodes/",
+            {**data.poll_node_1, "parent_id": root_id},
+        ).json()["id"]
+        announcement1_id = self.client.post(
+            f"/courses/{self.course.pk}/nodes/",
+            {**data.announcement_node_1, "parent_id": root_id},
+        ).json()["id"]
 
         # show nodes are retrieved in the correct order
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertListEqual(
+            [
+                announcement1_id,
+                poll1_id,
+                lesson2_id,
+                topic_id,
+                lesson1_id,
+            ],
+            [n["id"] for n in res_data],
+        )
 
         # show reordering of nodes
+
+        # move last node to left of second-to-last node
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?target={poll1_id}&position=right"
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertListEqual(
+            [
+                poll1_id,
+                announcement1_id,
+                lesson2_id,
+                topic_id,
+                lesson1_id,
+            ],
+            [n["id"] for n in res_data],
+        )
+
+        # move a node to be the first child
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{topic_id}/move/?target={root_id}&position=first-child"
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertListEqual(
+            [
+                topic_id,
+                poll1_id,
+                announcement1_id,
+                lesson2_id,
+                lesson1_id,
+            ],
+            [n["id"] for n in res_data],
+        )
+
+        # move a node to be the last child
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?target={root_id}&position=last-child"
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertListEqual(
+            [
+                topic_id,
+                poll1_id,
+                lesson2_id,
+                lesson1_id,
+                announcement1_id,
+            ],
+            [n["id"] for n in res_data],
+        )
+
+        # move a node to have a different parent
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?target={topic_id}&position=first-child"
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        # node isn't top level anymore
+        self.assertListEqual(
+            [
+                topic_id,
+                poll1_id,
+                lesson2_id,
+                lesson1_id,
+            ],
+            [n["id"] for n in res_data],
+        )
+
+        # node is found among children of the new parent
+
+        response = self.client.get(
+            f"/courses/{self.course.pk}/nodes/{topic_id}/children/"
+        )
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertListEqual(
+            [announcement1_id, topic_lesson2_id],
+            [n["id"] for n in res_data],
+        )
 
         """
         Test update of nodes
