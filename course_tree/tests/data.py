@@ -17,7 +17,7 @@ lesson_node_2 = {
 poll_node_1 = {
     "resourcetype": "PollNode",
     "text": "Poll text",
-    "state": PollNode.PollState.OPEN,
+    "state": PollNode.PollState.DRAFT,
 }
 
 announcement_node_1 = {

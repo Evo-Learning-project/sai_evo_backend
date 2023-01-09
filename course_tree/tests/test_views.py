@@ -18,6 +18,14 @@ from rest_framework.test import APIClient, force_authenticate
 from users.models import User
 import data
 
+from course_tree.models import (
+    AnnouncementNode,
+    PollNode,
+    LessonNode,
+    TopicNode,
+    FileNode,
+)
+
 
 class BaseTestCase(TestCase):
     def setUp(self):
@@ -103,19 +111,6 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         res_data = response.json()["results"]
         self.assertListEqual([topic_id, lesson1_id], [n["id"] for n in res_data])
 
-        # show a user without privileges cannot see draft nodes
-        self.client.force_authenticate(user=self.student1)
-        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
-        self.assertEqual(response.status_code, 200)
-        res_data = response.json()["results"]
-        self.assertNotIn(lesson1_id, [n["id"] for n in res_data])
-        self.assertIn(topic_id, [n["id"] for n in response.json()["results"]])
-
-        """
-        Test ordering of nodes
-        """
-        self.client.force_authenticate(user=self.teacher1)
-
         # create a few more nodes
         lesson2_id = self.client.post(
             f"/courses/{self.course.pk}/nodes/",
@@ -129,6 +124,50 @@ class TreeNodeViewSetTestCase(BaseTestCase):
             f"/courses/{self.course.pk}/nodes/",
             {**data.announcement_node_1, "parent_id": root_id},
         ).json()["id"]
+
+        # show a user without privileges cannot see draft nodes
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertNotIn(lesson1_id, [n["id"] for n in res_data])
+        self.assertNotIn(poll1_id, [n["id"] for n in res_data])
+        self.assertNotIn(announcement1_id, [n["id"] for n in res_data])
+        self.assertIn(topic_id, [n["id"] for n in response.json()["results"]])
+
+        # show a user with privileges can access draft nodes
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertIn(lesson1_id, [n["id"] for n in res_data])
+        self.assertIn(poll1_id, [n["id"] for n in res_data])
+        self.assertIn(announcement1_id, [n["id"] for n in res_data])
+        self.assertIn(topic_id, [n["id"] for n in response.json()["results"]])
+
+        # make draft nodes public
+        LessonNode.objects.filter(pk=lesson1_id).update(
+            state=LessonNode.LessonState.PUBLISHED
+        )
+        AnnouncementNode.objects.filter(pk=announcement1_id).update(
+            state=AnnouncementNode.AnnouncementState.PUBLISHED
+        )
+        PollNode.objects.filter(pk=poll1_id).update(state=PollNode.PollState.OPEN)
+
+        # nodes that were hidden are now visible
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
+        self.assertEqual(response.status_code, 200)
+        res_data = response.json()["results"]
+        self.assertIn(lesson1_id, [n["id"] for n in res_data])
+        self.assertIn(poll1_id, [n["id"] for n in res_data])
+        self.assertIn(announcement1_id, [n["id"] for n in res_data])
+        self.assertIn(topic_id, [n["id"] for n in response.json()["results"]])
+
+        """
+        Test ordering of nodes
+        """
+        self.client.force_authenticate(user=self.teacher1)
 
         # show nodes are retrieved in the correct order
         response = self.client.get(f"/courses/{self.course.pk}/nodes/?top_level=true")
@@ -145,7 +184,9 @@ class TreeNodeViewSetTestCase(BaseTestCase):
             [n["id"] for n in res_data],
         )
 
-        # show reordering of nodes
+        """
+        Show reordering of nodes
+        """
 
         # move last node to left of second-to-last node
         response = self.client.post(
@@ -240,18 +281,49 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         """
 
         # show a user with privileges can update a node
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/nodes/{lesson1_id}/", {"title": "updated"}
+        )
+        self.assertEqual(response.status_code, 200)
 
         # show a user without privileges cannot update a node
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/nodes/{lesson1_id}/", {"title": "updated 2"}
+        )
+        self.assertEqual(response.status_code, 403)
 
         """
         Test deletion of nodes
         """
 
         # show a user with privileges can delete a node
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.delete(f"/courses/{self.course.pk}/nodes/{lesson1_id}/")
+        self.assertEqual(response.status_code, 204)
 
         # show a user without privileges cannot  delete a node
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.delete(f"/courses/{self.course.pk}/nodes/{lesson1_id}/")
+        self.assertEqual(response.status_code, 403)
 
-        pass
+        # show nobody can delete or update the root node
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.delete(f"/courses/{self.course.pk}/nodes/{root_id}/")
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/nodes/{root_id}/", {"creator": self.student1.pk}
+        )
+        self.assertEqual(response.status_code, 403)
+
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.delete(f"/courses/{self.course.pk}/nodes/{root_id}/")
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/nodes/{root_id}/", {"creator": self.student1.pk}
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_comments(self):
         pass

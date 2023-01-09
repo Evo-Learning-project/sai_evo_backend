@@ -118,6 +118,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
     @action(detail=True, methods=["get"])
     def download(self, request, **kwargs):
+        # TODO handle filenotfound error
         file = self.get_object().file
 
         if not bool(file):
@@ -131,6 +132,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
     @action(detail=True, methods=["get"])
     def thumbnail(self, request, **kwargs):
+        # TODO handle filenotfound error
         file = self.get_object().thumbnail
 
         if not bool(file):
