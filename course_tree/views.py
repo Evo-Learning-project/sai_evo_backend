@@ -118,8 +118,12 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
     @action(detail=True, methods=["get"])
     def download(self, request, **kwargs):
-        # TODO handle filenotfound error
-        file = self.get_object().file
+        node = self.get_object()
+
+        if not node.check_file_exists():
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        file = node.file
 
         if not bool(file):
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -132,8 +136,12 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
     @action(detail=True, methods=["get"])
     def thumbnail(self, request, **kwargs):
-        # TODO handle filenotfound error
-        file = self.get_object().thumbnail
+        node = self.get_object()
+
+        if not node.check_file_exists():
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        file = node.thumbnail
 
         if not bool(file):
             return Response(status=status.HTTP_204_NO_CONTENT)

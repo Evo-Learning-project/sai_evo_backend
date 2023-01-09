@@ -12,6 +12,11 @@ from django.core.files.images import ImageFile
 from polymorphic_tree.models import _get_base_polymorphic_model
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def get_filenode_file_path(node: "FileNode", filename: str):
     root: RootCourseTreeNode = node.get_root()
     course = root.course
@@ -222,13 +227,51 @@ class FileNode(BaseCourseTreeNode):
     def file(self, value):
         self._file = value
 
-        # intercept file updates to update mime type
-        self.mime_type = detect_content_type(value)
+        try:
+            # intercept file updates to update mime type
+            self.mime_type = detect_content_type(value)
+        except Exception as e:
+            # TODO handle exception
+            logger.critical(
+                "Error while detecting mime type for file "
+                + str(self.file.name)
+                + " for node with id "
+                + str(self.pk)
+                + ": "
+                + str(e)
+            )
 
-        # also update thumbnail
-        thumbnail = get_file_thumbnail(self.file, self.mime_type)
-        if thumbnail is not None:
-            self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
+        try:
+            # update thumbnail for new file
+            thumbnail = get_file_thumbnail(self.file, self.mime_type)
+            if thumbnail is not None:
+                self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
+        except Exception as e:
+            # TODO handle exception
+            logger.critical(
+                "Error while updating thumbnail for file "
+                + str(self.file.name)
+                + " for node with id "
+                + str(self.pk)
+                + ": "
+                + str(e)
+            )
+
+    def check_file_exists(self):
+        """
+        Sanity check to verify that the file associated to this
+        FileNode exists in the storage
+        """
+        res = self.file.storage.exists(self.file.name)
+        if not res:
+            logger.critical(
+                "File associated with node "
+                + str(self.pk)
+                + " with name "
+                + str(self.file.name)
+                + " doesn't exist"
+            )
+        return res
 
 
 class NodeComment(TimestampableModel):
