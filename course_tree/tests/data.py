@@ -9,8 +9,15 @@ lesson_node_1 = {
 
 lesson_node_2 = {
     "resourcetype": "LessonNode",
-    "title": "Lesson 01",
-    "body": "Body of lesson 01",
+    "title": "Lesson 02",
+    "body": "Body of lesson 02",
+    "state": LessonNode.LessonState.DRAFT,
+}
+
+lesson_node_3 = {
+    "resourcetype": "LessonNode",
+    "title": "Lesson 03",
+    "body": "Body of lesson 03",
     "state": LessonNode.LessonState.DRAFT,
 }
 

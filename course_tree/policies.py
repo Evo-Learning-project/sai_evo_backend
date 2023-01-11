@@ -3,7 +3,11 @@ from courses.policies import BaseAccessPolicy
 from .models import RootCourseTreeNode
 
 
-class TreeNodePolicy(BaseAccessPolicy):
+class BaseTreeAccessPolicy(BaseAccessPolicy):
+    pass
+
+
+class TreeNodePolicy(BaseTreeAccessPolicy):
     statements = [
         {
             "action": ["retrieve", "list", "download", "root_id", "thumbnail"],
@@ -38,58 +42,8 @@ class TreeNodePolicy(BaseAccessPolicy):
         node = view.get_object()
         return isinstance(node, RootCourseTreeNode)
 
-    # def can_destroy_nodes(self, request, view, action):
-    #     resource_type = request.data.get("resourcetype")
 
-    #     if resource_type is None:
-    #         # let serializer handle invalid input
-    #         return True
-
-    #     if resource_type == "RootCourseTreeNode":
-    #         # users cannot create root nodes directly
-    #         return False
-
-    #     # TODO use different permissions depending on the resource type (distinguish between resources that can only be created by teachers)
-    #     return check_privilege(
-    #         request.user, view.kwargs.get("course_pk"), MANAGE_COURSE_TREE_NODES
-    #     )
-
-    # def has_create_permission_over_resource_type(self, request, view, action):
-    #     resource_type = request.data.get("resourcetype")
-
-    #     if resource_type is None:
-    #         # let serializer handle invalid input
-    #         return True
-
-    #     if resource_type == "RootCourseTreeNode":
-    #         # users cannot create root nodes directly
-    #         return False
-
-    #     # TODO use different permissions depending on the resource type (distinguish between resources that can only be created by teachers)
-    #     return check_privilege(
-    #         request.user, view.kwargs.get("course_pk"), MANAGE_COURSE_TREE_NODES
-    #     )
-
-    # def has_update_permission_over_resource_type(self, request, view, action):
-    #     resource_type = request.data.get("resourcetype")
-
-    #     if resource_type is None:
-    #         # let serializer handle invalid input
-    #         return True
-
-    #     if resource_type == "RootCourseTreeNode":
-    #         # users cannot create root nodes directly
-    #         return False
-
-    #     # TODO use different permissions depending on the resource type (distinguish between resources that can only be created by teachers)
-    #     # TODO for student-created nodes, like PostNode for example (when it'll be implemented), check author
-    #     return check_privilege(
-    #         request.user, view.kwargs.get("course_pk"), MANAGE_COURSE_TREE_NODES
-    #     )
-
-
-# TODO review
-class NodeCommentPolicy(BaseAccessPolicy):
+class NodeCommentPolicy(BaseTreeAccessPolicy):
     statements = [
         {
             "action": [
@@ -114,7 +68,7 @@ class NodeCommentPolicy(BaseAccessPolicy):
 
 
 # TODO review
-class PollNodeChoicePolicy(BaseAccessPolicy):
+class PollNodeChoicePolicy(BaseTreeAccessPolicy):
     statements = [
         {
             "action": ["retrieve", "list", "vote"],

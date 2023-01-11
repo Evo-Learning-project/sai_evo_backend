@@ -325,8 +325,73 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+    # TODO write test for file nodes, especially the download view
+
     def test_comments(self):
-        pass
+        # create a node first
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/root_id/")
+        self.assertEquals(response.status_code, 200)
+        root_id = response.json()
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/",
+            {**data.lesson_node_3, "parent_id": root_id},
+        )
+        lesson_id = response.json()["id"]
+        self.assertEquals(response.status_code, 201)
+
+        """
+        Show unprivileged users cannot comment on non-public nodes
+        """
+        # TODO
+        # self.client.force_authenticate(user=self.student1)
+        # response = self.client.post(
+        #     f"/courses/{self.course.pk}/nodes/{lesson_id}/comments/",
+        #     {"comment": "not gonna work"},
+        # )
+        # self.assertEquals(response.status_code, 404)
+
+        LessonNode.objects.filter(pk=lesson_id).update(
+            state=LessonNode.LessonState.PUBLISHED
+        )
+
+        """
+        Show users can comment nodes
+        """
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{lesson_id}/comments/",
+            {"comment": "123 abc"},
+        )
+        comment1_id = response.json()["id"]
+        self.assertEquals(response.status_code, 201)
+
+        self.client.force_authenticate(user=self.student2)
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{lesson_id}/comments/",
+            {"comment": "345 abc"},
+        )
+        comment2_id = response.json()["id"]
+        self.assertEquals(response.status_code, 201)
+
+        # show an unprivileged user cannot update or delete somebody else's comments
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/nodes/{lesson_id}/comments/{comment2_id}/",
+            {"comment": "123 abc updated"},
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(
+            f"/courses/{self.course.pk}/nodes/{lesson_id}/comments/{comment2_id}/",
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # show a user can delete their comments
+        response = self.client.delete(
+            f"/courses/{self.course.pk}/nodes/{lesson_id}/comments/{comment1_id}/",
+        )
+        self.assertEquals(response.status_code, 204)
 
     def test_poll(self):
         pass

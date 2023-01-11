@@ -7,6 +7,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from course_tree.filters import CourseTreeNodeFilter
 
+from rest_framework_nested.viewsets import NestedViewSetMixin
+
 from course_tree.pagination import CourseTreeNodePagination
 from .serializers import (
     CourseTreeNodePolymorphicSerializer,
@@ -153,10 +155,15 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
         )
 
 
-class NodeCommentViewSet(viewsets.ModelViewSet):
+class NodeCommentViewSet(
+    viewsets.ModelViewSet,
+    RequestingUserPrivilegesMixin,
+    NestedViewSetMixin,
+):
     serializer_class = NodeCommentSerializer
     queryset = NodeComment.objects.all()
     permission_classes = [policies.NodeCommentPolicy]
+    parent_lookup_kwargs = {"node_pk": "node__pk"}
 
     def perform_create(self, serializer):
         serializer.save(
@@ -164,16 +171,15 @@ class NodeCommentViewSet(viewsets.ModelViewSet):
             user=self.request.user,
         )
 
-    def get_queryset(self):
-        qs = super().get_queryset()
+    # def get_queryset(self):
+    #     qs = super().get_queryset()
+    #     # ! TODO currently you can do /courses/i/nodes/n/comments where n isn't a node of course i and it'll still work: FIX
+    #     try:
+    #         qs = qs.filter(node_id=self.kwargs["node_pk"])
+    #     except ValueError:  # invalid value for node_pk
+    #         raise Http404
 
-        # ! TODO currently you can do /courses/i/nodes/n/comments where n isn't a node of course i and it'll still work: FIX
-        try:
-            qs = qs.filter(node_id=self.kwargs["node_pk"])
-        except ValueError:  # invalid value for node_pk
-            raise Http404
-
-        return qs
+    #     return qs
 
 
 class PollNodeChoiceViewSet(viewsets.ModelViewSet):
