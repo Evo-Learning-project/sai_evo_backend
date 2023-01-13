@@ -17,6 +17,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient, force_authenticate
 from users.models import User
 import data
+import os
 
 from course_tree.models import (
     AnnouncementNode,
@@ -276,6 +277,26 @@ class TreeNodeViewSetTestCase(BaseTestCase):
             [n["id"] for n in res_data],
         )
 
+        # invalid moves
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?target={topic_id}&position=invalidabc123"
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?target={announcement1_id}&position=first-child"
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?position=first-child"
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{announcement1_id}/move/?target={announcement1_id}"
+        )
+        self.assertEqual(response.status_code, 400)
         """
         Test update of nodes
         """
@@ -522,3 +543,77 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         self.assertEqual(choices_data[2]["id"], choice3_id)
         self.assertEqual(choices_data[2]["votes"], 0)
         self.assertFalse(choices_data[2]["selected"])
+
+    def test_file(self):
+        """
+        Shows the functionalities of the FileNode API, such as uploading &
+        downloading files from FileNodes
+        """
+
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/root_id/")
+        root_id = response.json()
+
+        # create a FileNode passing in a pdf file
+        with open("course_tree/tests/files/sample.pdf", "rb") as fp:
+            response = self.client.post(
+                f"/courses/{self.course.pk}/nodes/",
+                {"resourcetype": "FileNode", "file": fp, "parent_id": root_id},
+                format="multipart",
+            )
+
+            self.assertEquals(response.status_code, 201)
+            filenode_id = response.json()["id"]
+
+            # get size of the file for comparison
+            fp.seek(0, os.SEEK_END)
+            filesize = fp.tell()
+            # c.post("/customers/wishes/", {"name": "fred", "attachment": fp})
+
+        # retrieve new FileNode
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/{filenode_id}/")
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+
+        # correct mime type inferred for the file
+        self.assertEqual(response_data["mime_type"], "application/pdf")
+        # correct size shown
+        self.assertEqual(response_data["file"]["size"], filesize)
+
+        # get thumbnail
+        response = self.client.get(
+            f"/courses/{self.course.pk}/nodes/{filenode_id}/thumbnail/"
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # download file and show integrity of its content
+        with open("course_tree/tests/files/sample.pdf", "rb") as fp:
+            response = self.client.get(
+                f"/courses/{self.course.pk}/nodes/{filenode_id}/download/"
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(fp.read(), b"".join(response.streaming_content))
+
+        node = FileNode.objects.get(pk=filenode_id)
+
+        # delete thumbnail
+        os.remove(
+            "media/" + node.thumbnail.name
+        )  # TODO different behavior with node.thumbnail.delete()
+        response = self.client.get(
+            f"/courses/{self.course.pk}/nodes/{filenode_id}/thumbnail/"
+        )
+        self.assertEqual(response.status_code, 404)
+
+        # delete underlying file
+        # TODO make a test case with node.file.delete() to show different behavior (in response, "file" becomes None)
+        os.remove("media/" + node.file.name)
+        response = self.client.get(
+            f"/courses/{self.course.pk}/nodes/{filenode_id}/download/"
+        )
+        self.assertEqual(response.status_code, 404)
+
+        # file reported as broken
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/{filenode_id}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["file"]["broken"])

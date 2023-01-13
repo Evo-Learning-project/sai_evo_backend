@@ -262,7 +262,7 @@ class FileNode(BaseCourseTreeNode):
         Sanity check to verify that the file associated to this
         FileNode exists in the storage
         """
-        res = self.file.storage.exists(self.file.name)
+        res = bool(self.file) and self.file.storage.exists(self.file.name)
         if not res:
             logger.critical(
                 "File associated with node "
@@ -270,6 +270,18 @@ class FileNode(BaseCourseTreeNode):
                 + " with name "
                 + str(self.file.name)
                 + " doesn't exist"
+            )
+        return res
+
+    def check_thumbnail_exists(self):
+        """
+        Sanity check to verify that the thumbnail associated to this
+        FileNode exists in the storage
+        """
+        res = bool(self.thumbnail) and self.file.storage.exists(self.thumbnail.name)
+        if not res:
+            logger.critical(
+                "Thumbnail associated with node " + str(self.pk) + " doesn't exist"
             )
         return res
 

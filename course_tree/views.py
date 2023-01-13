@@ -111,7 +111,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
 
         try:
             node.move_to(target=target, position=position)
-        except InvalidMove:
+        except (InvalidMove, ValueError):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_200_OK)
@@ -138,7 +138,7 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
     def thumbnail(self, request, **kwargs):
         node = self.get_object()
 
-        if not node.check_file_exists():
+        if not node.check_thumbnail_exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         file = node.thumbnail
