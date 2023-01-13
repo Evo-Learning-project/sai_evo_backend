@@ -546,6 +546,10 @@ class ExerciseChoiceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        """ TODO 
+        check if you can do /courses/i/exercises/n/choices where n isn't an exercises of course i and 
+        it'll still work; if so, fix it, probably by also filtering by exercise__course_id 
+        """
         return qs.filter(exercise_id=self.kwargs["exercise_pk"])
 
     def perform_create(self, serializer):

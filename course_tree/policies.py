@@ -71,9 +71,15 @@ class NodeCommentPolicy(BaseTreeAccessPolicy):
 class PollNodeChoicePolicy(BaseTreeAccessPolicy):
     statements = [
         {
-            "action": ["retrieve", "list", "vote"],
+            "action": ["retrieve", "list"],
             "principal": ["authenticated"],
             "effect": "allow",
+        },
+        {
+            "action": ["vote"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "has_teacher_privileges:manage_course_tree_nodes or can_vote",
         },
         {
             "action": ["create", "partial_update", "update", "destroy"],
@@ -82,3 +88,7 @@ class PollNodeChoicePolicy(BaseTreeAccessPolicy):
             "condition": "has_teacher_privileges:manage_course_tree_nodes",
         },
     ]
+
+    def can_vote(self, request, view, action):
+        poll = view.get_object().poll
+        return poll.can_vote(request.user)

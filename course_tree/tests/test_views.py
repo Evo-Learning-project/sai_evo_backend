@@ -394,4 +394,131 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         self.assertEquals(response.status_code, 204)
 
     def test_poll(self):
-        pass
+        # create a poll first
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/root_id/")
+        self.assertEquals(response.status_code, 200)
+        root_id = response.json()
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/",
+            {**data.poll_node_1, "parent_id": root_id},
+        )
+        poll_id = response.json()["id"]
+        self.assertEquals(response.status_code, 201)
+
+        response = self.client.get(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/"
+        )
+        self.assertEquals(response.status_code, 200)
+        # no choices initially
+        self.assertEqual(len(response.json()), 0)
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/", {"text": "choice 1"}
+        )
+        self.assertEquals(response.status_code, 201)
+        choice1_id = response.json()["id"]
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/", {"text": "choice 2"}
+        )
+        self.assertEquals(response.status_code, 201)
+        choice2_id = response.json()["id"]
+
+        response = self.client.post(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/", {"text": "choice 3"}
+        )
+        self.assertEquals(response.status_code, 201)
+        choice3_id = response.json()["id"]
+
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/{poll_id}/")
+        self.assertEquals(response.status_code, 200)
+        choices_data = response.json()["choices"]
+
+        self.assertEqual(choices_data[0]["id"], choice1_id)
+        self.assertEqual(choices_data[0]["votes"], 0)
+        self.assertFalse(choices_data[0]["selected"])
+        self.assertEqual(choices_data[1]["id"], choice2_id)
+        self.assertEqual(choices_data[1]["votes"], 0)
+        self.assertFalse(choices_data[1]["selected"])
+        self.assertEqual(choices_data[2]["id"], choice3_id)
+        self.assertEqual(choices_data[2]["votes"], 0)
+        self.assertFalse(choices_data[2]["selected"])
+
+        response = self.client.put(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/{choice1_id}/vote/"
+        )
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/{poll_id}/")
+        self.assertEquals(response.status_code, 200)
+        choices_data = response.json()["choices"]
+
+        # choice now has one vote and is marked as voted by the requesting user
+        self.assertEqual(choices_data[0]["id"], choice1_id)
+        self.assertEqual(choices_data[0]["votes"], 1)
+        self.assertTrue(choices_data[0]["selected"])
+
+        self.assertEqual(choices_data[1]["id"], choice2_id)
+        self.assertEqual(choices_data[1]["votes"], 0)
+        self.assertFalse(choices_data[1]["selected"])
+        self.assertEqual(choices_data[2]["id"], choice3_id)
+        self.assertEqual(choices_data[2]["votes"], 0)
+        self.assertFalse(choices_data[2]["selected"])
+
+        self.client.force_authenticate(user=self.student1)
+
+        # unauthorized users cannot vote since the poll isn't open yet
+        response = self.client.put(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/{choice1_id}/vote/"
+        )
+        self.assertEquals(response.status_code, 403)
+
+        PollNode.objects.filter(pk=poll_id).update(state=PollNode.PollState.CLOSED)
+
+        # still can't vote as the poll is closed
+        response = self.client.put(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/{choice1_id}/vote/"
+        )
+        self.assertEquals(response.status_code, 403)
+
+        PollNode.objects.filter(pk=poll_id).update(state=PollNode.PollState.OPEN)
+
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/{poll_id}/")
+        self.assertEquals(response.status_code, 200)
+        choices_data = response.json()["choices"]
+
+        # requesting user hasn't voted yet - votes for each choice aren't displayed
+        self.assertEqual(choices_data[0]["id"], choice1_id)
+        self.assertNotIn("votes", choices_data[0])
+        self.assertFalse(choices_data[0]["selected"])
+
+        self.assertEqual(choices_data[1]["id"], choice2_id)
+        self.assertNotIn("votes", choices_data[1])
+        self.assertFalse(choices_data[1]["selected"])
+        self.assertEqual(choices_data[2]["id"], choice3_id)
+        self.assertNotIn("votes", choices_data[2])
+        self.assertFalse(choices_data[2]["selected"])
+
+        # poll is open and user can now vote
+        response = self.client.put(
+            f"/courses/{self.course.pk}/nodes/{poll_id}/choices/{choice1_id}/vote/"
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # choice data is updated with new vote
+        response = self.client.get(f"/courses/{self.course.pk}/nodes/{poll_id}/")
+        self.assertEquals(response.status_code, 200)
+        choices_data = response.json()["choices"]
+
+        # choice now has one vote and is marked as voted by the requesting user
+        self.assertEqual(choices_data[0]["id"], choice1_id)
+        self.assertEqual(choices_data[0]["votes"], 2)
+        self.assertTrue(choices_data[0]["selected"])
+
+        self.assertEqual(choices_data[1]["id"], choice2_id)
+        self.assertEqual(choices_data[1]["votes"], 0)
+        self.assertFalse(choices_data[1]["selected"])
+        self.assertEqual(choices_data[2]["id"], choice3_id)
+        self.assertEqual(choices_data[2]["votes"], 0)
+        self.assertFalse(choices_data[2]["selected"])
