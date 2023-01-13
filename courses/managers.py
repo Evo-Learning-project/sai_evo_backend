@@ -65,7 +65,6 @@ class ExerciseManager(models.Manager):
         Creates a new exercise and the correct related entities (choices,
         test cases) depending on the exercise type
         """
-        # TODO wrap in transaction.atomic()
         from .models import Exercise, ExerciseChoice, ExerciseTestCase
 
         choices = kwargs.pop("choices", [])
@@ -160,7 +159,6 @@ class EventParticipationManager(models.Manager):
         """
         Creates an event participation and its related slots
         """
-        # TODO wrap in transaction.atomic()
         from .models import EventParticipationSlot, Event
 
         from courses.logic.event_instances import ExercisePicker
@@ -211,7 +209,6 @@ class EventParticipationSlotManager(models.Manager):
         return self.get_queryset().base_slots()
 
     def create(self, *args, **kwargs):
-        # TODO wrap in transaction.atomic()
         from .models import EventParticipationSlot
 
         slot = super().create(*args, **kwargs)
@@ -232,7 +229,6 @@ class EventParticipationSlotManager(models.Manager):
 
 class EventManager(models.Manager):
     def create(self, *args, **kwargs):
-        # TODO wrap in transaction.atomic()
         from .models import EventTemplate
 
         event = super().create(*args, **kwargs)
@@ -252,8 +248,6 @@ class EventTemplateRuleManager(models.Manager):
         If the rule is ID-based, expects to receive an iterable of Exercise
         If the rule is tag-based, expects to receive a list of iterables of Tag
         """
-        # TODO wrap in transaction.atomic()
-
         from .models import EventTemplateRule, EventTemplateRuleClause
 
         tags = kwargs.pop("tags", [])

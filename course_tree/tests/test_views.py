@@ -346,8 +346,6 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    # TODO write test for file nodes, especially the download view
-
     def test_comments(self):
         # create a node first
         self.client.force_authenticate(user=self.teacher1)
@@ -617,3 +615,5 @@ class TreeNodeViewSetTestCase(BaseTestCase):
         response = self.client.get(f"/courses/{self.course.pk}/nodes/{filenode_id}/")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["file"]["broken"])
+
+        # TODO test with other mime types

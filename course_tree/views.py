@@ -82,12 +82,13 @@ class TreeNodeViewSet(viewsets.ModelViewSet, RequestingUserPrivilegesMixin):
             # hide draft nodes to unprivileged users
             qs = qs.restrict_to_public_states()
 
-        return qs  # .order_by("tree_id", "-lft")  # .order_by("-created")  # TODO temporary, remove
+        return qs
 
     @action(detail=False, methods=["get"])
     def root_id(self, request, **kwargs):
         try:
-            # TODO this assumes there's only one tree per course, keep an eye on it
+            #! This assumes there's only one tree per course - which is the current
+            #! business rule and isn't expected to change for now
             root, _ = RootCourseTreeNode.objects.get_or_create(
                 course_id=self.kwargs["course_pk"]
             )

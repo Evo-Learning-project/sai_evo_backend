@@ -40,7 +40,6 @@ class GamificationContext(models.Model):
         )["reputation_total"]
 
     def get_users_with_annotated_reputation_total(self):
-        # TODO filter for deltas in this context
         return User.objects.all().annotate(
             reputation_total=Sum(
                 "reputation_deltas__delta",
@@ -59,13 +58,6 @@ class GamificationContext(models.Model):
 
     def get_leaderboard_position_for(self, user: User):
         qs = self.get_leaderboard()
-        # TODO optimize
-        # numbered_qs = qs.extra(
-        #     select={
-        #         "queryset_row_number": 'ROW_NUMBER() OVER (ORDER BY "users_user"."id")'
-        #     }
-        # )
-        # print("NUM", numbered_qs)
         try:
             return list(qs.values_list("id", flat=True)).index(user.pk) + 1
         except ValueError:

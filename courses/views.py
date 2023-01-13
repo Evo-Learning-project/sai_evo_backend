@@ -283,7 +283,6 @@ class CourseRoleViewSet(ScopeQuerySetByCourseMixin):
         return Response(status=status.HTTP_200_OK)
 
 
-# ! TODO make create atomic
 class ExerciseSolutionViewSet(
     viewsets.ModelViewSet,
     RestrictedListMixin,
@@ -309,11 +308,10 @@ class ExerciseSolutionViewSet(
             user=self.request.user,
         )
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        # TODO show exercise only in specific route actions
-        # context[EXERCISE_SOLUTION_SHOW_EXERCISE] = True
-        return context
+    # def get_serializer_context(self):
+    #     context = super().get_serializer_context()
+    #     # context[EXERCISE_SOLUTION_SHOW_EXERCISE] = True
+    #     return context
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -435,7 +433,6 @@ class ExerciseSolutionCommentViewSet(viewsets.ModelViewSet):
         )
 
 
-# ! TODO make create atomic
 class ExerciseViewSet(
     BulkCreateMixin,
     ScopeQuerySetByCourseMixin,
@@ -660,14 +657,15 @@ class EventViewSet(
             "users_allowed_past_closure",
         )
     )
-    # TODO disallow list view for non-teachers (only allow students to retrieve an exam if they know the id)
     permission_classes = [policies.EventPolicy]
     filter_backends = [DjangoFilterBackend]
     filterset_class = EventFilter
 
-    # filter_fields = ["event_type"]
-
-    # TODO filter queryset to hide draft events
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if MANAGE_EVENTS not in self.user_privileges:
+            qs = qs.exclude(_event_state=Event.DRAFT)
+        return qs
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -845,7 +843,7 @@ class EventParticipationViewSet(
         Returns a dict for usage inside serializers' context in order to decide whether
         to display some fields ans whether to make them writable
         """
-        # TODO improve this by checking for truthy values
+        # TODO improve this by checking for truthy values (use a generic solution to parse query params)
         force_student = "as_student" in self.request.query_params
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges

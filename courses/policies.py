@@ -99,7 +99,7 @@ class EventPolicy(BaseAccessPolicy):
             "action": ["list"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition": "is_course_visible_to",
+            "condition_expression": "is_course_visible_to and has_teacher_privileges:manage_events",
         },
         {
             "action": [

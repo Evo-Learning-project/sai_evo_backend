@@ -231,7 +231,6 @@ class FileNode(BaseCourseTreeNode):
             # intercept file updates to update mime type
             self.mime_type = detect_content_type(value)
         except Exception as e:
-            # TODO handle exception
             logger.critical(
                 "Error while detecting mime type for file "
                 + str(self.file.name)
@@ -247,7 +246,6 @@ class FileNode(BaseCourseTreeNode):
             if thumbnail is not None:
                 self.thumbnail = ImageFile(io.BytesIO(thumbnail), name="thumbnail.jpg")
         except Exception as e:
-            # TODO handle exception
             logger.critical(
                 "Error while updating thumbnail for file "
                 + str(self.file.name)

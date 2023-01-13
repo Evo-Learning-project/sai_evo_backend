@@ -26,7 +26,7 @@ class GoalProgressSerializer(serializers.ModelSerializer):
         # TODO review
         user = obj.user
         return (
-            user.actions.filter(  # type: ignore
+            user.actions.filter(
                 definition__context=obj.goal.context,
             )
             .annotate(action=F("definition__action_code"))

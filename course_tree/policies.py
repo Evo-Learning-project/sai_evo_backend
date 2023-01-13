@@ -11,7 +11,7 @@ class TreeNodePolicy(BaseTreeAccessPolicy):
     statements = [
         {
             "action": ["retrieve", "list", "download", "root_id", "thumbnail"],
-            "principal": ["authenticated"],  # TODO ["authenticated"]
+            "principal": ["authenticated"],
             "effect": "allow",
             # "condition": "is_visible_to",
         },

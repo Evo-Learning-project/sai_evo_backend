@@ -43,7 +43,6 @@ class DemoInvitationQuerySet(models.QuerySet):
 class DemoCoursesQuerySet(models.QuerySet):
     def visible_in_demo_mode_to(self, user: User):
         valid_invitations = DemoInvitation.objects.all().valid()
-        # TODO optimize
         pks = []
         for course in self:
             if course.creator == user or normalize_email_address(user.email) in [

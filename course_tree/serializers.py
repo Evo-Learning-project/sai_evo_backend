@@ -27,36 +27,11 @@ class CourseTreeNodeSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # if self.include_children:
-        #     # self.fields["children"] = serializers.ListSerializer(
-        #     #     read_only=True,
-        #     #     child=RecursiveField(to="CourseTreeNodePolymorphicSerializer"),
-        #     # )
-        #     self.fields["children"] = serializers.SerializerMethodField(
-        #         "get_paginated_children"
-        #     )
-
         self.fields["parent_id"] = serializers.IntegerField()
 
         # ! TODO remove after debug
         self.fields["lft"] = serializers.IntegerField(read_only=True)
         self.fields["tree_id"] = serializers.IntegerField(read_only=True)
-
-    # def get_paginated_children(self, obj):
-    #     paginator = CourseTreeChildrenNodePagination()
-    #     request = self.context.get("request")
-    #     children = paginator.paginate_queryset(
-    #         obj.children.all(),
-    #         request,
-    #     )
-
-    #     serializer = CourseTreeNodePolymorphicSerializer(
-    #         children,
-    #         read_only=True,
-    #         many=True,
-    #         context=self.context,
-    #     )
-    #     return paginator.get_paginated_response(serializer.data).data
 
 
 class RootNodeSerializer(CourseTreeNodeSerializer):

@@ -61,7 +61,6 @@ from .managers import (
 )
 
 
-# TODO change name to get_participation_slot_attachment_path
 def get_attachment_path(slot, filename):
     event = slot.participation.event
     course = event.course
