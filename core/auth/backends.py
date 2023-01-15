@@ -7,7 +7,6 @@ class GoogleOAuth2Backend(GoogleOAuth2):
         emails = [email.lower() for email in self.setting("WHITELISTED_EMAILS", [])]
         domains = [domain.lower() for domain in self.setting("WHITELISTED_DOMAINS", [])]
         email = details.get("email")
-        allowed = True
         if email and (emails or domains):
             email = email.lower()
             domain = email.split("@", 1)[1]
@@ -17,7 +16,7 @@ class GoogleOAuth2Backend(GoogleOAuth2):
 
             for allowed_domain in domains:
                 allowed_domain_suffix = allowed_domain.split("*.")[-1]
-                print(allowed_domain_suffix, domain)
                 if allowed_domain_suffix in domain:
                     return True
-        return False
+            return False
+        return True

@@ -50,6 +50,7 @@ twisted = "*"
 pillow = "*"
 opencv-python = "*"
 social-auth-core = "*"
+django-environ = "*"
 
 [dev-packages]
 mypy = "*"

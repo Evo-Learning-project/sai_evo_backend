@@ -12,7 +12,10 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 import os
 from pathlib import Path
 from oauth2_provider import settings as oauth2_settings
+import environ
 
+# TODO migrate env vars to use this
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -197,7 +200,9 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 # to limit addresses shown - SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {"hd": "unipi.it"}
 
 # TODO read from env
-# SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = ["*.unipi.it"]
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = env.list(
+    "AUTH_ALLOWED_DOMAINS", default=[]
+)  # ["*.unipi.it"]
 
 
 oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
