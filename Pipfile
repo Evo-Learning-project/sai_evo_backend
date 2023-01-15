@@ -49,6 +49,7 @@ pymupdf = "*"
 twisted = "*"
 pillow = "*"
 opencv-python = "*"
+social-auth-core = "*"
 
 [dev-packages]
 mypy = "*"

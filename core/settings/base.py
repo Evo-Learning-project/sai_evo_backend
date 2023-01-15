@@ -176,7 +176,7 @@ HASHID_FIELD_SALT = os.environ.get("HASHID_FIELD_SALT")
 
 AUTHENTICATION_BACKENDS = (
     # Google OAuth2
-    "social_core.backends.google.GoogleOAuth2",
+    "core.auth.backends.GoogleOAuth2Backend",
     # drf-social-oauth2
     "drf_social_oauth2.backends.DjangoOAuth2",
     # Django
@@ -197,8 +197,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 # to limit addresses shown - SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {"hd": "unipi.it"}
 
 # TODO read from env
-# TODO create subclass of social_core.backends.google.GoogleOAuth2 to handle wildcard domains
-# SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = ["studenti.unipi.it", "unipi.it"]
+# SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = ["*.unipi.it"]
 
 
 oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
