@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 #         except MaxRetriesExceededError:
 #             execution_results = {"state": "internal_error"}
 
-# TODO notify channel group using task uuid
-
 
 @app.task(bind=True, retry_backoff=True, max_retries=5)
 def bulk_run_participation_slot_code_task(self, slot_ids):
@@ -46,7 +44,7 @@ def bulk_run_participation_slot_code_task(self, slot_ids):
             try:
                 self.retry(countdown=1)
             except MaxRetriesExceededError:
-                # TODO put this logic inside a method for participation slot, e.g. set_execution_results_error_condition
+                # TODO put this logic inside a method of model participation slot, e.g. set_execution_results_error_condition
                 slot.execution_results = {"state": "internal_error"}
                 slot.save(update_fields=["execution_results"])
 

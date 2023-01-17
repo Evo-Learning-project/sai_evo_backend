@@ -6,7 +6,6 @@ class PostModelManager(models.Manager):
         from content.models import Content
 
         # pass kwarg content as text content to a new instance of Content model
-        print("CONTENT", kwargs)
         content = Content.objects.create(text_content=kwargs.pop("content", ""))
         # associate newly created Content to the ExerciseSolution that's being created
         kwargs["_content"] = content

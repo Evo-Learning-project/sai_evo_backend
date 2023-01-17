@@ -69,7 +69,6 @@ class DemoInvitationViewSet(
 
     @action(detail=False, methods=["post"])
     def mine(self, request, *args, **kwargs):
-        # TODO abstract repeated code
         try:
             token = request.data["token"]
         except KeyError:

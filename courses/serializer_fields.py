@@ -161,4 +161,4 @@ class FileWithPreviewField(serializers.FileField):
             }
         except FileNotFoundError as e:
             print(e, "FileNotFound for", self.extras)
-            return {}
+            return {"broken": True}

@@ -6,7 +6,6 @@ import subprocess
 from django.core.exceptions import ValidationError
 import requests
 from coding.python.runPython import get_python_program_for_vm
-from coding.runner.runner import JavaScriptCodeRunner
 from courses.models import Exercise, ExerciseTestCase, ExerciseTestCaseAttachment
 from courses.serializers import ExerciseTestCaseSerializer
 from django.db.models.fields.files import FieldFile

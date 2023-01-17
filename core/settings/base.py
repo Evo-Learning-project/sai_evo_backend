@@ -9,11 +9,13 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
 import os
 from pathlib import Path
 from oauth2_provider import settings as oauth2_settings
+import environ
 
+# TODO migrate env vars to use this
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "courses",
     "users",
+    "course_tree",
     "content",
     "django_extensions",
     "nested_admin",
@@ -66,6 +69,9 @@ INSTALLED_APPS = [
     "notifications",
     "user_notifications",
     "demo_mode",
+    "polymorphic_tree",
+    "polymorphic",
+    "mptt",
     # "silk",
 ]
 
@@ -173,7 +179,7 @@ HASHID_FIELD_SALT = os.environ.get("HASHID_FIELD_SALT")
 
 AUTHENTICATION_BACKENDS = (
     # Google OAuth2
-    "social_core.backends.google.GoogleOAuth2",
+    "core.auth.backends.GoogleOAuth2Backend",
     # drf-social-oauth2
     "drf_social_oauth2.backends.DjangoOAuth2",
     # Django
@@ -189,6 +195,49 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
+
+# SOCIAL_AUTH_PIPELINE = (
+#     # Get the information we can about the user and return it in a simple
+#     # format to create the user instance later. In some cases the details are
+#     # already part of the auth response from the provider, but sometimes this
+#     # could hit a provider API.
+#     "social_core.pipeline.social_auth.social_details",
+#     # Get the social uid from whichever service we're authing thru. The uid is
+#     # the unique identifier of the given user in the provider.
+#     "social_core.pipeline.social_auth.social_uid",
+#     # Verifies that the current auth process is valid within the current
+#     # project, this is where emails and domains whitelists are applied (if
+#     # defined).
+#     "social_core.pipeline.social_auth.auth_allowed",
+#     # Checks if the current social-account is already associated in the site.
+#     "social_core.pipeline.social_auth.social_user",
+#     # Make up a username for this person, appends a random string at the end if
+#     # there's any collision.
+#     "social_core.pipeline.user.get_username",
+#     # Send a validation email to the user to verify its email address.
+#     # Disabled by default.
+#     # 'social_core.pipeline.mail.mail_validation',
+#     # Associates the current social details with another user account with
+#     # a similar email address. Disabled by default.
+#     # 'social_core.pipeline.social_auth.associate_by_email',
+#     # Create a user account if we haven't found one yet.
+#     "social_core.pipeline.user.create_user",
+#     # Create the record that associates the social account with the user.
+#     "social_core.pipeline.social_auth.associate_user",
+#     # Populate the extra_data field in the social record with the values
+#     # specified by settings (and the default ones like access_token, etc).
+#     "social_core.pipeline.social_auth.load_extra_data",
+#     # Update the user record with any changed info from the auth service.
+#     "social_core.pipeline.user.user_details",
+# )
+
+# Limit allowed email domains
+# to limit addresses shown - SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {"hd": "unipi.it"}
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = env.list(
+    "AUTH_ALLOWED_DOMAINS", default=[]
+)
+
 
 oauth2_settings.DEFAULTS["ACCESS_TOKEN_EXPIRE_SECONDS"] = int(
     os.environ.get("TOKEN_EXPIRE_SECONDS", 2592000)

@@ -30,7 +30,8 @@ When an action is dispatched, this is the algorithm:
 - create an Action that points to the user and the ActionDefinition retrieved at point above
 - award points and badges
 - for all goals in the context, retrieve the current level for the user
-- for all retrieved levels, check if user has requirements to complete level: if not, CONTINUE, otherwise, award points & badges & notify
+- for all retrieved levels, check if user has requirements to complete level: if not, CONTINUE,
+otherwise, award points & badges & notify
 """
 
 # {
@@ -107,8 +108,7 @@ def record_action(action_definition: ActionDefinition, user: User) -> Action:
 def award_points_and_badges_for_progress(
     context: GamificationContext, user: User
 ) -> None:
-    # TODO fix type checker to support models' reverse relationships
-    for goal in context.goals.all():  # type: ignore
+    for goal in context.goals.all():
         goal_progress: GoalProgress = goal.progresses.get_or_create(user=user)[0]
         highest_level_satisfied: GoalLevel = (
             goal.levels.all().get_highest_satisfied_by_user(

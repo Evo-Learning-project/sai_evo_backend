@@ -61,7 +61,6 @@ from .managers import (
 )
 
 
-# TODO change name to get_participation_slot_attachment_path
 def get_attachment_path(slot, filename):
     event = slot.participation.event
     course = event.course
@@ -94,6 +93,12 @@ class Course(TimestampableModel):
         null=True,
     )
     hidden = models.BooleanField(default=False)
+
+    bookmarked_by = models.ManyToManyField(
+        User,
+        related_name="bookmarked_courses",
+        blank=True,
+    )
 
     objects = CourseManager()
 
@@ -1333,6 +1338,8 @@ class EventParticipationSlot(models.Model):
     Slots can have children if the exercise assigned to a slot is an exercise that
     has children.
     """
+
+    # TODO inherit from timestamped model to have info about last update
 
     NOT_ASSESSED = 0
     ASSESSED = 1

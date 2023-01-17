@@ -6,6 +6,7 @@ MANAGE_EXERCISES = "manage_exercises"
 ASSESS_PARTICIPATIONS = "assess_participations"
 MANAGE_EVENTS = "manage_events"
 MANAGE_EXERCISE_SOLUTIONS = "manage_exercise_solutions"
+MANAGE_COURSE_TREE_NODES = "manage_course_tree_nodes"
 
 TEACHER_PRIVILEGES = [
     UPDATE_COURSE,
@@ -14,6 +15,7 @@ TEACHER_PRIVILEGES = [
     ASSESS_PARTICIPATIONS,
     MANAGE_EVENTS,
     MANAGE_EXERCISE_SOLUTIONS,
+    MANAGE_COURSE_TREE_NODES,
 ]
 
 
