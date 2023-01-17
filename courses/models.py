@@ -1339,6 +1339,8 @@ class EventParticipationSlot(models.Model):
     has children.
     """
 
+    # TODO inherit from timestamped model to have info about last update
+
     NOT_ASSESSED = 0
     ASSESSED = 1
     ASSESSMENT_STATES = (

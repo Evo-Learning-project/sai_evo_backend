@@ -178,6 +178,7 @@ class PollNodeChoice(models.Model):
     text = models.CharField(max_length=500)
 
     def get_selection_count(self):
+        # TODO optimize with prefetching once https://github.com/django-polymorphic/django-polymorphic/pull/531 is solved
         return self.poll.participations.filter(selected_choice=self).count()
 
     def is_selected_by(self, user):
@@ -195,6 +196,7 @@ class PollNodeParticipation(TimestampableModel):
         related_name="participations",
         on_delete=models.CASCADE,
     )
+    # TODO use reverse relation on this field in get_selection_count
     selected_choice = models.ForeignKey(PollNodeChoice, on_delete=models.CASCADE)
 
     class Meta:
