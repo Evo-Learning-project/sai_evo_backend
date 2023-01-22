@@ -17,6 +17,7 @@ class User(AbstractUser):
     )
     mat = models.CharField(max_length=6, blank=True)
     course = models.CharField(max_length=1, blank=True)
+    avatar_url = models.TextField(blank=True)
 
     objects = UserManager()
 
