@@ -277,6 +277,17 @@ MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_BROKER_URL = os.environ.get("RABBITMQ_URL", "amqp://localhost:5672")
 
+
+# Email settings
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", None)
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", None)
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
