@@ -25,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "email",
             "is_teacher",
+            "avatar_url",
         ]
 
     def __init__(self, *args, **kwargs):
