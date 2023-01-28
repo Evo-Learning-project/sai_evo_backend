@@ -52,7 +52,16 @@ class LessonNodeSerializer(CourseTreeNodeSerializer):
 
     class Meta:
         model = LessonNode
-        fields = ["id", "title", "creator", "body", "state", "comment_count"]
+        fields = [
+            "id",
+            "title",
+            "creator",
+            "body",
+            "state",
+            "comment_count",
+            "created",
+            "modified",
+        ]
 
     def get_comment_count(self, obj):
         return obj.comments.count()
@@ -68,6 +77,8 @@ class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
             "creator",
             "body",
             "state",
+            "created",
+            "modified",
         ]
 
 
@@ -98,7 +109,15 @@ class PollNodeSerializer(CourseTreeNodeSerializer):
 
     class Meta:
         model = PollNode
-        fields = ["id", "text", "state", "choices", "creator"]
+        fields = [
+            "id",
+            "text",
+            "state",
+            "choices",
+            "creator",
+            "created",
+            "modified",
+        ]
 
     def get_choices(self, obj):
         user = self.context.get("request").user

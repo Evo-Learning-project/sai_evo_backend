@@ -51,6 +51,8 @@ pillow = "*"
 opencv-python = "*"
 social-auth-core = "*"
 django-environ = "*"
+click-didyoumean = "*"
+prompt-toolkit = "*"
 
 [dev-packages]
 mypy = "*"
