@@ -82,7 +82,7 @@ class GamificationUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "full_name", "reputation", "badges"]
+        fields = ["id", "email", "full_name", "reputation", "badges", "avatar_url"]
 
     def get_badges(self, obj):
         return []

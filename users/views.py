@@ -91,7 +91,6 @@ class UserViewSet(
             course_privileges.allow_privileges = new_privileges
             course_privileges.save()
         except Exception as e:
-            print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSerializer(
