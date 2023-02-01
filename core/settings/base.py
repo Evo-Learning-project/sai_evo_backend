@@ -219,7 +219,7 @@ SOCIAL_AUTH_PIPELINE = (
     # 'social_core.pipeline.mail.mail_validation',
     # Associates the current social details with another user account with
     # a similar email address. Disabled by default.
-    # 'social_core.pipeline.social_auth.associate_by_email',
+    "social_core.pipeline.social_auth.associate_by_email",
     # Create a user account if we haven't found one yet.
     "social_core.pipeline.user.create_user",
     # Create the record that associates the social account with the user.
