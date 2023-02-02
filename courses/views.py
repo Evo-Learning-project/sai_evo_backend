@@ -51,7 +51,7 @@ from courses.logic.presentation import (
 )
 from courses.tasks import run_participation_slot_code_task
 from users.models import User
-from users.serializers import UserSerializer
+from users.serializers import UserCreationSerializer, UserSerializer
 from django.http import FileResponse, Http404
 from courses import policies
 from courses.logic.privileges import (
@@ -208,21 +208,35 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"])
     # TODO test this endpoint
     def privileges(self, request, **kwargs):
+        """
+        An endpoint used to assign course privileges to a user.
+        Requires either a `user_id` or an `email` query param.
+
+        If privileges are being assigned to a user that exists in the database, the
+        `user_id` param must be used.
+
+        If privileges are being assigned to a person who hasn't yet an account, the
+        `email` param must be used, and a new account will be created with the given
+        email address. Upon the person's first login, the account thus created will
+        be associated to them and the permissions will already be active.
+
+        The `email` param must not be used to retrieve an existing account.
+        """
         course = self.get_object()
 
         params = request.query_params
-
         if "user_id" in params:
             user = get_object_or_404(User, pk=params["user_id"])
         elif "email" in params:
-            # TODO implement user creation
-            ...
+            email = params["email"]
+            if User.objects.filter(email=email).exists():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            # create a new user account from the email given as query param
+            creation_serializer = UserCreationSerializer(data={"email": email})
+            creation_serializer.is_valid(raise_exception=True)
+            user = creation_serializer.save()
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        #     creation_serializer = UserCreationSerializer(data={"email": email_address})
-        #     creation_serializer.is_valid(raise_exception=True)
-        #     user = creation_serializer.save()
 
         try:
             new_privileges = request.data["course_privileges"]
@@ -231,6 +245,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                 user=user, course=course
             )
 
+            # TODO probably extract this logic to a separate function, e.g. process_privilege_list
             # prevent users from having edit privileges on exercises if they don't have access to exercises
             if (
                 MANAGE_EXERCISES in new_privileges
@@ -245,11 +260,12 @@ class CourseViewSet(viewsets.ModelViewSet):
             course_privileges.allow_privileges = new_privileges
             course_privileges.save()
         except Exception as e:
+            logger.error("Exception while setting user privileges: " + str(e))
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSerializer(
             user,
-            context={"course": course},
+            context={"course": course},  # to include course privileges in response
         )
         return Response(serializer.data)
 
