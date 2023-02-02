@@ -131,19 +131,19 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_teacher:
             qs = qs.public()
 
-        # !! hits db twice
-        qs = qs.prefetch_related(
-            Prefetch(
-                "privileged_users",
-                queryset=UserCoursePrivilege.objects.filter(user=self.request.user),
-                to_attr="prefetched_privileged_users",
-            ),
-            Prefetch(
-                "roles",
-                queryset=self.request.user.roles.all(),
-                to_attr="prefetched_user_roles",
-            ),
-        )
+        # TODO review prefetching - previously we were prefetching for only requesting user, now what?
+        # qs = qs.prefetch_related(
+        #     Prefetch(
+        #         "privileged_users",
+        #         queryset=UserCoursePrivilege.objects.filter(user=self.request.user),
+        #         to_attr="prefetched_privileged_users",
+        #     ),
+        #     Prefetch(
+        #         "roles",
+        #         queryset=self.request.user.roles.all(),
+        #         to_attr="prefetched_user_roles",
+        #     ),
+        # )
 
         return qs
 
@@ -184,26 +184,74 @@ class CourseViewSet(viewsets.ModelViewSet):
             ).data
         )
 
-    @action(detail=True, methods=["post"])
-    def set_permissions(self, request, **kwargs):
+    # @action(detail=True, methods=["post"])
+    # def set_permissions(self, request, **kwargs):
+    #     course = self.get_object()
+    #     try:
+    #         user = get_object_or_404(User, pk=request.data["user"])
+    #     except KeyError:
+    #         return Response(status=status.HTTP_404_BAD_REQUEST)
+
+    #     _, created = UserCoursePrivilege.create_or_update(
+    #         user=user,
+    #         course=course,
+    #         defaults={
+    #             "allow_privileges": request.data.get("allow_privileges", []),
+    #             "deny_privileges": request.data.get("deny_privileges", []),
+    #         },
+    #     )
+
+    #     return Response(
+    #         status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    #     )
+
+    @action(detail=True, methods=["patch"])
+    # TODO test this endpoint
+    def privileges(self, request, **kwargs):
         course = self.get_object()
+
+        params = request.query_params
+
+        if "user_id" in params:
+            user = get_object_or_404(User, pk=params["user_id"])
+        elif "email" in params:
+            # TODO implement user creation
+            ...
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        #     creation_serializer = UserCreationSerializer(data={"email": email_address})
+        #     creation_serializer.is_valid(raise_exception=True)
+        #     user = creation_serializer.save()
+
         try:
-            user = get_object_or_404(User, pk=request.data["user"])
-        except KeyError:
-            return Response(status=status.HTTP_404_BAD_REQUEST)
+            new_privileges = request.data["course_privileges"]
 
-        _, created = UserCoursePrivilege.create_or_update(
-            user=user,
-            course=course,
-            defaults={
-                "allow_privileges": request.data.get("allow_privileges", []),
-                "deny_privileges": request.data.get("deny_privileges", []),
-            },
-        )
+            course_privileges, _ = UserCoursePrivilege.objects.get_or_create(
+                user=user, course=course
+            )
 
-        return Response(
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            # prevent users from having edit privileges on exercises if they don't have access to exercises
+            if (
+                MANAGE_EXERCISES in new_privileges
+                and ACCESS_EXERCISES not in course_privileges.allow_privileges
+            ):
+                new_privileges.append(ACCESS_EXERCISES)
+
+            # if someone is granted edit privileges on exercises, gran them access to exercises
+            if ACCESS_EXERCISES not in new_privileges:
+                new_privileges = [p for p in new_privileges if p != MANAGE_EXERCISES]
+
+            course_privileges.allow_privileges = new_privileges
+            course_privileges.save()
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserSerializer(
+            user,
+            context={"course": course},
         )
+        return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     def active_users(self, request, **kwargs):
@@ -307,11 +355,6 @@ class ExerciseSolutionViewSet(
             exercise_id=self.kwargs.get("exercise_pk"),
             user=self.request.user,
         )
-
-    # def get_serializer_context(self):
-    #     context = super().get_serializer_context()
-    #     # context[EXERCISE_SOLUTION_SHOW_EXERCISE] = True
-    #     return context
 
     def get_queryset(self):
         qs = super().get_queryset()

@@ -23,12 +23,12 @@ class UserPolicy(AccessPolicy):
             "effect": "allow",
             "condition": "has_some_privilege_over_course",
         },
-        {
-            "action": ["privileges"],
-            "principal": ["authenticated"],
-            "effect": "allow",
-            "condition_expression": "can_update_course and not is_personal_account",
-        },
+        # {
+        #     "action": ["privileges"],
+        #     "principal": ["authenticated"],
+        #     "effect": "allow",
+        #     "condition_expression": "can_update_course and not is_personal_account",
+        # },
     ]
 
     def can_update_course(self, request, view, action):

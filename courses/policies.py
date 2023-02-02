@@ -3,6 +3,7 @@ from rest_access_policy import AccessPolicy
 from courses.logic.participations import is_time_up
 
 from courses.logic.privileges import check_privilege
+from users.models import User
 
 from .models import Event, EventTemplate, Exercise, ExerciseSolution
 
@@ -68,6 +69,12 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "has_teacher_privileges:__some__",
         },
+        {
+            "action": ["privileges"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "has_teacher_privileges:update_course and not is_personal_account",
+        },
     ]
 
     def is_visible_to(self, request, view, action):
@@ -80,6 +87,14 @@ class CoursePolicy(BaseAccessPolicy):
 
     def is_teacher(self, request, view, action):
         return request.user.is_teacher
+
+    def is_personal_account(self, request, view, action):
+        try:
+            user_id = request.query_params["user_id"]
+            user = User.objects.get(pk=user_id)
+            return user == request.user
+        except (KeyError, ValueError, User.DoesNotExist):
+            return False
 
 
 class CourseRolePolicy(BaseAccessPolicy):
