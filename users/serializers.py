@@ -4,6 +4,23 @@ from rest_framework import serializers
 from users.models import User
 
 
+class UserCreationSerializer(serializers.ModelSerializer):
+    """
+    A write-only serializer to create a user from an email address.
+    It's used in certain views, such as the one to set user permissions, to
+    preemptively create user accounts to assign certain relationships.
+    """
+
+    class Meta:
+        model = User
+        fields = ["email"]
+
+    def create(self, validated_data):
+        # set username to hold the same value as email
+        validated_data["username"] = validated_data["email"]
+        return super().create(validated_data)
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

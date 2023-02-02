@@ -8,9 +8,10 @@ from rest_framework.response import Response
 from users.models import User
 
 from django.db.models import Prefetch
+from django.http.response import Http404
 
 from . import policies
-from .serializers import UserSerializer
+from .serializers import UserCreationSerializer, UserSerializer
 
 
 class UserViewSet(
@@ -68,7 +69,21 @@ class UserViewSet(
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        user = self.get_object()
+        try:
+            user = self.get_object()
+        except Http404:
+            # view has been called with a dummy id, which means user may be trying to create
+            # permissions for a nonexisting user on purpose. if requestor supplied an email
+            # address, create a new user account with that address and associate the permissions
+            # with the newly created account. this allows preemptively assigning permissions to
+            # users who haven't registered yet
+            email_address = params.get("email")
+            if email_address is None:
+                raise
+
+            creation_serializer = UserCreationSerializer(data={"email": email_address})
+            creation_serializer.is_valid(raise_exception=True)
+            user = creation_serializer.save()
 
         try:
             new_privileges = request.data["course_privileges"]
@@ -76,6 +91,7 @@ class UserViewSet(
             course_privileges, _ = UserCoursePrivilege.objects.get_or_create(
                 user=user, course=course
             )
+            print("PRIV", course_privileges)
 
             # prevent users from having edit privileges on exercises if they don't have access to exercises
             if (
@@ -91,10 +107,11 @@ class UserViewSet(
             course_privileges.allow_privileges = new_privileges
             course_privileges.save()
         except Exception as e:
+            print("EXC", e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSerializer(
-            self.get_object(),
+            user,
             context=self.get_serializer_context(),
         )
         return Response(serializer.data)

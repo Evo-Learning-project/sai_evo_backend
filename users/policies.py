@@ -1,6 +1,7 @@
 from courses.logic.privileges import UPDATE_COURSE, check_privilege
 from courses.models import Course
 from rest_access_policy import AccessPolicy
+from django.http.response import Http404
 
 
 class UserPolicy(AccessPolicy):
@@ -49,5 +50,10 @@ class UserPolicy(AccessPolicy):
         return check_privilege(request.user, course, "__some__")
 
     def is_personal_account(self, request, view, action):
-        user = view.get_object()
-        return user == request.user
+        try:
+            user = view.get_object()
+            return user == request.user
+        except Http404:
+            # view could be called with a nonexisting user
+            # to trigger user account pre-creation
+            return False

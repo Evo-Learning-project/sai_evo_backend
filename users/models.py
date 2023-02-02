@@ -33,7 +33,7 @@ class User(AbstractUser):
         creating = self.pk is None
 
         super(User, self).save(*args, **kwargs)
-
+        print("MEIL", self.email)
         if (
             len(self.email) > 0
             and creating
