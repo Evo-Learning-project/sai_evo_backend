@@ -768,18 +768,20 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
 
 
 class EventViewSetTestCase(BaseTestCase):
+    # TODO show unprivileged users cannot retrieve events without knowing their id
     def test_exercise_create_update_delete(self):
+        # TODO implement
         # show the course creator can create and update events
 
         # show a non-teacher user cannot create or update events
 
-        # show a user with `create_events` permission can create events
+        # show a user with `manage_events` permission can create events
 
-        # show a user with `update_events` permission can update events
+        # show a user with `manage_events` permission can update events
 
-        # show a user without `create_events` permission cannot create events
+        # show a user without `manage_events` permission cannot create events
 
-        # show a user without `update_events` permission cannot update events
+        # show a user without `manage_events` permission cannot update events
 
         # show only the course creator can delete events
 
@@ -1243,6 +1245,162 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         # show that, for each event, you can only access that events's
         # participations from the events's endpoint
         pass
+
+
+class CoursePrivilegeTestCase(BaseTestCase):
+    def setUp(self):
+        from data import users, courses, exercises, events
+
+        self.teacher_1 = User.objects.create(**users.teacher_1)
+        self.teacher_2 = User.objects.create(**users.teacher_2)
+
+        self.course = Course.objects.create(creator=self.teacher_1, **courses.course_1)
+
+        self.student_1 = User.objects.create(**users.student_1)
+
+        self.client = APIClient()
+
+    def test_course_privileges_endpoint(self):
+        """
+        Show users can only access this endpoint if they have the correct permissions
+        """
+        course_pk = self.course.pk
+        self.client.force_authenticate(self.student_1)
+
+        # unprivileged users cannot access the endpoint
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.student_1.pk}",
+            {"course_privileges": ["manage_events"]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        self.client.force_authenticate(self.teacher_2)
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.student_1.pk}",
+            {"course_privileges": ["manage_events"]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # the `update_course` privilege is required
+        privileges = UserCoursePrivilege.objects.create(
+            user=self.teacher_2, course=self.course, allow_privileges=["manage_events"]
+        )
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.student_1.pk}",
+            {"course_privileges": ["manage_events"]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        privileges.allow_privileges.append("update_course")
+        privileges.save()
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.student_1.pk}",
+            {"course_privileges": ["manage_events", "update_course"]},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # even if a user has the correct privileges, they cannot update their privileges
+        self.client.force_authenticate(self.student_1)
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.student_1.pk}",
+            {"course_privileges": ["manage_events"]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # even if a user has the correct privileges, they cannot update the course creator's privileges
+        self.client.force_authenticate(self.student_1)
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.teacher_1.pk}",
+            {"course_privileges": ["manage_events"]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # with correct privileges, user can update another user's privileges
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.teacher_2.pk}",
+            {"course_privileges": ["manage_events", "update_course"]},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        """
+        Show how the `email` param can be used to assign privileges to
+        users that don't exist yet
+        """
+        email = "test@gmail.com"
+
+        self.assertFalse(User.objects.filter(email=email).exists())
+
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?email={email}",
+            {
+                "course_privileges": [
+                    "manage_events",
+                    "manage_exercises",
+                    "access_exercises",
+                ]
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # the id of the new user is returned in the response
+        self.assertContains(response, "id")
+
+        # user was created with given email
+        self.assertEqual(User.objects.filter(email=email).count(), 1)
+        # user has been assigned the correct privileges
+        privileges = UserCoursePrivilege.objects.get(
+            user__email=email, course=self.course
+        )
+        self.assertListEqual(
+            privileges.allow_privileges,
+            ["manage_events", "manage_exercises", "access_exercises"],
+        )
+
+        """
+        Show failure conditions
+        """
+        # not providing a user_id param
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/",
+            {"course_privileges": ["manage_events"]},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        # invalid privileges
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.teacher_2.pk}",
+            {"course_privileges": ["manage_events", "abc"]},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        # invalid payload
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id={self.teacher_2.pk}",
+            {"course_privilegesaa": 1},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        # nonexisting user
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?user_id=11111111",
+            {"course_privileges": ["manage_events", "update_course"]},
+        )
+        self.assertEqual(response.status_code, 404)
+
+        # invalid email
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?email=11111111",
+            {"course_privileges": ["manage_events", "update_course"]},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        # email of existing user
+        response = self.client.patch(
+            f"/courses/{course_pk}/privileges/?email={self.teacher_1.email}",
+            {"course_privileges": ["manage_events", "update_course"]},
+        )
+        self.assertEqual(response.status_code, 400)
 
 
 class BulkActionsMixinsTestCase(BaseTestCase):

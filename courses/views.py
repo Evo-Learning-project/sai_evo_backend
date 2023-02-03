@@ -250,6 +250,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             if (
                 MANAGE_EXERCISES in new_privileges
                 and ACCESS_EXERCISES not in course_privileges.allow_privileges
+                and ACCESS_EXERCISES not in new_privileges
             ):
                 new_privileges.append(ACCESS_EXERCISES)
 
