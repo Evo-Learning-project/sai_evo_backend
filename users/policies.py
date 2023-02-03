@@ -45,8 +45,10 @@ class UserPolicy(AccessPolicy):
             course_pk = request.query_params["course_id"]
         except KeyError:
             return False
-
-        course = Course.objects.get(pk=course_pk)
+        try:
+            course = Course.objects.get(pk=course_pk)
+        except Course.DoesNotExist:
+            return False
         return check_privilege(request.user, course, "__some__")
 
     def is_personal_account(self, request, view, action):
