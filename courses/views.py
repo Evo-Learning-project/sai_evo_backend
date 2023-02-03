@@ -549,7 +549,6 @@ class ExerciseViewSet(
             creator=self.request.user,
         )
 
-    # @transaction.atomic()
     @action(detail=True, methods=["put", "delete"])
     def tags(self, request, **kwargs):
         exercise = self.get_object()
@@ -562,6 +561,7 @@ class ExerciseViewSet(
 
         if request.method == "PUT":
             # create tag if it doesn't exist already
+            # TODO validate text through serializer
             tag, _ = Tag.objects.get_or_create(course_id=kwargs["course_pk"], name=text)
             tags.add(tag)
         elif request.method == "DELETE":
@@ -960,7 +960,6 @@ class EventParticipationViewSet(
         except ValueError:
             raise Http404
 
-    # @transaction.atomic()
     def create(self, request, *args, **kwargs):
         # cannot use get_or_create because the custom manager won't be called
         try:
@@ -1092,7 +1091,6 @@ class EventParticipationSlotViewSet(
             .prefetch_related("sub_slots", "selected_choices")
         )
 
-    # @transaction.atomic()
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
         slot = self.get_object()

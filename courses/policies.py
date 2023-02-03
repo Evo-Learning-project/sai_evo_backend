@@ -126,6 +126,7 @@ class EventPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition_expression": "is_course_visible_to and has_teacher_privileges:manage_events",
         },
+        # TODO for creation you just need to check those conditions, for updating etc. you also need to check event creator
         {
             "action": [
                 "create",
@@ -155,6 +156,7 @@ class EventPolicy(BaseAccessPolicy):
 
     def is_self_service_practice(self, request, view, action):
         try:
+            # TODO distinguish by action: in update, you need to check type is *already* a practice
             return request.data["event_type"] == Event.SELF_SERVICE_PRACTICE
         except Exception:
             return False
@@ -193,6 +195,7 @@ class EventTemplatePolicy(BaseAccessPolicy):
         else:
             template = view.get_object()
 
+        # TODO you also need to check the creator
         return template.event.event_type == Event.SELF_SERVICE_PRACTICE
 
 
