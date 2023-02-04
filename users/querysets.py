@@ -23,11 +23,14 @@ class UserQuerySet(models.QuerySet):
         and the given course, and which has at least one allowed privilege
         """
         # TODO this will change if Roles are ever officially added
+        from courses.models import Course
 
+        # TODO optimize this? error handling?
+        course = Course.objects.get(pk=course_id)
         return self.annotate(
             privileges_count=Count(
                 "privileged_courses",
                 filter=Q(privileged_courses__course_id=course_id)
                 & ~Q(privileged_courses__allow_privileges=[]),
             )
-        ).filter(privileges_count__gt=0)
+        ).filter(Q(privileges_count__gt=0) | Q(pk=course.creator_id))
