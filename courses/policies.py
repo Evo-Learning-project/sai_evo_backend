@@ -64,7 +64,7 @@ class CoursePolicy(BaseAccessPolicy):
             "condition": "has_teacher_privileges:update_course",
         },
         {
-            "action": ["active_users"],
+            "action": ["active_users", "participation_report"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:__some__",

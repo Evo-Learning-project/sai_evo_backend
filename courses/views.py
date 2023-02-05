@@ -86,6 +86,7 @@ from .serializers import (
     CourseSerializer,
     EventParticipationSerializer,
     EventParticipationSlotSerializer,
+    EventParticipationSummarySerializer,
     EventSerializer,
     EventTemplateRuleClauseSerializer,
     EventTemplateRuleSerializer,
@@ -147,11 +148,6 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    # @action(methods=["get"], detail=False)
-    # def test(self, request, **kwargs):
-    #     Course.objects.create(name="wenfioheirowr")
-    #     raise Exception
-
     def perform_create(self, serializer):
         serializer.save(
             creator=self.request.user,
@@ -184,29 +180,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             ).data
         )
 
-    # @action(detail=True, methods=["post"])
-    # def set_permissions(self, request, **kwargs):
-    #     course = self.get_object()
-    #     try:
-    #         user = get_object_or_404(User, pk=request.data["user"])
-    #     except KeyError:
-    #         return Response(status=status.HTTP_404_BAD_REQUEST)
-
-    #     _, created = UserCoursePrivilege.create_or_update(
-    #         user=user,
-    #         course=course,
-    #         defaults={
-    #             "allow_privileges": request.data.get("allow_privileges", []),
-    #             "deny_privileges": request.data.get("deny_privileges", []),
-    #         },
-    #     )
-
-    #     return Response(
-    #         status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
-    #     )
-
     @action(detail=True, methods=["patch"])
-    # TODO test this endpoint
     def privileges(self, request, **kwargs):
         """
         An endpoint used to assign course privileges to a user.
@@ -275,6 +249,29 @@ class CourseViewSet(viewsets.ModelViewSet):
         active_users = User.objects.all().active_in_course(self.kwargs["pk"])
         serializer = UserSerializer(active_users, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def participation_report(self, request, **kwargs):
+        """
+        Returns a report mapping all closed exams to the list of participations, showing
+        the participant user id, the participation id, and the score obtained
+        """
+        course = self.get_object()
+        exams = (
+            course.events.all()
+            .filter(event_type=Event.EXAM, _event_state=Event.CLOSED)
+            .values_list("id", flat=True)
+        )
+
+        report = {
+            e.hashid: EventParticipationSummarySerializer(
+                EventParticipation.objects.filter(event_id=e),
+                many=True,
+            ).data
+            for e in exams
+        }
+
+        return Response(report, status=status.HTTP_200_OK)
 
     # TODO extract query logic
     # @action(detail=True, methods=["get"])
@@ -863,8 +860,6 @@ class EventParticipationViewSet(
         context = super().get_serializer_context()
         context[EVENT_PARTICIPATION_SHOW_SLOTS] = True
 
-        if self.action != "list":
-            context[EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS] = True
         if self.action == "retrieve":
             # if a participation to a practice is being retrieved, or the assessments
             # for the participation are available, show solution fields

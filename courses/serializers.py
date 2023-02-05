@@ -773,6 +773,18 @@ class EventParticipationSlotSerializer(
         return text
 
 
+class EventParticipationSummarySerializer(
+    serializers.ModelSerializer, ConditionalFieldsMixin
+):
+    class Meta:
+        model = EventParticipation
+        fields = [
+            "id",
+            "user",
+            "score",
+        ]
+
+
 class EventParticipationSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     event = serializers.SerializerMethodField()  # to pass context
     slots = serializers.SerializerMethodField()  # to pass context
