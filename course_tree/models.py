@@ -279,10 +279,10 @@ class FileNode(BaseCourseTreeNode):
         FileNode exists in the storage
         """
         res = bool(self.thumbnail) and self.file.storage.exists(self.thumbnail.name)
-        if not res:
-            logger.critical(
-                "Thumbnail associated with node " + str(self.pk) + " doesn't exist"
-            )
+        # if not res:
+        #     logger.warning(
+        #         "Thumbnail associated with node " + str(self.pk) + " doesn't exist"
+        #     )
         return res
 
 
