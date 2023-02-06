@@ -33,6 +33,7 @@ DEBUG = True
 
 DEMO_MODE = os.environ.get("DEMO_MODE", "False") == "True"
 
+ENABLE_SILK = os.environ.get("ENABLE_SILK", "False") == "True"
 
 ALLOWED_HOSTS = ["*"]
 
@@ -72,15 +73,14 @@ INSTALLED_APPS = [
     "polymorphic_tree",
     "polymorphic",
     "mptt",
-    # "silk",
 ]
+
 
 DJANGO_NOTIFICATIONS_CONFIG = {"USE_JSONFIELD": True}
 
 SILKY_PYTHON_PROFILER = False
 
 MIDDLEWARE = [
-    # "silk.middleware.SilkyMiddleware",
     "drf_viewset_profiler.middleware.LineProfilerViewSetMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -91,6 +91,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+if ENABLE_SILK:
+    INSTALLED_APPS += ["silk"]
+    MIDDLEWARE = ["silk.middleware.SilkyMiddleware"] + MIDDLEWARE
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_EXPOSE_HEADERS = ["Content-Disposition"]
