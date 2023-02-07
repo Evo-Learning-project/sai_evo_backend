@@ -9,6 +9,8 @@ from .models import Course, Event, EventTemplate, Exercise, ExerciseSolution
 
 
 class BaseAccessPolicy(AccessPolicy):
+    NOT_ENROLLED = "NOT_ENROLLED"
+
     def has_teacher_privileges(self, request, view, action, privilege):
         from courses.models import Course
         from courses.views import CourseViewSet
@@ -25,6 +27,45 @@ class BaseAccessPolicy(AccessPolicy):
             return False
 
         return check_privilege(request.user, course, privilege)
+
+    def is_enrolled(self, request, view, action):
+        from courses.models import Course
+        from courses.views import CourseViewSet
+
+        course_pk = (
+            view.kwargs.get("pk")
+            if isinstance(view, CourseViewSet)
+            else view.kwargs.get("course_pk")  # nested view
+        )
+
+        try:
+            course = Course.objects.get(pk=course_pk)
+        except (ValueError, Course.DoesNotExist):
+            return False
+
+        is_enrolled = request.user in course.enrolled_users.all()
+        if not is_enrolled:
+            self.message = self.NOT_ENROLLED
+        return is_enrolled
+
+
+class RequireCourseEnrollmentPolicy(BaseAccessPolicy):
+    """
+    A base policy that denies all requests to resources inside of a course
+    if the requesting user isn't either enrolled in that course or has
+    any privileges over that course.
+    """
+
+    def get_policy_statements(self, request, view):
+        statements = super().get_policy_statements(request, view)
+        return [
+            {
+                "action": ["*"],
+                "principal": ["authenticated"],
+                "effect": "deny",
+                "condition_expression": "not has_teacher_privileges:__some__ and not is_enrolled",
+            }
+        ] + statements
 
 
 class CoursePolicy(BaseAccessPolicy):
@@ -80,7 +121,8 @@ class CoursePolicy(BaseAccessPolicy):
             "action": "gamification_context",
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "has_teacher_privileges:update_course or is_retrieve_request",
+            "condition_expression": "has_teacher_privileges:update_course or \
+                is_enrolled and is_retrieve_request",
         },
     ]
 
@@ -127,7 +169,7 @@ class CourseRolePolicy(BaseAccessPolicy):
     ]
 
 
-class EventPolicy(BaseAccessPolicy):
+class EventPolicy(RequireCourseEnrollmentPolicy):
     statements = [
         {
             "action": ["list"],
@@ -178,7 +220,7 @@ class EventPolicy(BaseAccessPolicy):
         return True
 
 
-class EventTemplatePolicy(BaseAccessPolicy):
+class EventTemplatePolicy(RequireCourseEnrollmentPolicy):
     statements = [
         {
             "action": ["*"],
@@ -208,7 +250,7 @@ class EventTemplatePolicy(BaseAccessPolicy):
         return template.event.event_type == Event.SELF_SERVICE_PRACTICE
 
 
-class TagPolicy(BaseAccessPolicy):
+class TagPolicy(RequireCourseEnrollmentPolicy):
     statements = [
         {
             "action": ["list", "retrieve"],
@@ -218,7 +260,7 @@ class TagPolicy(BaseAccessPolicy):
     ]
 
 
-class ExercisePolicy(BaseAccessPolicy):
+class ExercisePolicy(RequireCourseEnrollmentPolicy):
     statements = [
         {
             "action": ["list", "retrieve", "bulk_get"],
@@ -304,9 +346,12 @@ class EventParticipationPolicyMixin:
         )
 
 
-class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
+class EventParticipationPolicy(
+    RequireCourseEnrollmentPolicy, EventParticipationPolicyMixin
+):
     NOT_IN_EVENT_ALLOWED_LIST = "NOT_IN_EVENT_ALLOWED_LIST"
     EVENT_CLOSED = "EVENT_CLOSED"
+
     statements = [
         {
             "action": ["list"],
@@ -419,7 +464,9 @@ class EventParticipationPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
         return not participation.is_cursor_first_position and event.allow_going_back
 
 
-class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMixin):
+class EventParticipationSlotPolicy(
+    RequireCourseEnrollmentPolicy, EventParticipationPolicyMixin
+):
     statements = [
         {
             "action": ["list", "retrieve"],
@@ -457,7 +504,7 @@ class EventParticipationSlotPolicy(BaseAccessPolicy, EventParticipationPolicyMix
         return slot.is_in_scope()
 
 
-class ExerciseSolutionPolicy(BaseAccessPolicy):
+class ExerciseSolutionPolicy(RequireCourseEnrollmentPolicy):
     statements = [
         {
             "action": ["list", "retrieve", "bookmark", "vote"],
@@ -524,7 +571,7 @@ class ExerciseSolutionPolicy(BaseAccessPolicy):
         return request_state in (ExerciseSolution.PUBLISHED, ExerciseSolution.REJECTED)
 
 
-class ExerciseSolutionCommentPolicy(BaseAccessPolicy):
+class ExerciseSolutionCommentPolicy(RequireCourseEnrollmentPolicy):
     statements = [
         # TODO allow only if parent solution is visible
         {
