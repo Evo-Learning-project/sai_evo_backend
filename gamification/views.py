@@ -1,13 +1,19 @@
 from rest_framework import viewsets
 from django.db.models import Prefetch
 
-from gamification.models import GamificationContext, Goal, GamificationReputationDelta
+from gamification.models import (
+    GamificationContext,
+    Goal,
+    GamificationReputationDelta,
+    GoalLevel,
+)
 from gamification.pagination import LeaderboardPagination
-from gamification.policies import GamificationContextAccessPolicy
+from gamification import policies
 
 from gamification.serializers import (
     GamificationContextSerializer,
     GamificationUserSerializer,
+    GoalLevelSerializer,
     GoalProgressSerializer,
     GoalSerializer,
 )
@@ -17,15 +23,40 @@ from django.shortcuts import get_object_or_404
 
 
 class GoalLevelViewSet(viewsets.ModelViewSet):
-    pass
+    serializer_class = GoalLevelSerializer
+    queryset = GoalLevel.objects.all()
+    permission_classes = [policies.GamificationGoalAccessPolicy]
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                context_id=self.kwargs["context_pk"],
+                goal_id=self.kwargs["goal_pk"],
+            )
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            goal_id=self.kwargs.get("goal_pk"),
+            # user=self.request.user,
+        )
 
 
 class GoalViewSet(viewsets.ModelViewSet):
     serializer_class = GoalSerializer
     queryset = Goal.objects.all()
+    permission_classes = [policies.GamificationGoalAccessPolicy]
 
     def get_queryset(self):
         return super().get_queryset().filter(context_id=self.kwargs["context_pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            context_id=self.kwargs.get("context_pk"),
+            # user=self.request.user,
+        )
 
     @action(methods=["get"], detail=True)
     def progress(self, request, **kwargs):
@@ -35,12 +66,10 @@ class GoalViewSet(viewsets.ModelViewSet):
         return Response(GoalProgressSerializer(goal_progress).data)
 
 
-class CourseGamificationContextViewSet(viewsets.ModelViewSet):
+class CourseGamificationContextViewSet(viewsets.GenericViewSet):
     serializer_class = GamificationContextSerializer
     queryset = GamificationContext.objects.all()
-    permission_classes = [GamificationContextAccessPolicy]
-
-    # TODO implement method to create gamification context for a course
+    permission_classes = [policies.GamificationContextAccessPolicy]
 
     @property
     def paginator(self):
