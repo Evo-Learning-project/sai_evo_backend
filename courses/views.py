@@ -296,7 +296,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     #     return EventSerializer(practice_events, many=True, context=self.context).data
 
-    @action(methods=["get"], detail=True)
+    @action(methods=["get", "post"], detail=True)
     def gamification_context(self, request, **kwargs):
         from gamification.models import GamificationContext
         from gamification.serializers import GamificationContextSerializer
@@ -307,11 +307,17 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         object_content_type = ContentType.objects.get_for_model(course)
 
-        gamification_context = get_object_or_404(
-            GamificationContext.objects.all(),
-            content_type=object_content_type,
-            object_id=course.pk,
-        )
+        if self.action == "retrieve":
+            gamification_context = get_object_or_404(
+                GamificationContext.objects.all(),
+                content_type=object_content_type,
+                object_id=course.pk,
+            )
+        else:
+            gamification_context = GamificationContext.objects.get_or_create(
+                content_type=object_content_type,
+                object_id=course.pk,
+            )
 
         serializer = GamificationContextSerializer(
             gamification_context, context={"request": request}

@@ -3,6 +3,7 @@ from django.db.models import Prefetch
 
 from gamification.models import GamificationContext, Goal, GamificationReputationDelta
 from gamification.pagination import LeaderboardPagination
+from gamification.policies import GamificationContextAccessPolicy
 
 from gamification.serializers import (
     GamificationContextSerializer,
@@ -13,6 +14,10 @@ from gamification.serializers import (
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
+
+
+class GoalLevelViewSet(viewsets.ModelViewSet):
+    pass
 
 
 class GoalViewSet(viewsets.ModelViewSet):
@@ -33,7 +38,7 @@ class GoalViewSet(viewsets.ModelViewSet):
 class CourseGamificationContextViewSet(viewsets.ModelViewSet):
     serializer_class = GamificationContextSerializer
     queryset = GamificationContext.objects.all()
-    permission_classes = []
+    permission_classes = [GamificationContextAccessPolicy]
 
     # TODO implement method to create gamification context for a course
 

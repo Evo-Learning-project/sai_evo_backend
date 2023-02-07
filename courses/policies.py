@@ -33,7 +33,6 @@ class CoursePolicy(BaseAccessPolicy):
             "action": [
                 "list",
                 "unstarted_practice_events",
-                "gamification_context",
                 "bookmark",
             ],
             "principal": ["authenticated"],
@@ -76,7 +75,17 @@ class CoursePolicy(BaseAccessPolicy):
             "condition_expression": "has_teacher_privileges:update_course and \
                 not is_personal_account and not is_course_creator",
         },
+        {
+            "action": "gamification_context",
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "has_teacher_privileges:update_course or is_retrieve_request",
+        },
     ]
+
+    def is_retrieve_request(self, request, view, action):
+        # TODO test
+        return action == "retrieve"
 
     def is_visible_to(self, request, view, action):
         from demo_mode.logic import is_demo_mode
