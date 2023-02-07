@@ -307,7 +307,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         object_content_type = ContentType.objects.get_for_model(course)
 
-        if self.action == "retrieve":
+        if request.method == "GET":
             gamification_context = get_object_or_404(
                 GamificationContext.objects.all(),
                 content_type=object_content_type,

@@ -84,8 +84,7 @@ class CoursePolicy(BaseAccessPolicy):
     ]
 
     def is_retrieve_request(self, request, view, action):
-        # TODO test
-        return action == "retrieve"
+        return request.method == "GET"
 
     def is_visible_to(self, request, view, action):
         from demo_mode.logic import is_demo_mode
