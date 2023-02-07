@@ -113,6 +113,25 @@ class Course(TimestampableModel):
     def __str__(self):
         return self.name
 
+    def enroll_users(self, user_ids, enrolled_by=None):
+        enrollment_type = (
+            UserCourseEnrollment.EnrollmentType.DEFAULT
+            if enrolled_by is None
+            else UserCourseEnrollment.EnrollmentType.BY_TEACHER
+        )
+        enrollments = UserCourseEnrollment.objects.bulk_create(
+            [
+                UserCourseEnrollment(
+                    course=self, user_id=uid, enrollment_type=enrollment_type
+                )
+                for uid in user_ids
+            ]
+        )
+        return enrollments
+
+    def unenroll_users(self, user_ids):
+        self.enrolled_users.remove(User.objects.filter(pk__in=user_ids))
+
 
 class UserCourseEnrollment(TimestampableModel):
     class EnrollmentType(models.IntegerChoices):

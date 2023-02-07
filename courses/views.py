@@ -182,6 +182,68 @@ class CourseViewSet(viewsets.ModelViewSet):
             ).data
         )
 
+    @action(methods=["put", "delete"], detail=True)
+    def my_enrollment(self, request, **kwargs):
+        course = self.get_object()
+        user_id = request.user.pk
+
+        if request.method == "PUT":
+            if request.user in course.enrolled_users.all():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            course.enroll_users([user_id])
+        else:
+            if request.user not in course.enrolled_users.all():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            course.unenroll_users([user_id])
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=["put", "delete"], detail=True)
+    def enrollments(self, request, **kwargs):
+        """
+        An endpoint used to enroll and unenroll users to a course.
+        Requires a `user_ids` or an `emails` field in the payload.
+
+        `user_ids` can be used to enroll existing users.
+
+        `email` can be used to enroll nonexisting users. Using `email` with
+        email addresses associated to existing users will fail. Enrolling
+        users using this option will cause their account to be created first,
+        using the email addresses in the payload.
+        """
+        course = self.get_object()
+
+        user_ids = request.data.get("user_ids", [])
+        emails = request.data.get("emails", [])
+
+        if len(emails) > 0 and request.method == "DELETE":
+            """
+            Enrollment deletion can only be performed via user id's,
+            not their emails
+            """
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email__in=emails).exists():
+            """
+            To use with existing users, supply their id's instead of their
+            email addresses
+            """
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # create any accounts for which the email address has been given
+        creation_serializer = UserCreationSerializer(
+            data=[{"email": email} for email in emails], many=True
+        )
+        creation_serializer.is_valid(raise_exception=True)
+        users = creation_serializer.save()
+
+        if request.method == "PUT":
+            course.enroll_users([*user_ids, *(u.pk for u in users)], request.user)
+        else:
+            course.unenroll_users(user_ids)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(detail=True, methods=["patch"])
     def privileges(self, request, **kwargs):
         """
