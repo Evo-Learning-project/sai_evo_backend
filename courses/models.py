@@ -25,16 +25,13 @@ from users.models import User
 from django.db import transaction
 from django.db.models import Sum, Case, When, Value
 from django_lifecycle import (
-    LifecycleModel,
     LifecycleModelMixin,
     hook,
-    BEFORE_UPDATE,
     AFTER_UPDATE,
     AFTER_CREATE,
     BEFORE_DELETE,
 )
 
-from courses import signals  # to make signals work
 
 import logging
 
@@ -99,6 +96,11 @@ class Course(TimestampableModel):
         related_name="bookmarked_courses",
         blank=True,
     )
+    enrolled_users = models.ManyToManyField(
+        User,
+        related_name="enrolled_courses",
+        through="UserCourseEnrollment",
+    )
 
     objects = CourseManager()
 
@@ -110,6 +112,28 @@ class Course(TimestampableModel):
 
     def __str__(self):
         return self.name
+
+
+class UserCourseEnrollment(TimestampableModel):
+    class EnrollmentType(models.IntegerChoices):
+        DEFAULT = 0
+        AUTOMATIC = 1
+        BY_TEACHER = 2
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    enrollment_type = models.PositiveSmallIntegerField(
+        choices=EnrollmentType.choices,
+        default=EnrollmentType.DEFAULT,
+    )
 
 
 class UserCoursePrivilege(models.Model):
