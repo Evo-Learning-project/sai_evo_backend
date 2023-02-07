@@ -1,6 +1,6 @@
 from django.db import models
 from gamification.actions import VALID_ACTIONS
-from gamification.managers import GoalLevelManager
+from gamification.managers import GamificationContextManager, GoalLevelManager
 from users.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -28,6 +28,8 @@ class GamificationContext(models.Model):
     # TODO should context be recursive?
 
     # TODO enforce uniqueness per content_object
+
+    objects = GamificationContextManager()
 
     def __str__(self) -> str:
         return "Context " + str(self.pk) + " - " + str(self.content_object)[:50]

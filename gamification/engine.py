@@ -75,11 +75,9 @@ def get_contexts(*args: Any) -> List[GamificationContext]:
     ret: List[GamificationContext] = []
     for obj in args:
         object_content_type = ContentType.objects.get_for_model(obj)
-        object_contexts: QuerySet[
-            GamificationContext
-        ] = GamificationContext.objects.filter(
+        object_contexts = GamificationContext.objects.filter(
             content_type=object_content_type, object_id=obj.pk
-        )
+        ).with_prefetched_related_objects()
         ret.extend([c for c in object_contexts])
     return ret
 
@@ -111,7 +109,9 @@ def award_points_and_badges_for_progress(
     for goal in context.goals.all():
         goal_progress: GoalProgress = goal.progresses.get_or_create(user=user)[0]
         highest_level_satisfied: GoalLevel = (
-            goal.levels.all().get_highest_satisfied_by_user(
+            goal.levels.all()
+            .prefetch_related("requirements")
+            .get_highest_satisfied_by_user(
                 user, starting_from=goal_progress.current_level
             )
         )

@@ -1274,8 +1274,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
                     "extras": {},
                 }
             )
+
             # for each correctly-answered exercise, dispatch an action
-            for slot in self.slots.base_slots():
+            for slot in self.base_slots:
                 # TODO review
                 # max score obtained for this exercise
                 if (

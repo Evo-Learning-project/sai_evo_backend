@@ -108,10 +108,12 @@ class CourseViewSet(viewsets.ModelViewSet):
         Course.objects.all()
         .select_related("creator")
         .prefetch_related(
-            "roles",
-            "roles__users",
-            "privileged_users",
-            "privileged_users__user",
+            # TODO use Prefetch() to prefetch into named field that get_user_privileges expects
+            # "roles",
+            # "roles__users",
+            # "privileged_users",
+            # "privileged_users__user",
+            "bookmarked_by",
         )
     )
     permission_classes = [policies.CoursePolicy]

@@ -5,7 +5,17 @@ from users.models import User
 
 
 class GamificationContextQuerySet(models.QuerySet):
-    pass
+    def with_prefetched_related_objects(self):
+        return self.prefetch_related(
+            "goals",
+            "goals__levels",
+            "action_definitions",
+            "badges",
+            "badges__badges",
+            "goals__levels__requirements",
+            "goals__progresses",
+            "reputation_deltas",
+        )
 
 
 class GoalLevelQuerySet(models.QuerySet):
