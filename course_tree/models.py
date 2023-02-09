@@ -1,18 +1,21 @@
 import io
+import logging
+import os
+
+from courses.models import Course, TimestampableModel
+from django.core.files.images import ImageFile
 from django.db import models
 from django.db.models import Q
-import os
-from polymorphic_tree.models import PolymorphicMPTTModel, PolymorphicTreeForeignKey
 from mptt.models import MPTTOptions
+from polymorphic_tree.models import (
+    PolymorphicMPTTModel,
+    PolymorphicTreeForeignKey,
+    _get_base_polymorphic_model,
+)
+from users.models import User
+
 from course_tree.helpers import detect_content_type, get_file_thumbnail
 from course_tree.managers import CourseTreeNodeManager
-from courses.models import Course, TimestampableModel
-from users.models import User
-from django.core.files.images import ImageFile
-from polymorphic_tree.models import _get_base_polymorphic_model
-
-
-import logging
 
 logger = logging.getLogger(__name__)
 
