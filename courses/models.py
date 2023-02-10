@@ -154,6 +154,8 @@ class UserCourseEnrollment(TimestampableModel):
         default=EnrollmentType.DEFAULT,
     )
 
+    def __str__(self):
+        return f"{str(self.course)} - {str(self.user)}"
 
 class UserCoursePrivilege(models.Model):
     """
