@@ -804,6 +804,7 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
             "current_slot_cursor",
             "bookmarked",
             "score",
+            "time_limit_timestamp",
         ]
 
         conditional_fields = {

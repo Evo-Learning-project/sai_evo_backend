@@ -62,5 +62,7 @@ def is_time_up(
     now = timezone.localtime(timezone.now())
 
     return now > (
-        participation.begin_timestamp + timedelta(seconds=time_limit + grace_period)
+        # TODO refactor to use participation.time_limit_timestamp
+        participation.begin_timestamp
+        + timedelta(seconds=time_limit + grace_period)
     )
