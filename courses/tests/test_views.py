@@ -769,10 +769,26 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
 
 
 class EventViewSetTestCase(BaseTestCase):
-    # TODO show unprivileged users cannot retrieve events without knowing their id
     def test_exercise_create_update_delete(self):
         course = Course.objects.create(name="course", creator=self.teacher1)
         course_pk = course.pk
+
+        # Show an unprivileged user cannot access the list of events of a course,
+        # nor retrieve an event which is in draft state
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(
+            f"/courses/{course_pk}/events/",
+        )
+        self.assertEquals(response.status_code, 403)
+
+        draft_event_pk = Event.objects.create(
+            **{**events.exam_1_all_at_once, "state": Event.DRAFT}, course=course
+        ).pk
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(
+            f"/courses/{course_pk}/events/{draft_event_pk}/",
+        )
+        self.assertEquals(response.status_code, 404)
 
         # Show the course creator can create and update events
         self.client.force_authenticate(user=self.teacher1)
@@ -931,11 +947,6 @@ class EventViewSetTestCase(BaseTestCase):
         self.assertEquals(response.status_code, 204)
         response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
         self.assertEquals(response.status_code, 204)
-
-    def test_view_queryset(self):
-        # show that, for each course, you can only access that course's
-        # events from the course's endpoint
-        pass
 
 
 class EventParticipationViewSetTestCase(BaseTestCase):
