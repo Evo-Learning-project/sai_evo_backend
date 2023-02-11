@@ -16,6 +16,7 @@ from courses.models import (
 from django.test import TestCase
 from rest_framework.test import APIClient, force_authenticate
 from users.models import User
+from data import events
 
 
 class BaseTestCase(TestCase):
@@ -770,22 +771,166 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
 class EventViewSetTestCase(BaseTestCase):
     # TODO show unprivileged users cannot retrieve events without knowing their id
     def test_exercise_create_update_delete(self):
-        # TODO implement
-        # show the course creator can create and update events
+        course = Course.objects.create(name="course", creator=self.teacher1)
+        course_pk = course.pk
 
-        # show a non-teacher user cannot create or update events
+        # Show the course creator can create and update events
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/",
+            {**events.exam_1_all_at_once, "state": Event.PLANNED},
+        )
+        exam_pk = response.json()["id"]
 
-        # show a user with `manage_events` permission can create events
+        self.assertEquals(response.status_code, 201)
 
-        # show a user with `manage_events` permission can update events
+        # Show an unprivileged user cannot create events which are not of type SELF_SERVICE_PRACTICE
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/", events.exam_1_one_at_a_time
+        )
+        self.assertEquals(response.status_code, 403)
 
-        # show a user without `manage_events` permission cannot create events
+        self.client.force_authenticate(user=self.teacher2)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/", events.exam_1_one_at_a_time
+        )
+        self.assertEquals(response.status_code, 403)
 
-        # show a user without `manage_events` permission cannot update events
+        # Show an unprivileged user can create a SELF_SERVICE_PRACTICE
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.post(f"/courses/{course_pk}/events/", events.practice_1)
+        self.assertEquals(response.status_code, 201)
+        practice_1_pk = response.json()["id"]
 
-        # show only the course creator can delete events
+        self.client.force_authenticate(user=self.student2)
+        response = self.client.post(f"/courses/{course_pk}/events/", events.practice_1)
+        self.assertEquals(response.status_code, 201)
+        practice_2_pk = response.json()["id"]
 
-        pass
+        # Show an unprivileged user cannot edit events, except for SELF_SERVICE_PRACTICE
+        # created by them
+        self.client.force_authenticate(user=self.student1)
+
+        # updating an exam fails if the user doesn't have privileges
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{exam_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.put(
+            f"/courses/{course_pk}/events/{exam_pk}/",
+            {**events.exam_1_all_at_once, "name": "abcdefgh"},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # trying to change an event's type also fails
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{exam_pk}/",
+            {"event_type": Event.SELF_SERVICE_PRACTICE},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # updating someone else's practice fails
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{practice_2_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # updating user own's practice
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{practice_1_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # Show a user with `manage_events` permission can create & update events
+
+        UserCoursePrivilege.objects.create(
+            user=self.student2, course=course, allow_privileges=["manage_events"]
+        )
+
+        self.client.force_authenticate(user=self.student2)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/",
+            events.exam_1_all_at_once,
+        )
+        self.assertEquals(response.status_code, 201)
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{exam_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # Show unprivileged users cannot access or edit the event template's rules
+
+        self.client.force_authenticate(user=self.student1)
+
+        template = Event.objects.get(pk=exam_pk).template
+
+        response = self.client.get(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/"
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.post(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/",
+            {"rule_type": EventTemplateRule.FULLY_RANDOM},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # Show an unprivileged user can edit the template rules of a practice
+        # created by them
+
+        template = Event.objects.get(pk=practice_1_pk).template
+        response = self.client.get(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/"
+        )
+        self.assertEquals(response.status_code, 200)
+        response = self.client.post(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/",
+            {"rule_type": EventTemplateRule.FULLY_RANDOM},
+        )
+        self.assertEquals(response.status_code, 201)
+
+        # Show an unprivileged user cannot edit the template rules of a
+        # practice created by another user
+
+        template = Event.objects.get(pk=practice_2_pk).template
+        response = self.client.get(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/"
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.post(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/",
+            {"rule_type": EventTemplateRule.FULLY_RANDOM},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # Show only the course creator can delete events
+
+        self.client.force_authenticate(user=self.student1)
+
+        response = self.client.delete(f"/courses/{course_pk}/events/{exam_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_1_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        self.client.force_authenticate(user=self.teacher2)
+
+        response = self.client.delete(f"/courses/{course_pk}/events/{exam_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_1_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        self.client.force_authenticate(user=self.teacher1)
+
+        response = self.client.delete(f"/courses/{course_pk}/events/{exam_pk}/")
+        self.assertEquals(response.status_code, 204)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_1_pk}/")
+        self.assertEquals(response.status_code, 204)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
+        self.assertEquals(response.status_code, 204)
 
     def test_view_queryset(self):
         # show that, for each course, you can only access that course's

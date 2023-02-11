@@ -9,7 +9,7 @@ from .models import Course, Event, EventTemplate, Exercise, ExerciseSolution
 
 
 class BaseAccessPolicy(AccessPolicy):
-    def has_teacher_privileges(self, request, view, action, privilege):
+    def get_course(self, view):
         from courses.models import Course
         from courses.views import CourseViewSet
 
@@ -20,11 +20,23 @@ class BaseAccessPolicy(AccessPolicy):
         )
 
         try:
-            course = Course.objects.get(pk=course_pk)
+            return Course.objects.get(pk=course_pk)
         except (ValueError, Course.DoesNotExist):
+            return None
+
+    def has_teacher_privileges(self, request, view, action, privilege):
+        course = self.get_course(view)
+        if course is None:
             return False
 
         return check_privilege(request.user, course, privilege)
+
+    def is_course_creator(self, request, view, action):
+        course = self.get_course(view)
+        if course is None:
+            return False
+
+        return course.creator == request.user
 
 
 class CoursePolicy(BaseAccessPolicy):
@@ -39,7 +51,7 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
         },
         {
-            "action": ["set_permissions", "jobe"],
+            "action": ["jobe"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:update_course",
@@ -73,7 +85,7 @@ class CoursePolicy(BaseAccessPolicy):
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "has_teacher_privileges:update_course and \
-                not is_personal_account and not is_course_creator",
+                not target_user_is_personal_account and not target_user_is_course_creator",
         },
         {
             "action": "gamification_context",
@@ -87,7 +99,7 @@ class CoursePolicy(BaseAccessPolicy):
         return request.method == "GET"
 
     def is_visible_to(self, request, view, action):
-        from demo_mode.logic import is_demo_mode
+        # from demo_mode.logic import is_demo_mode
 
         # if is_demo_mode():
         #     return is_course_accessible_in_demo_mode(view.get_object(), request.user)
@@ -97,7 +109,7 @@ class CoursePolicy(BaseAccessPolicy):
     def is_teacher(self, request, view, action):
         return request.user.is_teacher
 
-    def is_course_creator(self, request, view, action):
+    def target_user_is_course_creator(self, request, view, action):
         try:
             user_id = request.query_params["user_id"]
             user = User.objects.get(pk=user_id)
@@ -106,7 +118,7 @@ class CoursePolicy(BaseAccessPolicy):
         except (KeyError, ValueError, User.DoesNotExist, Course.DoesNotExist):
             return False
 
-    def is_personal_account(self, request, view, action):
+    def target_user_is_personal_account(self, request, view, action):
         try:
             user_id = request.query_params["user_id"]
             user = User.objects.get(pk=user_id)
@@ -134,10 +146,14 @@ class EventPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition_expression": "is_course_visible_to and has_teacher_privileges:manage_events",
         },
-        # TODO for creation you just need to check those conditions, for updating etc. you also need to check event creator
+        {
+            "action": ["create"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "creating_self_service_practice or has_teacher_privileges:manage_events",
+        },
         {
             "action": [
-                "create",
                 "update",
                 "partial_update",
                 "lock",
@@ -146,7 +162,8 @@ class EventPolicy(BaseAccessPolicy):
             ],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_self_service_practice or has_teacher_privileges:manage_events",
+            "condition_expression": "updating_self_service_practice and is_event_creator\
+                 or has_teacher_privileges:manage_events",
         },
         {
             "action": ["instances"],
@@ -160,14 +177,27 @@ class EventPolicy(BaseAccessPolicy):
             "effect": "allow",
             "condition": "is_event_visible_to",
         },
+        {
+            "action": ["destroy"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition": "is_course_creator",
+        },
     ]
 
-    def is_self_service_practice(self, request, view, action):
+    def creating_self_service_practice(self, request, view, action):
         try:
-            # TODO distinguish by action: in update, you need to check type is *already* a practice
             return request.data["event_type"] == Event.SELF_SERVICE_PRACTICE
         except Exception:
             return False
+
+    def updating_self_service_practice(self, request, view, action):
+        event = view.get_object()
+        return event.event_type == Event.SELF_SERVICE_PRACTICE
+
+    def is_event_creator(self, request, view, action):
+        event = view.get_object()
+        return event.creator == request.user
 
     def is_course_visible_to(self, request, view, action):
         return True
@@ -183,11 +213,12 @@ class EventTemplatePolicy(BaseAccessPolicy):
             "action": ["*"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_related_to_self_service_practice or has_teacher_privileges:manage_events",
+            "condition_expression": "is_related_to_self_service_practice and is_template_event_creator\
+                or has_teacher_privileges:manage_events",
         },
     ]
 
-    def is_related_to_self_service_practice(self, request, view, action):
+    def get_template(self, view):
         from courses.views import (
             EventTemplateRuleClauseViewSet,
             EventTemplateRuleViewSet,
@@ -199,12 +230,25 @@ class EventTemplatePolicy(BaseAccessPolicy):
             try:
                 template = EventTemplate.objects.get(pk=view.kwargs["template_pk"])
             except ValueError:
-                return False
+                return None
         else:
             template = view.get_object()
 
-        # TODO you also need to check the creator
+        return template
+
+    def is_related_to_self_service_practice(self, request, view, action):
+        template = self.get_template(view)
+        if template is None:
+            return False
+
         return template.event.event_type == Event.SELF_SERVICE_PRACTICE
+
+    def is_template_event_creator(self, request, view, action):
+        template = self.get_template(view)
+        if template is None:
+            return False
+
+        return template.event.creator == request.user
 
 
 class TagPolicy(BaseAccessPolicy):

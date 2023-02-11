@@ -13,3 +13,10 @@ exam_1_one_at_a_time = {
     "exercises_shown_at_a_time": 1,
     "state": Event.DRAFT,
 }
+
+
+practice_1 = {
+    "name": "",
+    "event_type": Event.SELF_SERVICE_PRACTICE,
+    "state": Event.OPEN,
+}
