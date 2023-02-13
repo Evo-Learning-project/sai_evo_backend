@@ -11,11 +11,13 @@ from courses.models import (
     Exercise,
     ExerciseSolution,
     ExerciseSolutionVote,
+    UserCourseEnrollment,
     UserCoursePrivilege,
 )
 from django.test import TestCase
 from rest_framework.test import APIClient, force_authenticate
 from users.models import User
+from data import events
 
 
 class BaseTestCase(TestCase):
@@ -41,6 +43,8 @@ class CourseViewSetTestCase(BaseTestCase):
 
         self.assertEqual(response.data["name"], course_name)
         course_pk = response.data["id"]
+
+        UserCourseEnrollment.objects.create(user=self.student1, course_id=course_pk)
 
         response = self.client.get(f"/courses/{course_pk}/")
         self.assertEquals(response.status_code, 200)
@@ -104,6 +108,7 @@ class CourseViewSetTestCase(BaseTestCase):
 class ExerciseViewSetTestCase(BaseTestCase):
     def test_exercise_CRUD(self):
         course_pk = Course.objects.create(name="test1", creator=self.teacher1).pk
+        UserCourseEnrollment.objects.create(user=self.student1, course_id=course_pk)
 
         """
         Show the course creator can CRUD exercises and their child models
@@ -434,6 +439,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
         from data.exercises import mmc_pub_1, mmc_priv_1, msc_priv_1, mmc_draft_1
 
         course = Course.objects.create(name="test_policy_course", creator=self.teacher1)
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
 
         mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
         mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
@@ -537,6 +543,7 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
         course = Course.objects.create(
             name="test_solution_policy_course", creator=self.teacher1
         )
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
 
         mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
         mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
@@ -624,6 +631,7 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
         course = Course.objects.create(
             name="test_solution_policy_course_2", creator=self.teacher1
         )
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
 
         mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
         mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
@@ -768,29 +776,187 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
 
 
 class EventViewSetTestCase(BaseTestCase):
-    # TODO show unprivileged users cannot retrieve events without knowing their id
     def test_exercise_create_update_delete(self):
-        # TODO implement
-        # show the course creator can create and update events
+        course = Course.objects.create(name="course", creator=self.teacher1)
+        course_pk = course.pk
 
-        # show a non-teacher user cannot create or update events
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
+        UserCourseEnrollment.objects.create(user=self.student2, course=course)
 
-        # show a user with `manage_events` permission can create events
+        # Show an unprivileged user cannot access the list of events of a course,
+        # nor retrieve an event which is in draft state
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(
+            f"/courses/{course_pk}/events/",
+        )
+        self.assertEquals(response.status_code, 403)
 
-        # show a user with `manage_events` permission can update events
+        draft_event_pk = Event.objects.create(
+            **{**events.exam_1_all_at_once, "state": Event.DRAFT}, course=course
+        ).pk
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(
+            f"/courses/{course_pk}/events/{draft_event_pk}/",
+        )
+        self.assertEquals(response.status_code, 404)
 
-        # show a user without `manage_events` permission cannot create events
+        # Show the course creator can create and update events
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/",
+            {**events.exam_1_all_at_once, "state": Event.PLANNED},
+        )
+        exam_pk = response.json()["id"]
 
-        # show a user without `manage_events` permission cannot update events
+        self.assertEquals(response.status_code, 201)
 
-        # show only the course creator can delete events
+        # Show an unprivileged user cannot create events which are not of type SELF_SERVICE_PRACTICE
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/", events.exam_1_one_at_a_time
+        )
+        self.assertEquals(response.status_code, 403)
 
-        pass
+        self.client.force_authenticate(user=self.teacher2)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/", events.exam_1_one_at_a_time
+        )
+        self.assertEquals(response.status_code, 403)
 
-    def test_view_queryset(self):
-        # show that, for each course, you can only access that course's
-        # events from the course's endpoint
-        pass
+        # Show an unprivileged user can create a SELF_SERVICE_PRACTICE
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.post(f"/courses/{course_pk}/events/", events.practice_1)
+        self.assertEquals(response.status_code, 201)
+        practice_1_pk = response.json()["id"]
+
+        self.client.force_authenticate(user=self.student2)
+        response = self.client.post(f"/courses/{course_pk}/events/", events.practice_1)
+        self.assertEquals(response.status_code, 201)
+        practice_2_pk = response.json()["id"]
+
+        # Show an unprivileged user cannot edit events, except for SELF_SERVICE_PRACTICE
+        # created by them
+        self.client.force_authenticate(user=self.student1)
+
+        # updating an exam fails if the user doesn't have privileges
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{exam_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.put(
+            f"/courses/{course_pk}/events/{exam_pk}/",
+            {**events.exam_1_all_at_once, "name": "abcdefgh"},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # trying to change an event's type also fails
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{exam_pk}/",
+            {"event_type": Event.SELF_SERVICE_PRACTICE},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # updating someone else's practice fails
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{practice_2_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # updating user own's practice
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{practice_1_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # Show a user with `manage_events` permission can create & update events
+
+        UserCoursePrivilege.objects.create(
+            user=self.student2, course=course, allow_privileges=["manage_events"]
+        )
+
+        self.client.force_authenticate(user=self.student2)
+        response = self.client.post(
+            f"/courses/{course_pk}/events/",
+            events.exam_1_all_at_once,
+        )
+        self.assertEquals(response.status_code, 201)
+        response = self.client.patch(
+            f"/courses/{course_pk}/events/{exam_pk}/", {"name": "abcdefgh"}
+        )
+        self.assertEquals(response.status_code, 200)
+
+        # Show unprivileged users cannot access or edit the event template's rules
+
+        self.client.force_authenticate(user=self.student1)
+
+        template = Event.objects.get(pk=exam_pk).template
+
+        response = self.client.get(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/"
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.post(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/",
+            {"rule_type": EventTemplateRule.FULLY_RANDOM},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # Show an unprivileged user can edit the template rules of a practice
+        # created by them
+
+        template = Event.objects.get(pk=practice_1_pk).template
+        response = self.client.get(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/"
+        )
+        self.assertEquals(response.status_code, 200)
+        response = self.client.post(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/",
+            {"rule_type": EventTemplateRule.FULLY_RANDOM},
+        )
+        self.assertEquals(response.status_code, 201)
+
+        # Show an unprivileged user cannot edit the template rules of a
+        # practice created by another user
+
+        template = Event.objects.get(pk=practice_2_pk).template
+        response = self.client.get(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/"
+        )
+        self.assertEquals(response.status_code, 403)
+        response = self.client.post(
+            f"/courses/{course_pk}/templates/{template.pk}/rules/",
+            {"rule_type": EventTemplateRule.FULLY_RANDOM},
+        )
+        self.assertEquals(response.status_code, 403)
+
+        # Show only the course creator can delete events
+
+        self.client.force_authenticate(user=self.student1)
+
+        response = self.client.delete(f"/courses/{course_pk}/events/{exam_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_1_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        self.client.force_authenticate(user=self.teacher2)
+
+        response = self.client.delete(f"/courses/{course_pk}/events/{exam_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_1_pk}/")
+        self.assertEquals(response.status_code, 403)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
+        self.assertEquals(response.status_code, 403)
+
+        self.client.force_authenticate(user=self.teacher1)
+
+        response = self.client.delete(f"/courses/{course_pk}/events/{exam_pk}/")
+        self.assertEquals(response.status_code, 204)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_1_pk}/")
+        self.assertEquals(response.status_code, 204)
+        response = self.client.delete(f"/courses/{course_pk}/events/{practice_2_pk}/")
+        self.assertEquals(response.status_code, 204)
 
 
 class EventParticipationViewSetTestCase(BaseTestCase):
@@ -802,6 +968,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
 
         self.student_1 = User.objects.create(**users.student_1)
         self.student_2 = User.objects.create(**users.student_2)
+
+        UserCourseEnrollment.objects.create(user=self.student_1, course=self.course)
+        UserCourseEnrollment.objects.create(user=self.student_2, course=self.course)
 
         self.exercise_1 = Exercise.objects.create(
             course=self.course, **exercises.mmc_priv_1
@@ -1257,6 +1426,7 @@ class CoursePrivilegeTestCase(BaseTestCase):
         self.course = Course.objects.create(creator=self.teacher_1, **courses.course_1)
 
         self.student_1 = User.objects.create(**users.student_1)
+        UserCourseEnrollment.objects.create(user=self.student_1, course=self.course)
 
         self.client = APIClient()
 
@@ -1413,6 +1583,10 @@ class BulkActionsMixinsTestCase(BaseTestCase):
         self.student_1 = User.objects.create(**users.student_1)
         self.student_2 = User.objects.create(**users.student_2)
         self.student_3 = User.objects.create(**users.student_3)
+
+        UserCourseEnrollment.objects.create(user=self.student_1, course=self.course)
+        UserCourseEnrollment.objects.create(user=self.student_2, course=self.course)
+        UserCourseEnrollment.objects.create(user=self.student_3, course=self.course)
 
         self.exercise_1 = Exercise.objects.create(
             course=self.course, **exercises.mmc_priv_1
