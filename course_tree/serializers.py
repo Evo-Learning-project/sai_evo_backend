@@ -144,6 +144,8 @@ class FileNodeSerializer(CourseTreeNodeSerializer):
             "file",
             "mime_type",
             "thumbnail",
+            "created",
+            "modified",
         ]
 
     def create(self, validated_data):
