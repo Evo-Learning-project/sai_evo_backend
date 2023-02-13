@@ -189,11 +189,17 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         if request.method == "PUT":
             if request.user in course.enrolled_users.all():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "ALREADY_ENROLLED"},
+                )
             course.enroll_users([user_id])
         else:
             if request.user not in course.enrolled_users.all():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "NOT_ENROLLED"},
+                )
             course.unenroll_users([user_id])
 
         return Response(status=status.HTTP_204_NO_CONTENT)

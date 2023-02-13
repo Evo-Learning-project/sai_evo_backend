@@ -131,7 +131,7 @@ class Course(TimestampableModel):
         return enrollments
 
     def unenroll_users(self, user_ids):
-        self.enrolled_users.remove(User.objects.filter(pk__in=user_ids))
+        self.enrolled_users.remove(*User.objects.filter(pk__in=user_ids))
 
 
 class UserCourseEnrollment(TimestampableModel):
@@ -157,6 +157,7 @@ class UserCourseEnrollment(TimestampableModel):
 
     def __str__(self):
         return f"{str(self.course)} - {str(self.user)}"
+
 
 class UserCoursePrivilege(models.Model):
     """

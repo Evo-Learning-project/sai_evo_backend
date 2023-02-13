@@ -341,6 +341,9 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
 
 
 class EventParticipationPolicyMixin:
+    NOT_IN_EVENT_ALLOWED_LIST = "NOT_IN_EVENT_ALLOWED_LIST"
+    EVENT_CLOSED = "EVENT_CLOSED"
+
     @lru_cache(maxsize=None)
     def get_participation(self, view):
         from courses.views import (
@@ -374,18 +377,19 @@ class EventParticipationPolicyMixin:
 
         event = participation.event
 
-        return event.state == Event.OPEN or (
+        event_open = event.state == Event.OPEN or (
             event.state == Event.RESTRICTED
             and request.user in event.users_allowed_past_closure.all()
         )
+        if not event_open:
+            self.message = self.EVENT_CLOSED
+
+        return event_open
 
 
 class EventParticipationPolicy(
     RequireCourseEnrollmentPolicy, EventParticipationPolicyMixin
 ):
-    NOT_IN_EVENT_ALLOWED_LIST = "NOT_IN_EVENT_ALLOWED_LIST"
-    EVENT_CLOSED = "EVENT_CLOSED"
-
     statements = [
         {
             "action": ["list"],
