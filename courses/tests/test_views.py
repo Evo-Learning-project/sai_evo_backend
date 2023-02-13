@@ -780,9 +780,6 @@ class EventViewSetTestCase(BaseTestCase):
         course = Course.objects.create(name="course", creator=self.teacher1)
         course_pk = course.pk
 
-        UserCourseEnrollment.objects.create(user=self.student1, course=course)
-        UserCourseEnrollment.objects.create(user=self.student2, course=course)
-
         # Show an unprivileged user cannot access the list of events of a course,
         # nor retrieve an event which is in draft state
         self.client.force_authenticate(user=self.student1)

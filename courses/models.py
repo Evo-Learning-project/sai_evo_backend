@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 from content.models import Content, PostModel, VoteModel
 from core.models import HashIdModel
@@ -1262,6 +1263,25 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     @property
     def score_edited(self):
         return self._score is not None and len(self._score) > 0
+
+    @property
+    def time_limit_timestamp(self):
+        """
+        Returns  the timestamp at which the participation will run out of time, in
+        Unix epoch *milliseconds*. Sending this information together with the participation
+        lifts the client from the responsibility of performing this computation, which is
+        susceptible to timezone issues if performed in a client-dependent way.
+
+        The timestamp is returned in milliseconds as a convenience to the client, since
+        browsers use millisecond-based timestamps.
+        """
+        from courses.logic.participations import get_effective_time_limit
+
+        time_limit = get_effective_time_limit(self.user, self.event)
+        if time_limit is None:
+            return None
+
+        return (self.begin_timestamp + timedelta(seconds=time_limit)).timestamp() * 1000
 
     @property
     def current_slots(self):
