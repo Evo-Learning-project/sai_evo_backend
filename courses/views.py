@@ -204,7 +204,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=["put", "delete"], detail=True)
+    @action(methods=["get", "put", "delete"], detail=True)
     def enrollments(self, request, **kwargs):
         """
         An endpoint used to enroll and unenroll users to a course.
@@ -218,6 +218,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         using the email addresses in the payload.
         """
         course = self.get_object()
+
+        if request.method == "GET":
+            enrolled_users = course.enrolled_users.all()
+            serializer = UserSerializer(enrolled_users, many=True)
+            return Response(serializer.data)
 
         user_ids = request.data.get("user_ids", [])
         emails = request.data.get("emails", [])

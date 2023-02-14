@@ -89,6 +89,13 @@ class CoursePolicy(BaseAccessPolicy):
             "condition": "has_teacher_privileges:update_course",
         },
         {
+            "action": ["enrollments"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "is_retrieve_request and has_teacher_privileges:__some__ or \
+                has_teacher_privileges:update_course",
+        },
+        {
             "action": ["retrieve"],
             "principal": ["authenticated"],
             "effect": "allow",
