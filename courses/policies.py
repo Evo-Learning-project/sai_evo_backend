@@ -83,7 +83,7 @@ class CoursePolicy(BaseAccessPolicy):
             "effect": "allow",
         },
         {
-            "action": ["jobe", "enrollments"],
+            "action": ["jobe"],
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "has_teacher_privileges:update_course",

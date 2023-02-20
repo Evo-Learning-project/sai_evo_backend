@@ -222,6 +222,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         user_ids = request.data.get("user_ids", [])
         emails = request.data.get("emails", [])
 
+        if not user_ids and not emails:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if len(emails) > 0 and request.method == "DELETE":
             """
             Enrollment deletion can only be performed via user id's,
@@ -232,22 +235,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         # query for emails referring to existing accounts and retrieve
         # the corresponding user id's
         existing_users_by_email = User.objects.filter(email__in=emails).values_list(
-            "id", "email", flat=True
+            "id",
+            "email",
         )
+
         # add retrieved id's to user id list
         user_ids.extend([i for (i, _) in existing_users_by_email])
+
         # remove emails of users that had existing accounts from the list
         # of emails to use for creating new accounts
         emails = [
-            e for e in emails if e not in [em for (_, em) in existing_users_by_email]
+            email
+            for email in emails
+            if email not in [e for (_, e) in existing_users_by_email]
         ]
-
-        # if User.objects.filter(email__in=emails).exists():
-        # """
-        # To use with existing users, supply their id's instead of their
-        # email addresses
-        # """
-        # return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # create any accounts for which the email address has been given
         creation_serializer = UserCreationSerializer(
@@ -256,10 +257,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         creation_serializer.is_valid(raise_exception=True)
         users = creation_serializer.save()
 
-        if request.method == "PUT":
-            course.enroll_users([*user_ids, *(u.pk for u in users)], request.user)
-        else:
-            course.unenroll_users(user_ids)
+        try:
+            if request.method == "PUT":
+                course.enroll_users([*user_ids, *(u.pk for u in users)], request.user)
+            else:
+                course.unenroll_users(user_ids)
+        except Exception as e:
+            logger.error("Exception while (un)enrolling users: " + str(e))
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
