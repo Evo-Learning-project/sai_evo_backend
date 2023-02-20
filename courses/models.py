@@ -155,6 +155,14 @@ class UserCourseEnrollment(TimestampableModel):
         default=EnrollmentType.DEFAULT,
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "course_id"],
+                name="same_course_unique_enrollment",
+            )
+        ]
+
     def __str__(self):
         return f"{str(self.course)} - {str(self.user)}"
 
