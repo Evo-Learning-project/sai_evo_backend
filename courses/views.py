@@ -1,35 +1,26 @@
-from asyncio.log import logger
 import os
+from asyncio.log import logger
 
-
+from coding.helpers import get_code_execution_results, send_jobe_request
+from demo_mode.logic import is_demo_mode
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
-from django.db import IntegrityError
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from users.models import User
+from users.serializers import UserCreationSerializer, UserSerializer
 
+from courses import policies
 from courses.filters import (
     EventFilter,
     EventParticipationFilter,
     ExerciseFilter,
     ExerciseSolutionFilter,
 )
-from demo_mode.logic import is_demo_mode
-
-from django.db import transaction
-
-from .view_mixins import (
-    BulkCreateMixin,
-    BulkGetMixin,
-    BulkPatchMixin,
-    LockableModelViewSetMixin,
-    RequestingUserPrivilegesMixin,
-    RestrictedListMixin,
-    ScopeQuerySetByCourseMixin,
-)
-from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
-from rest_framework import filters, mixins, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from coding.helpers import get_code_execution_results, send_jobe_request
 from courses.logic.event_instances import ExercisePicker
 from courses.logic.presentation import (
     CHOICE_SHOW_SCORE_FIELDS,
@@ -49,11 +40,6 @@ from courses.logic.presentation import (
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
-from courses.tasks import run_participation_slot_code_task
-from users.models import User
-from users.serializers import UserCreationSerializer, UserSerializer
-from django.http import FileResponse, Http404
-from courses import policies
 from courses.logic.privileges import (
     ACCESS_EXERCISES,
     ASSESS_PARTICIPATIONS,
@@ -80,6 +66,7 @@ from courses.models import (
     UserCoursePrivilege,
 )
 from courses.pagination import EventParticipationPagination, ExercisePagination
+from courses.tasks import run_participation_slot_code_task
 
 from .serializers import (
     CourseRoleSerializer,
@@ -99,6 +86,15 @@ from .serializers import (
     ExerciseTestCaseAttachmentSerializer,
     ExerciseTestCaseSerializer,
     TagSerializer,
+)
+from .view_mixins import (
+    BulkCreateMixin,
+    BulkGetMixin,
+    BulkPatchMixin,
+    LockableModelViewSetMixin,
+    RequestingUserPrivilegesMixin,
+    RestrictedListMixin,
+    ScopeQuerySetByCourseMixin,
 )
 
 
@@ -212,10 +208,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         `user_ids` can be used to enroll existing users.
 
-        `email` can be used to enroll nonexisting users. Using `email` with
-        email addresses associated to existing users will fail. Enrolling
+        `email` can be used to enroll nonexisting users. Enrolling
         users using this option will cause their account to be created first,
-        using the email addresses in the payload.
+        if it doesn't exist already using the email addresses in the payload.
         """
         course = self.get_object()
 
@@ -234,12 +229,25 @@ class CourseViewSet(viewsets.ModelViewSet):
             """
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(email__in=emails).exists():
-            """
-            To use with existing users, supply their id's instead of their
-            email addresses
-            """
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        # query for emails referring to existing accounts and retrieve
+        # the corresponding user id's
+        existing_users_by_email = User.objects.filter(email__in=emails).values_list(
+            "id", "email", flat=True
+        )
+        # add retrieved id's to user id list
+        user_ids.extend([i for (i, _) in existing_users_by_email])
+        # remove emails of users that had existing accounts from the list
+        # of emails to use for creating new accounts
+        emails = [
+            e for e in emails if e not in [em for (_, em) in existing_users_by_email]
+        ]
+
+        # if User.objects.filter(email__in=emails).exists():
+        # """
+        # To use with existing users, supply their id's instead of their
+        # email addresses
+        # """
+        # return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # create any accounts for which the email address has been given
         creation_serializer = UserCreationSerializer(
@@ -371,9 +379,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     @action(methods=["get", "post"], detail=True)
     def gamification_context(self, request, **kwargs):
+        from django.contrib.contenttypes.models import ContentType
         from gamification.models import GamificationContext
         from gamification.serializers import GamificationContextSerializer
-        from django.contrib.contenttypes.models import ContentType
 
         # TODO refactor
         course = self.get_object()
