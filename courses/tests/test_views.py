@@ -1572,6 +1572,10 @@ class CoursePrivilegeTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_course_enrollments_endpoint(self):
+        # TODO implement
+        pass
+
 
 class BulkActionsMixinsTestCase(BaseTestCase):
     def setUp(self):
