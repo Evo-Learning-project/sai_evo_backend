@@ -42,8 +42,9 @@ class SubmissionAssessor:
     def get_composite_exercise_submission_correctness(self, slot):
         # for composite exercises (i.e. COMPLETION, AGGREGATED) the correctness
         # is the sum of the correctness values of the sub-exercises
+        assessable_sub_slots = slot.get_assessable_sub_slots()
         sub_slots_correctness = [
-            (s, self.get_submission_correctness(s)) for s in slot.sub_slots.all()
+            (s, self.get_submission_correctness(s)) for s in assessable_sub_slots
         ]
         if any([c is None for _, c in sub_slots_correctness]):
             return None
