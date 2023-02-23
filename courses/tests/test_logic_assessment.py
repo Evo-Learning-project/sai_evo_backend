@@ -25,6 +25,7 @@ class SubmissionAssessorTestCase(TestCase):
         self.mmc = Exercise.objects.create(course=self.course, **exercises.mmc_priv_1)
         self.msc = Exercise.objects.create(course=self.course, **exercises.msc_priv_1)
         self.clz = Exercise.objects.create(course=self.course, **exercises.cloze_prv_1)
+
         self.open = Exercise.objects.create(course=self.course, **exercises.open_priv_1)
         self.js = Exercise.objects.create(course=self.course, **exercises.js_prv_1)
 
@@ -221,6 +222,12 @@ class SubmissionAssessorTestCase(TestCase):
         Shows that the max_score for a completion exercise is the
         weighted sum of the max_scores of its sub_exercises
         """
+        # include placeholders for cloze sub-exercises
+        for sub_exercise in self.clz.sub_exercises.all():
+            self.clz.text += f" [[{sub_exercise.pk}]]"
+
+        self.clz.save()
+
         self.assertEqual(self.clz.get_max_score(), 4)
 
         sub_exercises = self.clz.sub_exercises.all()
@@ -269,6 +276,75 @@ class SubmissionAssessorTestCase(TestCase):
         # 1 * 2 (first sub-exercise)  - 0.1 * 1 (second) + 1 * 1 (third)
         # ==> 2.9 / 4 * 2 = 1.45
         self.assertEqual(self.slot_clz.score, Decimal("1.45"))
+
+        # show that, if you add a new sub exercise to the cloze, but don't include
+        # its placeholder in the text, it won't count for assessment
+        # TODO
+        new_cloze_sub_exercise = Exercise.objects.create(
+            parent=self.clz,
+            course=self.clz.course,
+            **{
+                "text": "",
+                "exercise_type": Exercise.MULTIPLE_CHOICE_SINGLE_POSSIBLE,
+                "child_weight": 1,
+                "choices": [
+                    {"text": "correct", "correctness": 1},
+                    {"text": "partially_correct", "correctness": 0.5},
+                    {"text": "incorrect", "correctness": -0.1},
+                ],
+            },
+        )
+        self.assertEqual(self.clz.get_max_score(), 4)
+
+        old_clz_text = self.clz.text
+
+        self.clz.text += f" [[{new_cloze_sub_exercise.pk}]]"
+        self.clz.save()
+        # now that the placeholder was added, the new exercise will be counted
+        self.assertEqual(self.clz.get_max_score(), 5)
+
+        # remove placeholder
+        self.clz.text = old_clz_text
+        self.clz.save()
+        # max_score once again doesn't account for the new exercise
+        self.assertEqual(self.clz.get_max_score(), 4)
+
+        # delete & recreate participation to trigger slot creation for new sub-exercise
+        self.participation.delete()
+        self.participation = EventParticipation.objects.create(
+            event_id=self.event.pk, user=self.student_1
+        )
+        self.slot_clz = self.participation.slots.get(populating_rule=self.rule_clz)
+
+        sub_slot_1 = self.slot_clz.sub_slots.get(exercise=sub_weight_2)
+        sub_slot_2 = self.slot_clz.sub_slots.get(exercise=sub_weight_1_1)
+        sub_slot_3 = self.slot_clz.sub_slots.get(exercise=sub_weight_1_2)
+        # this last slow won't be counted for assessment
+        sub_slot_4 = self.slot_clz.sub_slots.get(exercise=new_cloze_sub_exercise)
+
+        sub_4_partially_correct_choice = new_cloze_sub_exercise.choices.get(
+            correctness=0.5
+        )
+
+        # all correct answers except for the last one
+        sub_slot_1.selected_choices.set([sub_1_correct_choice])
+        sub_slot_2.selected_choices.set([sub_2_correct_choice])
+        sub_slot_3.selected_choices.set([sub_3_correct_choice])
+        sub_slot_4.selected_choices.set([sub_4_partially_correct_choice])
+
+        # 1 * 2 (first sub-exercise)  + 1 * 1 (second) + 1 * 1 (third); fourth doesn't count
+        # ==> 4 / 4 * 2 = 2
+        self.assertEqual(self.slot_clz.score, Decimal("2"))
+
+        # add placeholder for fourth sub-exercise
+        self.clz.text += f" [[{new_cloze_sub_exercise.pk}]]"
+        self.clz.save()
+
+        self.slot_clz.refresh_from_db()
+
+        # 1 * 2 (first sub-exercise)  + 1 * 1 (second) + 1 * 1 (third) + 0.5 * 1 (fourth now counts)
+        # ==> 4.5 / 5 * 2 = 1.8
+        self.assertEqual(self.slot_clz.score, Decimal("1.8"))
 
     def test_open_answer_assessment(self):
         pass
