@@ -53,6 +53,9 @@ social-auth-core = "*"
 django-environ = "*"
 click-didyoumean = "*"
 prompt-toolkit = "*"
+google-api-python-client = "*"
+google-auth-httplib2 = "*"
+google-auth-oauthlib = "*"
 
 [dev-packages]
 mypy = "*"
