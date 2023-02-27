@@ -21,10 +21,12 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         "https://www.googleapis.com/auth/classroom.announcements",
         "https://www.googleapis.com/auth/classroom.courseworkmaterials",
         "https://www.googleapis.com/auth/classroom.coursework.students",
+        "https://www.googleapis.com/auth/classroom.rosters",
+        "https://www.googleapis.com/auth/classroom.profile.emails",
     ]
 
-    def get_classroom_course_from_evo_course(self, course: Course):
-        ...
+    def get_classroom_course_id_from_evo_course(self, course: Course):
+        return "541442443947"
 
     def get_client_config(self):
         env = environ.Env()
@@ -58,6 +60,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         return build("classroom", "v1", credentials=creds)
 
     def get_credentials(self, user: User):
+        # TODO implement
         ...
 
     def on_announcement_published(self, user: User, announcement: AnnouncementNode):
@@ -73,7 +76,43 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         ...
 
     def get_course_students(self, course: Course):
-        ...
+        """
+        Returns the list of students enrolled in the Classroom course
+        corresponding to the Course object passed as argument
+        """
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+        service = self.get_service(course.creator)
+
+        ret = []
+
+        first_request = True
+        next_page_token = None
+
+        # iterate as long as you get a next-page token in the response
+        while first_request or next_page_token:
+            first_request = False
+            # fetch next page
+            response = (
+                service.courses()
+                .students()
+                .list(courseId=course_id, pageToken=next_page_token)
+                .execute()
+            )
+            # TODO error handling
+            next_page_token = response.get("nextPageToken")
+            students = response["students"]
+            ret.extend(
+                [
+                    {
+                        "email": s["profile"]["emailAddress"],
+                        "first_name": s["profile"].get("name", {}).get("givenName", ""),
+                        "last_name": s["profile"].get("name", {}).get("familyName", ""),
+                    }
+                    for s in students
+                ]
+            )
+
+        return ret
 
     def get_course_teachers(self, course: Course):
         ...
