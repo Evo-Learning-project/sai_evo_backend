@@ -61,6 +61,8 @@ from .managers import (
     TagManager,
 )
 
+from django.conf import settings
+
 
 def get_attachment_path(slot, filename):
     event = slot.participation.event
@@ -821,6 +823,11 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
             # )
         ]
 
+    def get_absolute_url(self):
+        if self.event_type == self.EXAM:
+            return f"{settings.BASE_FRONTEND_URL}/student/courses/{self.course.pk}/exams/{self.pk}/"
+        return ""
+
     @property
     def max_score(self):
         rules = self.template.rules.all()
@@ -868,6 +875,14 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
     @state.setter
     def state(self, value):
         self._event_state = value
+
+    @hook(AFTER_UPDATE, when="_event_state", changes_to=OPEN, was=DRAFT)
+    @hook(AFTER_UPDATE, when="_event_state", changes_to=PLANNED, was=DRAFT)
+    def on_publish(self):
+        # TODO put an integration registry here to dispatch action - this is just for testing
+        from integrations.classroom.integration import GoogleClassroomIntegration
+
+        GoogleClassroomIntegration().on_exam_published(self.creator, self)
 
     @hook(AFTER_UPDATE, when="state", changes_to=CLOSED)
     def on_close(self):

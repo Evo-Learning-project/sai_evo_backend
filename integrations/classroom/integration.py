@@ -1,3 +1,6 @@
+from integrations.classroom.factories import get_assignment_payload
+from integrations.classroom import messages
+
 from integrations.exceptions import MissingIntegrationParameters
 from integrations.integration import BaseEvoIntegration
 from users.models import User
@@ -67,7 +70,25 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         ...
 
     def on_exam_published(self, user: User, exam: Event):
-        ...
+        print("on_exam_published")
+        course_id = self.get_classroom_course_id_from_evo_course(exam.course)
+        service = self.get_service(user)
+        exam_url = exam.get_absolute_url()
+        coursework_payload = get_assignment_payload(
+            title=exam.name,
+            description=messages.EXAM_PUBLISHED,
+            exam_url=exam_url,
+        )
+        results = (
+            service.courses()
+            .courseWork()
+            .create(
+                courseId=course_id,
+                body=coursework_payload,
+            )
+            .execute()
+        )
+        print(results)
 
     def on_lesson_published(self, user: User, lesson: LessonNode):
         ...

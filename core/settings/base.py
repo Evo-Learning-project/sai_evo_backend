@@ -41,6 +41,10 @@ AUTH_USER_MODEL = "users.User"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
+
+
 # Application definition
 
 INSTALLED_APPS = [
