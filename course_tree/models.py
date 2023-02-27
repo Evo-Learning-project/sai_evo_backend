@@ -17,6 +17,19 @@ from users.models import User
 from course_tree.helpers import detect_content_type, get_file_thumbnail
 from course_tree.managers import CourseTreeNodeManager
 
+from django.conf import settings
+
+from django_lifecycle import (
+    LifecycleModel,
+    LifecycleModelMixin,
+    hook,
+    BEFORE_UPDATE,
+    AFTER_UPDATE,
+    AFTER_CREATE,
+    BEFORE_DELETE,
+)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,6 +124,9 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
                 pass
         return "Root " + str(self.pk)
 
+    def get_absolute_url(self):
+        return f"{settings.BASE_FRONTEND_URL}/courses/{self.get_course().pk}/material/{self.pk}/"
+
     def get_course(self) -> Course:
         return self.get_root().course
 
@@ -129,7 +145,7 @@ class TopicNode(BaseCourseTreeNode):
     name = models.CharField(max_length=200, blank=True)
 
 
-class LessonNode(BaseCourseTreeNode):
+class LessonNode(LifecycleModelMixin, BaseCourseTreeNode):
     class LessonState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
@@ -141,8 +157,20 @@ class LessonNode(BaseCourseTreeNode):
         default=LessonState.DRAFT, choices=LessonState.choices
     )
 
+    @hook(
+        AFTER_UPDATE,
+        when="state",
+        changes_to=LessonState.PUBLISHED,
+        was=LessonState.DRAFT,
+    )
+    def on_publish(self):
+        print("PUBLISHEd")
+        from integrations.classroom.integration import GoogleClassroomIntegration
 
-class AnnouncementNode(BaseCourseTreeNode):
+        GoogleClassroomIntegration().on_lesson_published(self.creator, self)
+
+
+class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode):
     class AnnouncementState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
@@ -152,6 +180,18 @@ class AnnouncementNode(BaseCourseTreeNode):
     state = models.PositiveSmallIntegerField(
         default=AnnouncementState.DRAFT, choices=AnnouncementState.choices
     )
+
+    @hook(
+        AFTER_UPDATE,
+        when="state",
+        changes_to=AnnouncementState.PUBLISHED,
+        was=AnnouncementState.DRAFT,
+    )
+    def on_publish(self):
+        print("PUBLISHEd")
+        from integrations.classroom.integration import GoogleClassroomIntegration
+
+        GoogleClassroomIntegration().on_announcement_published(self.creator, self)
 
 
 class PollNode(BaseCourseTreeNode):

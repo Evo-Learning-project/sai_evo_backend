@@ -1,4 +1,8 @@
-from integrations.classroom.factories import get_assignment_payload
+from integrations.classroom.factories import (
+    get_announcement_payload,
+    get_assignment_payload,
+    get_material_payload,
+)
 from integrations.classroom import messages
 
 from integrations.exceptions import MissingIntegrationParameters
@@ -67,7 +71,23 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         ...
 
     def on_announcement_published(self, user: User, announcement: AnnouncementNode):
-        ...
+        course_id = self.get_classroom_course_id_from_evo_course(
+            announcement.get_course()
+        )
+        service = self.get_service(user)
+        announcement_url = announcement.get_absolute_url()
+        announcement_payload = get_announcement_payload(
+            text=announcement.body, announcement_url=announcement_url
+        )
+        results = (
+            service.courses()
+            .announcements()
+            .create(courseId=course_id, body=announcement_payload)
+            .execute()
+        )
+        # TODO handle errors
+        # TODO create integration object
+        print("RES", results)
 
     def on_exam_published(self, user: User, exam: Event):
         print("on_exam_published")
@@ -88,10 +108,63 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
             .execute()
         )
+        # TODO handle errors
+        # TODO create integration object
         print(results)
+        print(
+            {
+                "courseId": "541442443947",
+                "id": "595448233541",
+                "title": "sadfg",
+                "description": "Exam has been published on Evo",
+                "materials": [
+                    {
+                        "link": {
+                            "url": "https://evo.di.unipi.it//courses/17/exams/z3wl7vD/",
+                            "title": "Evo Learning",
+                            "thumbnailUrl": "https://classroom.google.com/webthumbnail?url=https://evo.di.unipi.it//courses/17/exams/z3wl7vD/",
+                        }
+                    }
+                ],
+                "state": "PUBLISHED",
+                "alternateLink": "https://classroom.google.com/c/NTQxNDQyNDQzOTQ3/a/NTk1NDQ4MjMzNTQx/details",
+                "creationTime": "2023-02-27T16:53:09.229Z",
+                "updateTime": "2023-02-27T16:53:09.197Z",
+                "workType": "ASSIGNMENT",
+                "submissionModificationMode": "MODIFIABLE_UNTIL_TURNED_IN",
+                "assignment": {
+                    "studentWorkFolder": {
+                        "id": "1rufXY88mNluOOLg6kqyaFiOY-bOiKOzuRmIDZVd3z1htFl74aexsWeLcEo-9eWsefQaHDOIA"
+                    }
+                },
+                "associatedWithDeveloper": True,
+                "assigneeMode": "ALL_STUDENTS",
+                "creatorUserId": "113867514197177680483",
+            }
+        )
 
     def on_lesson_published(self, user: User, lesson: LessonNode):
-        ...
+        course_id = self.get_classroom_course_id_from_evo_course(lesson.get_course())
+        service = self.get_service(user)
+        lesson_url = lesson.get_absolute_url()
+
+        coursework_payload = get_material_payload(
+            title=lesson.title,
+            description=messages.VIEW_LESSON_ON_EVO,
+            material_url=lesson_url,
+        )
+        results = (
+            service.courses()
+            .courseWorkMaterials()
+            .create(
+                courseId=course_id,
+                body=coursework_payload,
+            )
+            .execute()
+        )
+        # TODO handle errors
+        # TODO create integration object
+        print(results)
 
     def get_courses_taught_by(self, user: User):
         ...
