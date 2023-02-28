@@ -1156,6 +1156,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     def __str__(self):
         return str(self.event) + " - " + str(self.user)
 
+    def get_absolute_url(self):
+        return f"{settings.BASE_FRONTEND_URL}/teacher/courses/{self.event.course.pk}/exams/{self.event.pk}/participations/{self.pk}/"
+
     @property
     def is_cursor_first_position(self):
         return self.current_slot_cursor == 0
@@ -1296,6 +1299,12 @@ class EventParticipation(LifecycleModelMixin, models.Model):
         if self.state == EventParticipation.TURNED_IN and self.end_timestamp is None:
             self.end_timestamp = timezone.localtime(timezone.now())
         super().save(*args, **kwargs)
+
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        from integrations.classroom.integration import GoogleClassroomIntegration
+
+        GoogleClassroomIntegration().on_exam_participation_created(self)
 
     @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
     def on_turn_in(self):

@@ -9,7 +9,7 @@ from integrations.exceptions import MissingIntegrationParameters
 from integrations.integration import BaseEvoIntegration
 from users.models import User
 from course_tree.models import AnnouncementNode, LessonNode
-from courses.models import Event, Course
+from courses.models import Event, Course, EventParticipation
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -34,6 +34,14 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
     def get_classroom_course_id_from_evo_course(self, course: Course):
         return "541442443947"
+
+    def get_classroom_coursework_id_from_evo_exam(self, exam: Event):
+        return "543007020813"
+
+    def get_classroom_student_submission_id_from_evo_event_participation(
+        self, participation: EventParticipation
+    ):
+        return "Cg4Imv_AkaoREI2u9u3mDw"
 
     def get_client_config(self):
         env = environ.Env()
@@ -87,10 +95,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
         # TODO handle errors
         # TODO create integration object
-        print("RES", results)
 
     def on_exam_published(self, user: User, exam: Event):
-        print("on_exam_published")
         course_id = self.get_classroom_course_id_from_evo_course(exam.course)
         service = self.get_service(user)
         exam_url = exam.get_absolute_url()
@@ -110,38 +116,43 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
         # TODO handle errors
         # TODO create integration object
-        print(results)
-        print(
-            {
-                "courseId": "541442443947",
-                "id": "595448233541",
-                "title": "sadfg",
-                "description": "Exam has been published on Evo",
-                "materials": [
-                    {
-                        "link": {
-                            "url": "https://evo.di.unipi.it//courses/17/exams/z3wl7vD/",
-                            "title": "Evo Learning",
-                            "thumbnailUrl": "https://classroom.google.com/webthumbnail?url=https://evo.di.unipi.it//courses/17/exams/z3wl7vD/",
-                        }
-                    }
-                ],
-                "state": "PUBLISHED",
-                "alternateLink": "https://classroom.google.com/c/NTQxNDQyNDQzOTQ3/a/NTk1NDQ4MjMzNTQx/details",
-                "creationTime": "2023-02-27T16:53:09.229Z",
-                "updateTime": "2023-02-27T16:53:09.197Z",
-                "workType": "ASSIGNMENT",
-                "submissionModificationMode": "MODIFIABLE_UNTIL_TURNED_IN",
-                "assignment": {
-                    "studentWorkFolder": {
-                        "id": "1rufXY88mNluOOLg6kqyaFiOY-bOiKOzuRmIDZVd3z1htFl74aexsWeLcEo-9eWsefQaHDOIA"
-                    }
-                },
-                "associatedWithDeveloper": True,
-                "assigneeMode": "ALL_STUDENTS",
-                "creatorUserId": "113867514197177680483",
-            }
+
+    def on_exam_participation_created(self, participation: EventParticipation):
+        service = self.get_service(participation.user)
+
+        course_id = self.get_classroom_course_id_from_evo_course(
+            participation.event.course
         )
+        exam_id = self.get_classroom_coursework_id_from_evo_exam(participation.event)
+        submission_id = (
+            self.get_classroom_student_submission_id_from_evo_event_participation(
+                participation
+            )
+        )
+
+        # add a URL attachment to the existing student submission linking to
+        # the corresponding EventParticipation object
+        (
+            service.courses()
+            .courseWork()
+            .studentSubmissions()
+            .modifyAttachments(
+                courseId=course_id,
+                courseWorkId=exam_id,
+                id=submission_id,
+                body={
+                    "addAttachments": [
+                        {"link": {"url": participation.get_absolute_url()}}
+                    ]
+                },
+            )
+            .execute()
+        )
+        # TODO error handling
+
+    def on_exam_participation_turned_in(self, participation: EventParticipation):
+        # TODO implement - turn in corresponding submission to coursework
+        ...
 
     def on_lesson_published(self, user: User, lesson: LessonNode):
         course_id = self.get_classroom_course_id_from_evo_course(lesson.get_course())
