@@ -20,5 +20,27 @@ class RemoteTwinResource(models.Model):
     # usage of this field depends on the concrete sub-model and type of resource
     data = models.JSONField(default=dict)
 
+    _remote_object = None
+
+    # list of fields from the remote twin resource that we're interested
+    # in keeping track of, which will be saved into the `data` field when
+    # the model instance is created
+    REMOTE_OBJECT_FIELDS = []
+
     class Meta:
         abstract = True
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            # populate `data` with data from the remote object
+            # that we're interested in keeping
+            remote_object = self.get_remote_object()
+            for field in self.REMOTE_OBJECT_FIELDS:
+                self.data[field] = remote_object.get(field)
+        return super().save(*args, **kwargs)
+
+    def set_remote_object(self, obj):
+        self._remote_object = obj
+
+    def get_remote_object(self):
+        return self._remote_object

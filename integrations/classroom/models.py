@@ -9,4 +9,11 @@ class GoogleClassroomCourseTwin(RemoteTwinResource):
     A Google Classroom course associated to a course on Evo
     """
 
+    REMOTE_OBJECT_FIELDS = [
+        "name",
+        "descriptionHeading",
+        "enrollmentCode",
+        "alternateLink",
+    ]
+
     course = models.OneToOneField(Course, on_delete=models.CASCADE)

@@ -250,5 +250,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
         return ret
 
+    def get_course_by_id(self, user: User, course_id: str):
+        service = self.get_service(user)
+        return service.courses().get(courseId=course_id).execute()
+
     def get_course_teachers(self, course: Course):
         ...
