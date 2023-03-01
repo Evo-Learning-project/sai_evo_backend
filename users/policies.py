@@ -23,22 +23,7 @@ class UserPolicy(AccessPolicy):
             "effect": "allow",
             "condition": "has_some_privilege_over_course",
         },
-        # {
-        #     "action": ["privileges"],
-        #     "principal": ["authenticated"],
-        #     "effect": "allow",
-        #     "condition_expression": "can_update_course and not is_personal_account",
-        # },
     ]
-
-    def can_update_course(self, request, view, action):
-        try:
-            course_pk = request.query_params["course_id"]
-        except KeyError:
-            return False
-
-        course = Course.objects.get(pk=course_pk)
-        return check_privilege(request.user, course, UPDATE_COURSE)
 
     def has_some_privilege_over_course(self, request, view, action):
         try:
@@ -56,6 +41,4 @@ class UserPolicy(AccessPolicy):
             user = view.get_object()
             return user == request.user
         except Http404:
-            # view could be called with a nonexisting user
-            # to trigger user account pre-creation
             return False

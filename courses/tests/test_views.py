@@ -11,6 +11,7 @@ from courses.models import (
     Exercise,
     ExerciseSolution,
     ExerciseSolutionVote,
+    UserCourseEnrollment,
     UserCoursePrivilege,
 )
 from django.test import TestCase
@@ -42,6 +43,8 @@ class CourseViewSetTestCase(BaseTestCase):
 
         self.assertEqual(response.data["name"], course_name)
         course_pk = response.data["id"]
+
+        UserCourseEnrollment.objects.create(user=self.student1, course_id=course_pk)
 
         response = self.client.get(f"/courses/{course_pk}/")
         self.assertEquals(response.status_code, 200)
@@ -105,6 +108,7 @@ class CourseViewSetTestCase(BaseTestCase):
 class ExerciseViewSetTestCase(BaseTestCase):
     def test_exercise_CRUD(self):
         course_pk = Course.objects.create(name="test1", creator=self.teacher1).pk
+        UserCourseEnrollment.objects.create(user=self.student1, course_id=course_pk)
 
         """
         Show the course creator can CRUD exercises and their child models
@@ -435,6 +439,7 @@ class ExerciseViewSetTestCase(BaseTestCase):
         from data.exercises import mmc_pub_1, mmc_priv_1, msc_priv_1, mmc_draft_1
 
         course = Course.objects.create(name="test_policy_course", creator=self.teacher1)
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
 
         mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
         mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
@@ -538,6 +543,7 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
         course = Course.objects.create(
             name="test_solution_policy_course", creator=self.teacher1
         )
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
 
         mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
         mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
@@ -625,6 +631,7 @@ class ExerciseSolutionViewSetTestCase(BaseTestCase):
         course = Course.objects.create(
             name="test_solution_policy_course_2", creator=self.teacher1
         )
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
 
         mmc_pub = Exercise.objects.create(course=course, **mmc_pub_1)
         mmc_priv = Exercise.objects.create(course=course, **mmc_priv_1)
@@ -772,6 +779,9 @@ class EventViewSetTestCase(BaseTestCase):
     def test_exercise_create_update_delete(self):
         course = Course.objects.create(name="course", creator=self.teacher1)
         course_pk = course.pk
+
+        UserCourseEnrollment.objects.create(user=self.student1, course=course)
+        UserCourseEnrollment.objects.create(user=self.student2, course=course)
 
         # Show an unprivileged user cannot access the list of events of a course,
         # nor retrieve an event which is in draft state
@@ -958,6 +968,9 @@ class EventParticipationViewSetTestCase(BaseTestCase):
 
         self.student_1 = User.objects.create(**users.student_1)
         self.student_2 = User.objects.create(**users.student_2)
+
+        UserCourseEnrollment.objects.create(user=self.student_1, course=self.course)
+        UserCourseEnrollment.objects.create(user=self.student_2, course=self.course)
 
         self.exercise_1 = Exercise.objects.create(
             course=self.course, **exercises.mmc_priv_1
@@ -1413,6 +1426,7 @@ class CoursePrivilegeTestCase(BaseTestCase):
         self.course = Course.objects.create(creator=self.teacher_1, **courses.course_1)
 
         self.student_1 = User.objects.create(**users.student_1)
+        UserCourseEnrollment.objects.create(user=self.student_1, course=self.course)
 
         self.client = APIClient()
 
@@ -1558,6 +1572,10 @@ class CoursePrivilegeTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_course_enrollments_endpoint(self):
+        # TODO implement
+        pass
+
 
 class BulkActionsMixinsTestCase(BaseTestCase):
     def setUp(self):
@@ -1569,6 +1587,10 @@ class BulkActionsMixinsTestCase(BaseTestCase):
         self.student_1 = User.objects.create(**users.student_1)
         self.student_2 = User.objects.create(**users.student_2)
         self.student_3 = User.objects.create(**users.student_3)
+
+        UserCourseEnrollment.objects.create(user=self.student_1, course=self.course)
+        UserCourseEnrollment.objects.create(user=self.student_2, course=self.course)
+        UserCourseEnrollment.objects.create(user=self.student_3, course=self.course)
 
         self.exercise_1 = Exercise.objects.create(
             course=self.course, **exercises.mmc_priv_1

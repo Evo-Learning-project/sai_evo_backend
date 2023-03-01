@@ -26,16 +26,13 @@ from users.models import User
 from django.db import transaction
 from django.db.models import Sum, Case, When, Value
 from django_lifecycle import (
-    LifecycleModel,
     LifecycleModelMixin,
     hook,
-    BEFORE_UPDATE,
     AFTER_UPDATE,
     AFTER_CREATE,
     BEFORE_DELETE,
 )
 
-from courses import signals  # to make signals work
 
 import logging
 
@@ -102,6 +99,11 @@ class Course(TimestampableModel):
         related_name="bookmarked_courses",
         blank=True,
     )
+    enrolled_users = models.ManyToManyField(
+        User,
+        related_name="enrolled_courses",
+        through="UserCourseEnrollment",
+    )
 
     objects = CourseManager()
 
@@ -113,6 +115,58 @@ class Course(TimestampableModel):
 
     def __str__(self):
         return self.name
+
+    def enroll_users(self, user_ids, enrolled_by=None):
+        enrollment_type = (
+            UserCourseEnrollment.EnrollmentType.DEFAULT
+            if enrolled_by is None
+            else UserCourseEnrollment.EnrollmentType.BY_TEACHER
+        )
+        enrollments = UserCourseEnrollment.objects.bulk_create(
+            [
+                UserCourseEnrollment(
+                    course=self, user_id=uid, enrollment_type=enrollment_type
+                )
+                for uid in user_ids
+            ]
+        )
+        return enrollments
+
+    def unenroll_users(self, user_ids):
+        self.enrolled_users.remove(*User.objects.filter(pk__in=user_ids))
+
+
+class UserCourseEnrollment(TimestampableModel):
+    class EnrollmentType(models.IntegerChoices):
+        DEFAULT = 0
+        AUTOMATIC = 1
+        BY_TEACHER = 2
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    enrollment_type = models.PositiveSmallIntegerField(
+        choices=EnrollmentType.choices,
+        default=EnrollmentType.DEFAULT,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "course_id"],
+                name="same_course_unique_enrollment",
+            )
+        ]
+
+    def __str__(self):
+        return f"{str(self.course)} - {str(self.user)}"
 
 
 class UserCoursePrivilege(models.Model):

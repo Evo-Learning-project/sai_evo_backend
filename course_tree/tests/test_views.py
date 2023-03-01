@@ -11,6 +11,7 @@ from courses.models import (
     Exercise,
     ExerciseSolution,
     ExerciseSolutionVote,
+    UserCourseEnrollment,
     UserCoursePrivilege,
 )
 from django.test import TestCase
@@ -38,6 +39,9 @@ class BaseTestCase(TestCase):
         self.teacher2 = User.objects.create(username="teacher2", is_teacher=True)
         self.student2 = User.objects.create(username="student2", is_teacher=False)
         self.course = Course.objects.create(creator=self.teacher1, **courses.course_1)
+
+        UserCourseEnrollment.objects.create(course=self.course, user=self.student1)
+        UserCourseEnrollment.objects.create(course=self.course, user=self.student2)
 
 
 class TreeNodeViewSetTestCase(BaseTestCase):

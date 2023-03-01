@@ -178,7 +178,12 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         print(results)
 
     def get_courses_taught_by(self, user: User):
-        ...
+        service = self.get_service(user)
+        teacher_id = "me"  # shorthand for current user
+        courses = (
+            service.courses().list(teacherId=teacher_id).execute().get("courses", [])
+        )
+        print("COURSES", courses)
 
     def get_course_students(self, course: Course):
         """

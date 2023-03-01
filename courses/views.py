@@ -15,48 +15,87 @@ from users.models import User
 from users.serializers import UserCreationSerializer, UserSerializer
 
 from courses import policies
-from courses.filters import (EventFilter, EventParticipationFilter,
-                             ExerciseFilter, ExerciseSolutionFilter)
+from courses.filters import (
+    EventFilter,
+    EventParticipationFilter,
+    ExerciseFilter,
+    ExerciseSolutionFilter,
+)
 from courses.logic.event_instances import ExercisePicker
 from courses.logic.presentation import (
-    CHOICE_SHOW_SCORE_FIELDS, COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
-    EVENT_PARTICIPATION_SHOW_EVENT, EVENT_PARTICIPATION_SHOW_SCORE,
+    CHOICE_SHOW_SCORE_FIELDS,
+    COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
+    EVENT_PARTICIPATION_SHOW_EVENT,
+    EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
     EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
-    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS, EVENT_SHOW_HIDDEN_FIELDS,
-    EVENT_SHOW_PARTICIPATION_EXISTS, EVENT_SHOW_TEMPLATE,
-    EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD, EXERCISE_SHOW_HIDDEN_FIELDS,
-    EXERCISE_SHOW_SOLUTION_FIELDS, TAG_SHOW_PUBLIC_EXERCISES_COUNT,
-    TESTCASE_SHOW_HIDDEN_FIELDS)
-from courses.logic.privileges import (ACCESS_EXERCISES, ASSESS_PARTICIPATIONS,
-                                      MANAGE_EVENTS, MANAGE_EXERCISES)
-from courses.models import (Course, CourseRole, Event, EventParticipation,
-                            EventParticipationSlot, EventTemplate,
-                            EventTemplateRule, EventTemplateRuleClause,
-                            Exercise, ExerciseChoice, ExerciseSolution,
-                            ExerciseSolutionComment, ExerciseSolutionVote,
-                            ExerciseTestCase, ExerciseTestCaseAttachment, Tag,
-                            UserCoursePrivilege)
+    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS,
+    EVENT_SHOW_HIDDEN_FIELDS,
+    EVENT_SHOW_PARTICIPATION_EXISTS,
+    EVENT_SHOW_TEMPLATE,
+    EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
+    EXERCISE_SHOW_HIDDEN_FIELDS,
+    EXERCISE_SHOW_SOLUTION_FIELDS,
+    TAG_SHOW_PUBLIC_EXERCISES_COUNT,
+    TESTCASE_SHOW_HIDDEN_FIELDS,
+)
+from courses.logic.privileges import (
+    ACCESS_EXERCISES,
+    ASSESS_PARTICIPATIONS,
+    MANAGE_EVENTS,
+    MANAGE_EXERCISES,
+)
+from courses.models import (
+    Course,
+    CourseRole,
+    Event,
+    EventParticipation,
+    EventParticipationSlot,
+    EventTemplate,
+    EventTemplateRule,
+    EventTemplateRuleClause,
+    Exercise,
+    ExerciseChoice,
+    ExerciseSolution,
+    ExerciseSolutionComment,
+    ExerciseSolutionVote,
+    ExerciseTestCase,
+    ExerciseTestCaseAttachment,
+    Tag,
+    UserCoursePrivilege,
+)
 from courses.pagination import EventParticipationPagination, ExercisePagination
 from courses.tasks import run_participation_slot_code_task
 
-from .serializers import (CourseRoleSerializer, CourseSerializer,
-                          EventParticipationSerializer,
-                          EventParticipationSlotSerializer,
-                          EventParticipationSummarySerializer, EventSerializer,
-                          EventTemplateRuleClauseSerializer,
-                          EventTemplateRuleSerializer, EventTemplateSerializer,
-                          ExerciseChoiceSerializer, ExerciseSerializer,
-                          ExerciseSolutionCommentSerializer,
-                          ExerciseSolutionSerializer,
-                          ExerciseSolutionVoteSerializer,
-                          ExerciseTestCaseAttachmentSerializer,
-                          ExerciseTestCaseSerializer, TagSerializer)
-from .view_mixins import (BulkCreateMixin, BulkGetMixin, BulkPatchMixin,
-                          LockableModelViewSetMixin,
-                          RequestingUserPrivilegesMixin, RestrictedListMixin,
-                          ScopeQuerySetByCourseMixin)
+from .serializers import (
+    CourseRoleSerializer,
+    CourseSerializer,
+    EventParticipationSerializer,
+    EventParticipationSlotSerializer,
+    EventParticipationSummarySerializer,
+    EventSerializer,
+    EventTemplateRuleClauseSerializer,
+    EventTemplateRuleSerializer,
+    EventTemplateSerializer,
+    ExerciseChoiceSerializer,
+    ExerciseSerializer,
+    ExerciseSolutionCommentSerializer,
+    ExerciseSolutionSerializer,
+    ExerciseSolutionVoteSerializer,
+    ExerciseTestCaseAttachmentSerializer,
+    ExerciseTestCaseSerializer,
+    TagSerializer,
+)
+from .view_mixins import (
+    BulkCreateMixin,
+    BulkGetMixin,
+    BulkPatchMixin,
+    LockableModelViewSetMixin,
+    RequestingUserPrivilegesMixin,
+    RestrictedListMixin,
+    ScopeQuerySetByCourseMixin,
+)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -138,6 +177,96 @@ class CourseViewSet(viewsets.ModelViewSet):
                 context=self.get_serializer_context(),
             ).data
         )
+
+    @action(methods=["put", "delete"], detail=True)
+    def my_enrollment(self, request, **kwargs):
+        course = self.get_object()
+        user_id = request.user.pk
+
+        if request.method == "PUT":
+            if request.user in course.enrolled_users.all():
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "ALREADY_ENROLLED"},
+                )
+            course.enroll_users([user_id])
+        else:
+            if request.user not in course.enrolled_users.all():
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "NOT_ENROLLED"},
+                )
+            course.unenroll_users([user_id])
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=["get", "put", "delete"], detail=True)
+    def enrollments(self, request, **kwargs):
+        """
+        An endpoint used to enroll and unenroll users to a course.
+        Requires a `user_ids` or an `emails` field in the payload.
+
+        `user_ids` can be used to enroll existing users.
+
+        `email` can be used to enroll nonexisting users. Enrolling
+        users using this option will cause their account to be created first,
+        if it doesn't exist already using the email addresses in the payload.
+        """
+        course = self.get_object()
+
+        if request.method == "GET":
+            enrolled_users = course.enrolled_users.all()
+            serializer = UserSerializer(enrolled_users, many=True)
+            return Response(serializer.data)
+
+        user_ids = request.data.get("user_ids", [])
+        emails = request.data.get("emails", [])
+
+        if not user_ids and not emails:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if len(emails) > 0 and request.method == "DELETE":
+            """
+            Enrollment deletion can only be performed via user id's,
+            not their emails
+            """
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # query for emails referring to existing accounts and retrieve
+        # the corresponding user id's
+        existing_users_by_email = User.objects.filter(email__in=emails).values_list(
+            "id",
+            "email",
+        )
+
+        # add retrieved id's to user id list
+        user_ids.extend([i for (i, _) in existing_users_by_email])
+
+        # remove emails of users that had existing accounts from the list
+        # of emails to use for creating new accounts
+        emails = [
+            email
+            for email in emails
+            if email not in [e for (_, e) in existing_users_by_email]
+        ]
+
+        # create any accounts for which the email address has been given
+        creation_serializer = UserCreationSerializer(
+            data=[{"email": email} for email in emails], many=True
+        )
+        creation_serializer.is_valid(raise_exception=True)
+        users = creation_serializer.save()
+
+        try:
+            if request.method == "PUT":
+                course.enroll_users([*user_ids, *(u.pk for u in users)], request.user)
+            else:
+                course.unenroll_users(user_ids)
+        except Exception as e:
+            logger.error("Exception while (un)enrolling users: " + str(e))
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["patch"])
     def privileges(self, request, **kwargs):
@@ -224,9 +353,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         report = {
             e.hashid: EventParticipationSummarySerializer(
-                EventParticipation.objects.filter(
-                    event_id=e
-                ).with_prefetched_base_slots().select_related("event"),
+                EventParticipation.objects.filter(event_id=e)
+                .with_prefetched_base_slots()
+                .select_related("event"),
                 many=True,
             ).data
             for e in exams
