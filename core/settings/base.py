@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "users",
     "course_tree",
     "content",
+    "integrations",
+    "integrations.classroom",
     "django_extensions",
     "nested_admin",
     "oauth2_provider",
