@@ -33,6 +33,8 @@ from django_lifecycle import (
     BEFORE_DELETE,
 )
 
+from integrations.registry import IntegrationRegistry
+
 
 import logging
 
@@ -933,10 +935,9 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
     @hook(AFTER_UPDATE, when="_event_state", changes_to=OPEN, was=DRAFT)
     @hook(AFTER_UPDATE, when="_event_state", changes_to=PLANNED, was=DRAFT)
     def on_publish(self):
-        # TODO put an integration registry here to dispatch action - this is just for testing
-        from integrations.classroom.integration import GoogleClassroomIntegration
-
-        GoogleClassroomIntegration().on_exam_published(self.creator, self)
+        IntegrationRegistry().dispatch(
+            "exam_published", course=self.course, user=self.creator, exam=self
+        )
 
     @hook(AFTER_UPDATE, when="state", changes_to=CLOSED)
     def on_close(self):
@@ -1356,9 +1357,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @hook(AFTER_CREATE)
     def on_create(self):
-        from integrations.classroom.integration import GoogleClassroomIntegration
-
-        GoogleClassroomIntegration().on_exam_participation_created(self)
+        IntegrationRegistry().dispatch(
+            "exam_published", course=self.course, user=self.creator, participation=self
+        )
 
     @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
     def on_turn_in(self):

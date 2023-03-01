@@ -1,5 +1,4 @@
 from typing import Callable, Iterable, Type
-from courses.models import Course
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.integration import BaseEvoIntegration
 
@@ -15,11 +14,15 @@ class IntegrationRegistry:
         # TODO schedule a celery task
         method(**kwargs)
 
-    def dispatch(self, action_name: str, course: Course, **kwargs):
+    def dispatch(self, action_name: str, course: "Course", **kwargs):
         integrations = self.get_enabled_integrations_for(course)
 
+        # loop over all the integrations enabled for the given course, and
+        # for each of them, if the dispatched action is supported, schedule
+        # the corresponding handler to be run with the given arguments
         for integration_cls in integrations:
             integration = integration_cls()
+            # check the current integration supports the dispatched action
             if action_name in integration.get_available_actions():
                 method = getattr(
                     integration, integration_cls.ACTION_HANDLER_PREFIX + action_name
@@ -37,7 +40,6 @@ class IntegrationRegistry:
         """
         Returns a list of subclasses of `BaseEvoIntegration` representing integrations
         enabled for the given course.
-
         """
         ret = []
 

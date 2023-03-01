@@ -183,7 +183,33 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         courses = (
             service.courses().list(teacherId=teacher_id).execute().get("courses", [])
         )
-        print("COURSES", courses)
+        # TODO return a list of dicts containing the information that's useful to Evo, such as the id, the link etc.
+        print(
+            {
+                "id": "541442443947",
+                "name": "test",
+                "descriptionHeading": "test",
+                "ownerId": "113867514197177680483",
+                "creationTime": "2023-01-17T14:01:58.766Z",
+                "updateTime": "2023-01-17T14:01:58.766Z",
+                "enrollmentCode": "d3pwmv5",
+                "courseState": "ACTIVE",
+                "alternateLink": "https://classroom.google.com/c/NTQxNDQyNDQzOTQ3",
+                "teacherGroupEmail": "test_teachers_1af99633@classroom.google.com",
+                "courseGroupEmail": "test_f91d8d12@classroom.google.com",
+                "teacherFolder": {
+                    "id": "1aECqOUxciTp6BNMKK_W8oVAqGLngg1w2fOoTOp6Mu72reau95pRPzZt6qc5JLl2O4b5yw_zW",
+                    "title": "test",
+                    "alternateLink": "https://drive.google.com/drive/folders/1aECqOUxciTp6BNMKK_W8oVAqGLngg1w2fOoTOp6Mu72reau95pRPzZt6qc5JLl2O4b5yw_zW",
+                },
+                "guardiansEnabled": False,
+                "calendarId": "classroom104732239589004940015@group.calendar.google.com",
+                "gradebookSettings": {
+                    "calculationType": "TOTAL_POINTS",
+                    "displaySetting": "HIDE_OVERALL_GRADE",
+                },
+            }
+        )
 
     def get_course_students(self, course: Course):
         """
