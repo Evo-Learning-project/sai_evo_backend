@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from integrations.classroom.models import *
+
+
+@admin.register(GoogleClassroomCourseTwin)
+class GoogleClassroomCourseTwinAdmin(admin.ModelAdmin):
+    pass

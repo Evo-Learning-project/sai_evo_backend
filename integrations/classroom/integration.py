@@ -4,6 +4,7 @@ from integrations.classroom.factories import (
     get_material_payload,
 )
 from integrations.classroom import messages
+from integrations.classroom.models import GoogleClassroomCourseTwin
 
 from integrations.exceptions import MissingIntegrationParameters
 from integrations.integration import BaseEvoIntegration
@@ -95,6 +96,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
         # TODO handle errors
         # TODO create integration object
+        return results
 
     def on_exam_published(self, user: User, exam: Event):
         course_id = self.get_classroom_course_id_from_evo_course(exam.course)
@@ -104,6 +106,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             title=exam.name,
             description=messages.EXAM_PUBLISHED,
             exam_url=exam_url,
+            scheduled_timestamp=exam.begin_timestamp.isoformat(),
         )
         results = (
             service.courses()
@@ -116,6 +119,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
         # TODO handle errors
         # TODO create integration object
+        return results
 
     def on_exam_participation_created(self, participation: EventParticipation):
         service = self.get_service(participation.user)
@@ -175,41 +179,26 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
         # TODO handle errors
         # TODO create integration object
-        print(results)
+        return results
 
     def get_courses_taught_by(self, user: User):
+        """
+        Returns a list of Classroom courses that the requesting user is a teacher of.
+        The fields returned for those courses are the course id plus the fields included
+        in `GoogleClassroomCourseTwin.REMOTE_OBJECT_FIELDS`
+        """
         service = self.get_service(user)
         teacher_id = "me"  # shorthand for current user
         courses = (
             service.courses().list(teacherId=teacher_id).execute().get("courses", [])
         )
-        # TODO return a list of dicts containing the information that's useful to Evo, such as the id, the link etc.
-        print(
+        return [
             {
-                "id": "541442443947",
-                "name": "test",
-                "descriptionHeading": "test",
-                "ownerId": "113867514197177680483",
-                "creationTime": "2023-01-17T14:01:58.766Z",
-                "updateTime": "2023-01-17T14:01:58.766Z",
-                "enrollmentCode": "d3pwmv5",
-                "courseState": "ACTIVE",
-                "alternateLink": "https://classroom.google.com/c/NTQxNDQyNDQzOTQ3",
-                "teacherGroupEmail": "test_teachers_1af99633@classroom.google.com",
-                "courseGroupEmail": "test_f91d8d12@classroom.google.com",
-                "teacherFolder": {
-                    "id": "1aECqOUxciTp6BNMKK_W8oVAqGLngg1w2fOoTOp6Mu72reau95pRPzZt6qc5JLl2O4b5yw_zW",
-                    "title": "test",
-                    "alternateLink": "https://drive.google.com/drive/folders/1aECqOUxciTp6BNMKK_W8oVAqGLngg1w2fOoTOp6Mu72reau95pRPzZt6qc5JLl2O4b5yw_zW",
-                },
-                "guardiansEnabled": False,
-                "calendarId": "classroom104732239589004940015@group.calendar.google.com",
-                "gradebookSettings": {
-                    "calculationType": "TOTAL_POINTS",
-                    "displaySetting": "HIDE_OVERALL_GRADE",
-                },
+                "id": c["id"],
+                **{f: c.get(f) for f in GoogleClassroomCourseTwin.REMOTE_OBJECT_FIELDS},
             }
-        )
+            for c in courses
+        ]
 
     def get_course_students(self, course: Course):
         """
@@ -252,7 +241,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
     def get_course_by_id(self, user: User, course_id: str):
         service = self.get_service(user)
-        return service.courses().get(courseId=course_id).execute()
+        return service.courses().get(id=course_id).execute()
 
     def get_course_teachers(self, course: Course):
         ...

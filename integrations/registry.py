@@ -1,8 +1,4 @@
 from typing import Callable, Iterable, Type
-from integrations.classroom.integration import GoogleClassroomIntegration
-from integrations.integration import BaseEvoIntegration
-
-from integrations.classroom.models import GoogleClassroomCourseTwin
 
 import logging
 
@@ -35,12 +31,15 @@ class IntegrationRegistry:
 
     def get_enabled_integrations_for(
         self,
-        course: Course,
-    ) -> Iterable[Type[BaseEvoIntegration]]:
+        course: "Course",
+    ) -> Iterable[Type["BaseEvoIntegration"]]:
         """
         Returns a list of subclasses of `BaseEvoIntegration` representing integrations
         enabled for the given course.
         """
+        from integrations.classroom.models import GoogleClassroomCourseTwin
+        from integrations.classroom.integration import GoogleClassroomIntegration
+
         ret = []
 
         # NOTE currently, the only integration available is the Google Classroom one, so

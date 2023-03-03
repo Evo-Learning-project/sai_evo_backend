@@ -1358,11 +1358,20 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     @hook(AFTER_CREATE)
     def on_create(self):
         IntegrationRegistry().dispatch(
-            "exam_published", course=self.course, user=self.creator, participation=self
+            "exam_participation_created",
+            course=self.course,
+            participation=self,
         )
 
     @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
     def on_turn_in(self):
+        if self.event.event_type == Event.EXAM:
+            IntegrationRegistry().dispatch(
+                "exam_participation_turned_in",
+                course=self.course,
+                participation=self,
+            )
+
         if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
             get_gamification_engine().dispatch_action(
                 {

@@ -12,6 +12,7 @@ from polymorphic_tree.models import (
     PolymorphicTreeForeignKey,
     _get_base_polymorphic_model,
 )
+from integrations.registry import IntegrationRegistry
 from users.models import User
 
 from course_tree.helpers import detect_content_type, get_file_thumbnail
@@ -164,10 +165,12 @@ class LessonNode(LifecycleModelMixin, BaseCourseTreeNode):
         was=LessonState.DRAFT,
     )
     def on_publish(self):
-        print("PUBLISHEd")
-        from integrations.classroom.integration import GoogleClassroomIntegration
-
-        GoogleClassroomIntegration().on_lesson_published(self.creator, self)
+        IntegrationRegistry().dispatch(
+            "lesson_published",
+            course=self.get_course(),
+            user=self.creator,
+            lesson=self,
+        )
 
 
 class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode):
@@ -188,10 +191,12 @@ class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode):
         was=AnnouncementState.DRAFT,
     )
     def on_publish(self):
-        print("PUBLISHEd")
-        from integrations.classroom.integration import GoogleClassroomIntegration
-
-        GoogleClassroomIntegration().on_announcement_published(self.creator, self)
+        IntegrationRegistry().dispatch(
+            "announcement_published",
+            course=self.get_course(),
+            user=self.creator,
+            announcement=self,
+        )
 
 
 class PollNode(BaseCourseTreeNode):
