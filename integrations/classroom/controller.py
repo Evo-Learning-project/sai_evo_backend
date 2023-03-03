@@ -11,7 +11,10 @@ class GoogleClassroomIntegrationController:
     course.
 
     This class combines primitives from `GoogleClassroomIntegration` to
-    perform more complex operations.
+    perform more complex operations. In particular, the controller handles actions
+    which involve the creation, deletion, and update of model instances related to
+    the Classroom integration, unlike the `GoogleClassroomIntegration` class, which
+    is responsible for performing actions that affect the remote Classroom course.
     """
 
     def associate_evo_course_to_classroom_course(
