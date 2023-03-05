@@ -168,6 +168,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             description=messages.VIEW_LESSON_ON_EVO,
             material_url=lesson_url,
         )
+        # TODO handle topics - https://developers.google.com/classroom/reference/rest/v1/courses.topics
         results = (
             service.courses()
             .courseWorkMaterials()

@@ -43,6 +43,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
+BASE_BACKEND_URL = os.environ.get("BASE_BACKEND_URL")
 
 
 # Application definition
