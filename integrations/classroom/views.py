@@ -76,4 +76,7 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
 
         return Response(data=scopes, status=status.HTTP_200_OK)
 
-    # TODO make a function to get the auth url
+    @action(methods=["get"], detail=False)
+    def auth_url(self, request, *args, **kwargs):
+        url = auth.get_auth_request_url()
+        return Response(data=url, status=status.HTTP_200_OK)
