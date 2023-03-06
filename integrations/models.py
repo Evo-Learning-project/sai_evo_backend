@@ -1,4 +1,25 @@
 from django.db import models
+from encrypted_model_fields.fields import EncryptedTextField
+from core.validators import validate_str_list
+
+from users.models import User
+
+# TODO create model for google oauth token
+
+
+class GoogleOAuth2Credentials(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    access_token = EncryptedTextField()
+    refresh_token = EncryptedTextField()
+    id_token = EncryptedTextField()
+    scope = models.JSONField(validators=[validate_str_list])
+
+    class Meta:
+        verbose_name_plural = "GoogleOAuth2Credentials"
+        verbose_name = "GoogleOAuth2Credentials"
+
+    def __str__(self):
+        return str(self.user)
 
 
 class RemoteTwinResource(models.Model):
