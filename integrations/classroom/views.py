@@ -7,6 +7,8 @@ from django.conf import settings
 
 from social_core.backends.google import GoogleOAuth2
 
+from rest_access_policy import AccessPolicy
+
 import logging
 from integrations.classroom.exceptions import (
     InvalidGoogleOAuth2Credentials,
@@ -20,10 +22,27 @@ from users.models import User
 logger = logging.getLogger(__name__)
 
 
+class GoogleClassroomAccessPolicy(AccessPolicy):
+    statements = [
+        {
+            "action": ["oauth2_callback", "auth_url"],
+            "principal": ["*"],
+            "effect": "allow",
+        },
+        {
+            "action": ["authorized_scopes"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+        },
+    ]
+
+
 class GoogleClassroomViewSet(viewsets.ViewSet):
+    permission_classes = [GoogleClassroomAccessPolicy]
+
     # TODO verify if only "get" is sufficient
     @action(methods=["get", "post", "put"], detail=False)
-    def callback(self, request, *args, **kwargs):
+    def oauth2_callback(self, request, *args, **kwargs):
         """
         Callback view that gets called by Google upon the user completing the
         authentication flow. This view is specifically used for incremental auth

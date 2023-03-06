@@ -7,6 +7,8 @@ from django.conf import settings
 
 
 def get_flow(no_scopes=False):
+    from integrations.classroom.views import GoogleClassroomViewSet
+
     """
     If `no_scopes` is True, the value `None` will be passed to `Flow` instead of the list of scopes.
     See https://stackoverflow.com/a/52085446/12424975
@@ -17,7 +19,9 @@ def get_flow(no_scopes=False):
         scopes=None if no_scopes else GoogleClassroomIntegration.SCOPES,
     )
     # TODO get url from router
-    flow.redirect_uri = settings.BASE_BACKEND_URL + "/integrations/classroom/callback"
+    flow.redirect_uri = (
+        settings.BASE_BACKEND_URL + "/integrations/classroom/oauth2_callback"
+    )
     return flow
 
 
