@@ -109,6 +109,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
+                # save new token to credentials model instance
+                credentials_model_instance.access_token = creds.token
+                credentials_model_instance.save()
             else:
                 # credentials are invalid for some reason and we cannot refresh
                 logger.critical(
