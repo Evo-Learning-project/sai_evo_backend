@@ -90,7 +90,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         except GoogleOAuth2Credentials.DoesNotExist:
             raise MissingGoogleOAuth2Credentials
 
-        client_config = self.get_client_config()
+        client_config = self.get_client_config()["installed"]
 
         # dict taking user's access token, refresh token, and client information used
         # to construct a Credentials object

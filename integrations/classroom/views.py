@@ -8,6 +8,11 @@ from django.conf import settings
 from social_core.backends.google import GoogleOAuth2
 
 import logging
+from integrations.classroom.exceptions import (
+    InvalidGoogleOAuth2Credentials,
+    MissingGoogleOAuth2Credentials,
+)
+from integrations.classroom.integration import GoogleClassroomIntegration
 
 from integrations.models import GoogleOAuth2Credentials
 from users.models import User
@@ -58,6 +63,17 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
 
         return Response(status=status.HTTP_200_OK)
 
-    # TODO make a function to verify the scopes that the user has granted
+    @action(methods=["get"], detail=False)
+    def authorized_scopes(self, request, *args, **kwargs):
+        try:
+            creds = GoogleClassroomIntegration().get_credentials(user=request.user)
+            scopes = creds.scopes
+        except MissingGoogleOAuth2Credentials:
+            scopes = []
+        except InvalidGoogleOAuth2Credentials:
+            logger.critical("Invalid credentials for user " + str(request.user.pk))
+            return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response(data=scopes, status=status.HTTP_200_OK)
 
     # TODO make a function to get the auth url
