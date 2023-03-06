@@ -8,7 +8,7 @@ from users.models import User
 
 
 class GoogleOAuth2Credentials(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     access_token = EncryptedTextField()
     refresh_token = EncryptedTextField()
     id_token = EncryptedTextField()
