@@ -1,3 +1,7 @@
+from integrations.classroom.exceptions import (
+    InvalidGoogleOAuth2Credentials,
+    MissingGoogleOAuth2Credentials,
+)
 from integrations.classroom.factories import (
     get_announcement_payload,
     get_assignment_payload,
@@ -8,6 +12,7 @@ from integrations.classroom.models import GoogleClassroomCourseTwin
 
 from integrations.exceptions import MissingIntegrationParameters
 from integrations.integration import BaseEvoIntegration
+from integrations.models import GoogleOAuth2Credentials
 from users.models import User
 from course_tree.models import AnnouncementNode, LessonNode
 from courses.models import Event, Course, EventParticipation
@@ -21,6 +26,10 @@ from googleapiclient.errors import HttpError
 import os
 
 import environ
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleClassroomIntegration(BaseEvoIntegration):
@@ -76,8 +85,38 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         return build("classroom", "v1", credentials=creds)
 
     def get_credentials(self, user: User):
-        # TODO implement
-        ...
+        try:
+            credentials_model_instance = GoogleOAuth2Credentials.objects.get(user=user)
+        except GoogleOAuth2Credentials.DoesNotExist:
+            raise MissingGoogleOAuth2Credentials
+
+        client_config = self.get_client_config()
+
+        # dict taking user's access token, refresh token, and client information used
+        # to construct a Credentials object
+        authorized_user_info = {
+            "token": credentials_model_instance.access_token,
+            "refresh_token": credentials_model_instance.refresh_token,
+            "scopes": credentials_model_instance.scope,
+            **{
+                key: client_config[key]
+                for key in ("client_id", "client_secret", "token_uri")
+            },
+        }
+
+        creds = Credentials.from_authorized_user_info(authorized_user_info)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                # credentials are invalid for some reason and we cannot refresh
+                logger.critical(
+                    "Unable to refresh credentials for user " + str(user.pk)
+                )
+                raise InvalidGoogleOAuth2Credentials
+
+        return creds
 
     def on_announcement_published(self, user: User, announcement: AnnouncementNode):
         course_id = self.get_classroom_course_id_from_evo_course(
