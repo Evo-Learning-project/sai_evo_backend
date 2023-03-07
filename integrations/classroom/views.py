@@ -19,18 +19,21 @@ from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.models import GoogleOAuth2Credentials
 from users.models import User
 
+from rest_framework.renderers import StaticHTMLRenderer, JSONRenderer
+
+
 logger = logging.getLogger(__name__)
 
 
 class GoogleClassroomAccessPolicy(AccessPolicy):
     statements = [
         {
-            "action": ["oauth2_callback", "auth_url"],
+            "action": ["oauth2_callback"],
             "principal": ["*"],
             "effect": "allow",
         },
         {
-            "action": ["authorized_scopes"],
+            "action": ["authorized_scopes", "auth_url"],
             "principal": ["authenticated"],
             "effect": "allow",
         },
@@ -39,6 +42,11 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
 
 class GoogleClassroomViewSet(viewsets.ViewSet):
     permission_classes = [GoogleClassroomAccessPolicy]
+
+    def get_renderers(self):
+        if self.action == "oauth2_callback":
+            return [StaticHTMLRenderer()]
+        return super().get_renderers()
 
     # TODO verify if only "get" is sufficient
     @action(methods=["get", "post", "put"], detail=False)
@@ -49,6 +57,7 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
         and will be called when the user grants additional permissions in order
         to allow Evo access to Google Classroom resources owned by the user
         """
+
         request_url = settings.BASE_BACKEND_URL + request.get_full_path()
 
         # see comment on `get_flow` about the `no_scopes` arg
@@ -78,9 +87,21 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
         keys = ["access_token", "refresh_token", "scope", "id_token"]
         data = {key: response[key] for key in keys}
         # create credentials object and associate it to user
-        GoogleOAuth2Credentials.objects.create(user=user, **data)
+        GoogleOAuth2Credentials.objects.update_or_create(user=user, defaults=data)
 
-        return Response(status=status.HTTP_200_OK)
+        # this view will be reached directly by the user's browser since
+        # it'll be accessed through the redirect_uri param of google oauth.
+        # return a response with a script that closes the page
+        return Response(
+            """
+                        <html>
+                            <body>Success!</body>
+                            <script type="text/javascript">
+                                window.close()
+                            </script>
+                        </html>
+            """
+        )
 
     @action(methods=["get"], detail=False)
     def authorized_scopes(self, request, *args, **kwargs):
@@ -97,5 +118,5 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
 
     @action(methods=["get"], detail=False)
     def auth_url(self, request, *args, **kwargs):
-        url = auth.get_auth_request_url()
+        url = auth.get_auth_request_url(user=request.user)
         return Response(data=url, status=status.HTTP_200_OK)

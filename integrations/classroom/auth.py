@@ -1,9 +1,12 @@
+from typing import Union
 import google.oauth2.credentials
 from google_auth_oauthlib.flow import Flow
 
 from integrations.classroom.integration import GoogleClassroomIntegration
 
 from django.conf import settings
+
+from users.models import User
 
 
 def get_flow(no_scopes=False):
@@ -25,7 +28,7 @@ def get_flow(no_scopes=False):
     return flow
 
 
-def get_auth_request_url():
+def get_auth_request_url(user: Union[User, None]):
     flow = get_flow()
 
     # Indicate where the API server will redirect the user after the user completes
@@ -43,6 +46,7 @@ def get_auth_request_url():
         access_type="offline",
         # Enable incremental authorization. Recommended as a best practice.
         include_granted_scopes="true",
+        login_hint=user.email if user is not None else None,
     )
 
     # TODO `state` should also be used for better security
