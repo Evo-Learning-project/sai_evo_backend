@@ -18,5 +18,8 @@ class GoogleClassroomCourseTwin(RemoteTwinResource):
 
     course = models.OneToOneField(Course, on_delete=models.CASCADE)
 
+    # whether the integration is currently enabled
+    enabled = models.BooleanField(default=True, blank=False, null=False)
+
     def __str__(self):
         return f"{str(self.course)} - {self.data.get('name')} ({self.remote_object_id})"
