@@ -7,16 +7,21 @@ from django.conf import settings
 
 from social_core.backends.google import GoogleOAuth2
 
-from rest_access_policy import AccessPolicy
+from django.shortcuts import get_object_or_404
+
 
 import logging
+from integrations.classroom.controller import GoogleClassroomIntegrationController
 from integrations.classroom.exceptions import (
     InvalidGoogleOAuth2Credentials,
     MissingGoogleOAuth2Credentials,
 )
 from integrations.classroom.integration import GoogleClassroomIntegration
+from integrations.classroom.models import GoogleClassroomCourseTwin
+from integrations.classroom.serializers import GoogleClassroomCourseTwinSerializer
 
 from integrations.models import GoogleOAuth2Credentials
+from integrations.classroom import policies
 from users.models import User
 
 from rest_framework.renderers import StaticHTMLRenderer, JSONRenderer
@@ -25,23 +30,8 @@ from rest_framework.renderers import StaticHTMLRenderer, JSONRenderer
 logger = logging.getLogger(__name__)
 
 
-class GoogleClassroomAccessPolicy(AccessPolicy):
-    statements = [
-        {
-            "action": ["oauth2_callback"],
-            "principal": ["*"],
-            "effect": "allow",
-        },
-        {
-            "action": ["authorized_scopes", "auth_url"],
-            "principal": ["authenticated"],
-            "effect": "allow",
-        },
-    ]
-
-
 class GoogleClassroomViewSet(viewsets.ViewSet):
-    permission_classes = [GoogleClassroomAccessPolicy]
+    permission_classes = [policies.GoogleClassroomAccessPolicy]
 
     def get_renderers(self):
         if self.action == "oauth2_callback":
@@ -97,7 +87,7 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
                         <html>
                             <body>Success!</body>
                             <script type="text/javascript">
-                                window.close()
+                                window.close();
                             </script>
                         </html>
             """
@@ -120,3 +110,57 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
     def auth_url(self, request, *args, **kwargs):
         url = auth.get_auth_request_url(user=request.user)
         return Response(data=url, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=False)
+    def classroom_courses(self, request, *args, **kwargs):
+        """
+        Returns a list of Google Classroom courses for which the requesting
+        user is a teacher
+        """
+        # TODO handle errors
+        courses = GoogleClassroomIntegration().get_courses_taught_by(request.user)
+        return Response(data=courses, status=status.HTTP_200_OK)
+
+    @action(methods=["get", "patch", "post"], detail=False)
+    def course(self, request, *args, **kwargs):
+        """
+        Allow retrieving, creating, enabling, and disabling a twin course
+        for the given course. This view is used to pair an Evo course with
+        a Classroom course, to look up that relation, and to enable or disable
+        it. A query param named `course_id` is mandatory.
+        """
+        # TODO review
+        course_id = request.query_params.get("course_id")
+        if course_id is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == "POST":
+            classroom_course_id = request.data.get("classroom_course_id")
+            if classroom_course_id is None:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            # create a new twin course
+            twin_course = GoogleClassroomIntegrationController().associate_evo_course_to_classroom_course(
+                requesting_user=request.user,
+                course_id=course_id,
+                classroom_course_id=classroom_course_id,
+            )
+            data = GoogleClassroomCourseTwinSerializer(twin_course).data
+            return Response(data, status=status.HTTP_201_CREATED)
+
+        twin_course = get_object_or_404(
+            GoogleClassroomCourseTwin.objects.all(), course_id=course_id
+        )
+        if request.method == "GET":
+            data = GoogleClassroomCourseTwinSerializer(twin_course).data
+            return Response(data, status=status.HTTP_200_OK)
+        elif request.method == "PATCH":
+            serializer = GoogleClassroomCourseTwinSerializer(
+                twin_course,
+                data=request.data,
+                partial=True,
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        else:
+            assert False

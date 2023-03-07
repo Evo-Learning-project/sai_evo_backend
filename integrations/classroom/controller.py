@@ -20,7 +20,7 @@ class GoogleClassroomIntegrationController:
     def associate_evo_course_to_classroom_course(
         self,
         requesting_user: User,
-        course: Course,
+        course_id: str,
         classroom_course_id: str,
     ) -> GoogleClassroomCourseTwin:
         # fetch Google Classroom course using given id
@@ -30,8 +30,9 @@ class GoogleClassroomIntegrationController:
         )
         # create a twin resource that links the given course to the
         # specified classroom course
+        # TODO handle unique constraint failure
         twin_course = GoogleClassroomCourseTwin(
-            course=course,
+            course_id=course_id,
             remote_object_id=classroom_course_id,
         )
         twin_course.set_remote_object(classroom_course)
