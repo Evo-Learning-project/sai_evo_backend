@@ -10,6 +10,7 @@ class GoogleClassroomCourseTwin(RemoteTwinResource):
     """
 
     REMOTE_OBJECT_FIELDS = [
+        "id",
         "name",
         "descriptionHeading",
         "enrollmentCode",

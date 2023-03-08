@@ -236,10 +236,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             service.courses().list(teacherId=teacher_id).execute().get("courses", [])
         )
         return [
-            {
-                "id": c["id"],
-                **{f: c.get(f) for f in GoogleClassroomCourseTwin.REMOTE_OBJECT_FIELDS},
-            }
+            {f: c.get(f) for f in GoogleClassroomCourseTwin.REMOTE_OBJECT_FIELDS}
             for c in courses
         ]
 
