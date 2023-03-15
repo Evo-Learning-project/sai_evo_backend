@@ -33,6 +33,7 @@ class GoogleClassroomIntegrationController:
         # TODO handle unique constraint failure
         twin_course = GoogleClassroomCourseTwin(
             course_id=course_id,
+            fallback_user=requesting_user,
             remote_object_id=classroom_course_id,
         )
         twin_course.set_remote_object(classroom_course)

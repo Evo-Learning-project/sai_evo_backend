@@ -21,6 +21,7 @@ from courses.logic.presentation import (
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
+from integrations.const import OPTIONAL_INTEGRATION_EVENT_QUERY_PARAM
 from users.models import User
 from users.serializers import UserSerializer
 from hashid_field.rest import HashidSerializerCharField
@@ -42,6 +43,7 @@ from courses.models import (
     ExerciseSolutionVote,
     ExerciseTestCase,
     ExerciseTestCaseAttachment,
+    IntegrationModelMixin,
     Tag,
 )
 from courses.serializer_fields import (
@@ -58,10 +60,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class HiddenFieldsModelSerializer(serializers.ModelSerializer):
-    pass
-
-
 class ConditionalFieldsMixin:
     def remove_unsatisfied_condition_fields(self):
         conditional_fields = self.Meta.conditional_fields
@@ -70,6 +68,23 @@ class ConditionalFieldsMixin:
             if not self.context.get(condition, False):
                 for field in fields:
                     self.fields.pop(field, None)
+
+
+class IntegrationModelSerializer(serializers.ModelSerializer):
+    """
+    A ModelSerializer for a model that inherits from IntegrationModelMixin.
+    Allows query params in the request relating to integration  actions to be
+    passed to the model instance as fields before saving.
+    """
+
+    def update(self, instance, validated_data):
+        should_fire_event = self.context["request"].query_params.get(
+            OPTIONAL_INTEGRATION_EVENT_QUERY_PARAM, False
+        )
+        is_integration_model = isinstance(instance, IntegrationModelMixin)
+        if is_integration_model:
+            setattr(instance, instance.FIRE_INTEGRATION_EVENT, should_fire_event)
+        return super().update(instance, validated_data)
 
 
 class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
@@ -532,7 +547,7 @@ class EventTemplateSerializer(serializers.ModelSerializer):
         ).data
 
 
-class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
+class EventSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
     state = ReadWriteSerializerMethodField()
     locked_by = UserSerializer(read_only=True)

@@ -42,8 +42,20 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         "https://www.googleapis.com/auth/classroom.profile.emails",
     ]
 
+    def get_user_for_action(self, course: Course, user: User):
+        """
+        If the user supplied via the `user` parameter is suitable to perform
+        an action on Classroom (i.e. it has teacher permissions for the course
+        associated to `course`), then `user` is returned. Otherwise, the fallback
+        user referenced by the GoogleClassroomCourseTwin instance associated to
+        `course` is returned.
+
+        TODO this currently always returns the fallback_user
+        """
+        return GoogleClassroomCourseTwin.objects.get(course=course).fallback_user
+
     def get_classroom_course_id_from_evo_course(self, course: Course):
-        return "541442443947"
+        return GoogleClassroomCourseTwin.objects.get(course=course).remote_object_id
 
     def get_classroom_coursework_id_from_evo_exam(self, exam: Event):
         return "543007020813"
@@ -122,10 +134,12 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         return creds
 
     def on_announcement_published(self, user: User, announcement: AnnouncementNode):
-        course_id = self.get_classroom_course_id_from_evo_course(
-            announcement.get_course()
-        )
-        service = self.get_service(user)
+        course = announcement.get_course()
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+        action_user = self.get_user_for_action(course, user)
+
+        service = self.get_service(action_user)
+
         announcement_url = announcement.get_absolute_url()
         announcement_payload = get_announcement_payload(
             text=announcement.body, announcement_url=announcement_url
@@ -141,8 +155,14 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         return results
 
     def on_exam_published(self, user: User, exam: Event):
-        course_id = self.get_classroom_course_id_from_evo_course(exam.course)
-        service = self.get_service(user)
+        course = exam.course
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+        action_user = self.get_user_for_action(course, user)
+
+        print(action_user, course, course_id)
+
+        service = self.get_service(action_user)
+
         exam_url = exam.get_absolute_url()
         coursework_payload = get_assignment_payload(
             title=exam.name,
@@ -150,6 +170,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             exam_url=exam_url,
             scheduled_timestamp=exam.begin_timestamp.isoformat(),
         )
+
         results = (
             service.courses()
             .courseWork()
@@ -201,10 +222,13 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         ...
 
     def on_lesson_published(self, user: User, lesson: LessonNode):
-        course_id = self.get_classroom_course_id_from_evo_course(lesson.get_course())
-        service = self.get_service(user)
-        lesson_url = lesson.get_absolute_url()
+        course = lesson.get_course()
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+        action_user = self.get_user_for_action(course, user)
 
+        service = self.get_service(action_user)
+
+        lesson_url = lesson.get_absolute_url()
         coursework_payload = get_material_payload(
             title=lesson.title,
             description=messages.VIEW_LESSON_ON_EVO,
