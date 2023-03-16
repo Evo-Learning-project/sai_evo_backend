@@ -6,3 +6,8 @@ from integrations.classroom.models import *
 @admin.register(GoogleClassroomCourseTwin)
 class GoogleClassroomCourseTwinAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(GoogleClassroomCourseWorkTwin)
+class GoogleClassroomCourseWorkTwinAdmin(admin.ModelAdmin):
+    pass

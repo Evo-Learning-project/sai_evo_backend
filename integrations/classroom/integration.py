@@ -8,7 +8,10 @@ from integrations.classroom.factories import (
     get_material_payload,
 )
 from integrations.classroom import messages
-from integrations.classroom.models import GoogleClassroomCourseTwin
+from integrations.classroom.models import (
+    GoogleClassroomCourseTwin,
+    GoogleClassroomCourseWorkTwin,
+)
 
 from integrations.exceptions import MissingIntegrationParameters
 from integrations.integration import BaseEvoIntegration
@@ -163,26 +166,33 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
         service = self.get_service(action_user)
 
-        exam_url = exam.get_absolute_url()
-        coursework_payload = get_assignment_payload(
-            title=exam.name,
-            description=messages.EXAM_PUBLISHED,
-            exam_url=exam_url,
-            scheduled_timestamp=exam.begin_timestamp.isoformat(),
-        )
-
-        results = (
-            service.courses()
-            .courseWork()
-            .create(
-                courseId=course_id,
-                body=coursework_payload,
+        if not GoogleClassroomCourseWorkTwin.objects.filter(event=exam).exists():
+            exam_url = exam.get_absolute_url()
+            coursework_payload = get_assignment_payload(
+                title=exam.name,
+                description=messages.EXAM_PUBLISHED,
+                exam_url=exam_url,
+                scheduled_timestamp=exam.begin_timestamp.isoformat(),
             )
-            .execute()
-        )
-        # TODO handle errors
-        # TODO create integration object
-        return results
+
+            coursework = (
+                service.courses()
+                .courseWork()
+                .create(
+                    courseId=course_id,
+                    body=coursework_payload,
+                )
+                .execute()
+            )
+            twin = GoogleClassroomCourseWorkTwin(
+                event=exam, remote_object_id=coursework["id"]
+            )
+            twin.set_remote_object(coursework)
+            twin.save()
+            return twin
+        else:
+            # TODO handle updates
+            print("EXISTS!")
 
     def on_exam_participation_created(self, participation: EventParticipation):
         service = self.get_service(participation.user)
