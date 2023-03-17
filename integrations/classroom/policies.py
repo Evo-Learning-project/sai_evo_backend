@@ -12,9 +12,11 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
             "action": [
                 "authorized_scopes",
                 "auth_url",
+                # TODO create specific rules for all the entries below
                 "course",
+                "coursework",
                 "classroom_courses",
-            ],  # TODO ! move "course" and "classroom_courses" to separate rule
+            ],  # TODO ---
             "principal": ["authenticated"],
             "effect": "allow",
         },

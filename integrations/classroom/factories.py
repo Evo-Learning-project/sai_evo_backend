@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta
 from typing import Union
 from django.utils.html import strip_tags
+from django.utils import timezone
 
 
 def get_material_payload(title, description, material_url):
@@ -27,8 +29,22 @@ def get_announcement_payload(text, announcement_url):
 
 
 def get_assignment_payload(
-    title: str, description: str, exam_url: str, scheduled_timestamp: Union[str, None]
+    title: str,
+    description: str,
+    exam_url: str,
+    scheduled_timestamp: Union[datetime, None],
 ):
+    # TODO keep an eye on timezone issues
+    now = timezone.localtime(timezone.now())
+    # if no `scheduled_timestamp` is provided, or if the value provided is too close
+    # to the current time, we're setting the state to PUBLISHED from the start, because
+    # the Classroom API will reject the request if the `scheduledTime` field ends
+    # up being in the past
+    publish_immediately = (
+        scheduled_timestamp is None
+        or (timezone.localtime(scheduled_timestamp) - (now)).total_seconds() < 60
+    )
+
     return {
         "title": strip_tags(title),
         "description": strip_tags(description),
@@ -36,6 +52,10 @@ def get_assignment_payload(
             {"link": {"url": exam_url}},
         ],
         "workType": "ASSIGNMENT",
-        "state": "DRAFT" if scheduled_timestamp else "PUBLISHED",
-        "scheduledTime": scheduled_timestamp,
+        "state": "PUBLISHED" if publish_immediately else "DRAFT",
+        **(
+            {}
+            if publish_immediately
+            else {"scheduledTime": scheduled_timestamp.isoformat()}
+        ),
     }

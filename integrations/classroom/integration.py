@@ -162,17 +162,16 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         course_id = self.get_classroom_course_id_from_evo_course(course)
         action_user = self.get_user_for_action(course, user)
 
-        print(action_user, course, course_id)
-
         service = self.get_service(action_user)
 
+        # if the exam doesn't have a twin resource on Classroom yet, create one
         if not GoogleClassroomCourseWorkTwin.objects.filter(event=exam).exists():
             exam_url = exam.get_absolute_url()
             coursework_payload = get_assignment_payload(
                 title=exam.name,
                 description=messages.EXAM_PUBLISHED,
                 exam_url=exam_url,
-                scheduled_timestamp=exam.begin_timestamp.isoformat(),
+                scheduled_timestamp=exam.begin_timestamp,
             )
 
             coursework = (

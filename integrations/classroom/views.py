@@ -1,6 +1,7 @@
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from courses.models import Event
 
 from integrations.classroom import auth
 from django.conf import settings
@@ -17,8 +18,14 @@ from integrations.classroom.exceptions import (
     MissingGoogleOAuth2Credentials,
 )
 from integrations.classroom.integration import GoogleClassroomIntegration
-from integrations.classroom.models import GoogleClassroomCourseTwin
-from integrations.classroom.serializers import GoogleClassroomCourseTwinSerializer
+from integrations.classroom.models import (
+    GoogleClassroomCourseTwin,
+    GoogleClassroomCourseWorkTwin,
+)
+from integrations.classroom.serializers import (
+    GoogleClassroomCourseTwinSerializer,
+    GoogleClassroomCourseWorkTwinSerializer,
+)
 
 from integrations.models import GoogleOAuth2Credentials
 from integrations.classroom import policies
@@ -164,3 +171,18 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
             return Response(data=serializer.data, status=status.HTTP_200_OK)
         else:
             assert False
+
+    @action(methods=["get"], detail=False)
+    def coursework(self, request, *args, **kwargs):
+        """
+        Allows retrieving a Classroom coursework item associated with the given Evo Event
+        """
+        event_id = request.query_params.get("event_id")
+        if event_id is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        coursework = get_object_or_404(
+            GoogleClassroomCourseWorkTwin.objects.all(), event_id=event_id
+        )
+        data = GoogleClassroomCourseWorkTwinSerializer(coursework).data
+        return Response(data, status=status.HTTP_200_OK)

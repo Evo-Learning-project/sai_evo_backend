@@ -43,6 +43,10 @@ class GoogleClassroomCourseWorkTwin(RemoteTwinResource):
         "creationTime",
         "title",
         "description",
+        "alternateLink",
     ]
 
     event = models.OneToOneField(Event, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{str(self.event)} - ({self.remote_object_id})"
