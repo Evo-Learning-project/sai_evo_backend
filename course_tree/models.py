@@ -12,6 +12,7 @@ from polymorphic_tree.models import (
     PolymorphicTreeForeignKey,
     _get_base_polymorphic_model,
 )
+from integrations.mixins import IntegrationModelMixin
 from integrations.registry import IntegrationRegistry
 from users.models import User
 
@@ -146,7 +147,7 @@ class TopicNode(BaseCourseTreeNode):
     name = models.CharField(max_length=200, blank=True)
 
 
-class LessonNode(LifecycleModelMixin, BaseCourseTreeNode):
+class LessonNode(LifecycleModelMixin, BaseCourseTreeNode, IntegrationModelMixin):
     class LessonState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
@@ -165,15 +166,17 @@ class LessonNode(LifecycleModelMixin, BaseCourseTreeNode):
         was=LessonState.DRAFT,
     )
     def on_publish(self):
-        IntegrationRegistry().dispatch(
-            "lesson_published",
-            course=self.get_course(),
-            user=self.creator,
-            lesson=self,
-        )
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event:
+            IntegrationRegistry().dispatch(
+                "lesson_published",
+                course=self.get_course(),
+                user=self.creator,
+                lesson=self,
+            )
 
 
-class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode):
+class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode, IntegrationModelMixin):
     class AnnouncementState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
@@ -191,12 +194,14 @@ class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode):
         was=AnnouncementState.DRAFT,
     )
     def on_publish(self):
-        IntegrationRegistry().dispatch(
-            "announcement_published",
-            course=self.get_course(),
-            user=self.creator,
-            announcement=self,
-        )
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event:
+            IntegrationRegistry().dispatch(
+                "announcement_published",
+                course=self.get_course(),
+                user=self.creator,
+                announcement=self,
+            )
 
 
 class PollNode(BaseCourseTreeNode):

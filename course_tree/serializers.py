@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Sum, Case, When, Value
 from courses.logic.privileges import MANAGE_COURSE_TREE_NODES, check_privilege
+from integrations.serializers import IntegrationModelSerializer
 
 # from course_tree.pagination import CourseTreeChildrenNodePagination
 from users.serializers import UserSerializer
@@ -46,7 +47,7 @@ class TopicNodeSerializer(CourseTreeNodeSerializer):
         fields = ["id", "name"]
 
 
-class LessonNodeSerializer(CourseTreeNodeSerializer):
+class LessonNodeSerializer(IntegrationModelSerializer, CourseTreeNodeSerializer):
     creator = UserSerializer(read_only=True)
     comment_count = serializers.SerializerMethodField()
 
@@ -67,7 +68,7 @@ class LessonNodeSerializer(CourseTreeNodeSerializer):
         return obj.comments.count()
 
 
-class AnnouncementNodeSerializer(CourseTreeNodeSerializer):
+class AnnouncementNodeSerializer(IntegrationModelSerializer, CourseTreeNodeSerializer):
     creator = UserSerializer(read_only=True)
 
     class Meta:
