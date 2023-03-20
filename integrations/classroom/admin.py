@@ -11,3 +11,13 @@ class GoogleClassroomCourseTwinAdmin(admin.ModelAdmin):
 @admin.register(GoogleClassroomCourseWorkTwin)
 class GoogleClassroomCourseWorkTwinAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(GoogleClassroomAnnouncementTwin)
+class GoogleClassroomAnnouncementTwinAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(GoogleClassroomMaterialTwin)
+class GoogleClassroomMaterialTwinAdmin(admin.ModelAdmin):
+    pass

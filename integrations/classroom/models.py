@@ -1,4 +1,5 @@
 from django.db import models
+from course_tree.models import AnnouncementNode, LessonNode
 from courses.models import Course, Event
 
 from integrations.models import RemoteTwinResource
@@ -50,3 +51,37 @@ class GoogleClassroomCourseWorkTwin(RemoteTwinResource):
 
     def __str__(self):
         return f"{str(self.event)} - ({self.remote_object_id})"
+
+
+class GoogleClassroomAnnouncementTwin(RemoteTwinResource):
+    REMOTE_OBJECT_FIELDS = [
+        "id",
+        "courseId",
+        "alternateLink",
+        "text",
+        "creationTime",
+        "updateTime",
+    ]
+
+    announcement = models.OneToOneField(AnnouncementNode, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{str(self.announcement)} - ({self.remote_object_id})"
+
+
+class GoogleClassroomMaterialTwin(RemoteTwinResource):
+    REMOTE_OBJECT_FIELDS = [
+        "id",
+        "courseId",
+        "alternateLink",
+        "title",
+        "description",
+        "state",
+        "creationTime",
+        "updateTime",
+    ]
+
+    lesson = models.OneToOneField(LessonNode, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{str(self.lesson)} - ({self.remote_object_id})"
