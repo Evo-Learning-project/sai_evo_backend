@@ -9,8 +9,10 @@ from integrations.classroom.factories import (
 )
 from integrations.classroom import messages
 from integrations.classroom.models import (
+    GoogleClassroomAnnouncementTwin,
     GoogleClassroomCourseTwin,
     GoogleClassroomCourseWorkTwin,
+    GoogleClassroomMaterialTwin,
 )
 
 from integrations.exceptions import MissingIntegrationParameters
@@ -147,15 +149,27 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         announcement_payload = get_announcement_payload(
             text=announcement.body, announcement_url=announcement_url
         )
-        results = (
-            service.courses()
-            .announcements()
-            .create(courseId=course_id, body=announcement_payload)
-            .execute()
-        )
-        # TODO handle errors
-        # TODO create integration object
-        return results
+        if not GoogleClassroomAnnouncementTwin.objects.filter(
+            announcement=announcement
+        ).exists():
+            classroom_announcement = (
+                service.courses()
+                .announcements()
+                .create(courseId=course_id, body=announcement_payload)
+                .execute()
+            )
+            # TODO handle errors
+            twin = GoogleClassroomAnnouncementTwin(
+                announcement=announcement,
+                remote_object_id=classroom_announcement["id"],
+            )
+            twin.set_remote_object(classroom_announcement)
+            twin.save()
+            return twin
+        else:
+            # TODO handle updates
+            logger.debug("Announcement already has a twin")
+            ...
 
     def on_exam_published(self, user: User, exam: Event):
         course = exam.course
@@ -191,7 +205,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             return twin
         else:
             # TODO handle updates
-            print("EXISTS!")
+            logger.debug("Exams already has a twin")
+            ...
 
     def on_exam_participation_created(self, participation: EventParticipation):
         service = self.get_service(participation.user)
@@ -243,19 +258,29 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             description=messages.VIEW_LESSON_ON_EVO,
             material_url=lesson_url,
         )
-        # TODO handle topics - https://developers.google.com/classroom/reference/rest/v1/courses.topics
-        results = (
-            service.courses()
-            .courseWorkMaterials()
-            .create(
-                courseId=course_id,
-                body=coursework_payload,
+        # if the exam doesn't have a twin resource on Classroom yet, create one
+        if not GoogleClassroomMaterialTwin.objects.filter(lesson=lesson).exists():
+            # TODO handle topics - https://developers.google.com/classroom/reference/rest/v1/courses.topics
+            material = (
+                service.courses()
+                .courseWorkMaterials()
+                .create(
+                    courseId=course_id,
+                    body=coursework_payload,
+                )
+                .execute()
             )
-            .execute()
-        )
+            twin = GoogleClassroomMaterialTwin(
+                lesson=lesson, remote_object_id=material["id"]
+            )
+            twin.set_remote_object(material)
+            twin.save()
+            return twin
         # TODO handle errors
-        # TODO create integration object
-        return results
+        else:
+            # TODO handle updates
+            logger.warning("Lesson already has a twin")
+            ...
 
     def get_courses_taught_by(self, user: User):
         """

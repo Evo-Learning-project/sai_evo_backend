@@ -15,6 +15,8 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
                 # TODO create specific rules for all the entries below
                 "course",
                 "coursework",
+                "announcement",
+                "material",
                 "classroom_courses",
             ],  # TODO ---
             "principal": ["authenticated"],

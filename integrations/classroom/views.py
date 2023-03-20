@@ -19,12 +19,16 @@ from integrations.classroom.exceptions import (
 )
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.classroom.models import (
+    GoogleClassroomAnnouncementTwin,
     GoogleClassroomCourseTwin,
     GoogleClassroomCourseWorkTwin,
+    GoogleClassroomMaterialTwin,
 )
 from integrations.classroom.serializers import (
+    GoogleClassroomAnnouncementTwinSerializer,
     GoogleClassroomCourseTwinSerializer,
     GoogleClassroomCourseWorkTwinSerializer,
+    GoogleClassroomMaterialTwinSerializer,
 )
 
 from integrations.models import GoogleOAuth2Credentials
@@ -172,6 +176,8 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
         else:
             assert False
 
+    # TODO refactor shared code among the three actions below
+
     @action(methods=["get"], detail=False)
     def coursework(self, request, *args, **kwargs):
         """
@@ -185,4 +191,37 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
             GoogleClassroomCourseWorkTwin.objects.all(), event_id=event_id
         )
         data = GoogleClassroomCourseWorkTwinSerializer(coursework).data
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=False)
+    def material(self, request, *args, **kwargs):
+        """
+        Allows retrieving a Classroom material item associated
+        with the given Evo LessonNode
+        """
+        lesson_id = request.query_params.get("lesson_id")
+        if lesson_id is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        material = get_object_or_404(
+            GoogleClassroomMaterialTwin.objects.all(), lesson_id=lesson_id
+        )
+        data = GoogleClassroomMaterialTwinSerializer(material).data
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=False)
+    def announcement(self, request, *args, **kwargs):
+        """
+        Allows retrieving a Classroom material item associated
+        with the given Evo LessonNode
+        """
+        announcement_id = request.query_params.get("announcement_id")
+        if announcement_id is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        announcement = get_object_or_404(
+            GoogleClassroomAnnouncementTwin.objects.all(),
+            announcement_id=announcement_id,
+        )
+        data = GoogleClassroomAnnouncementTwinSerializer(announcement).data
         return Response(data, status=status.HTTP_200_OK)
