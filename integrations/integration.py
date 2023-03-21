@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from courses.models import Event, EventParticipation
+from courses.models import Course, Event, EventParticipation, UserCourseEnrollment
 from users.models import User
 from course_tree.models import AnnouncementNode, LessonNode
 
@@ -44,4 +44,8 @@ class BaseEvoIntegration(ABC):
 
     @abstractmethod
     def on_announcement_published(self, user: User, announcement: AnnouncementNode):
+        ...
+
+    @abstractmethod
+    def on_student_enrolled(self, enrollment: UserCourseEnrollment):
         ...

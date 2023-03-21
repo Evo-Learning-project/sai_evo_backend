@@ -189,7 +189,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                     data={"detail": "ALREADY_ENROLLED"},
                 )
-            course.enroll_users([user_id])
+            course.enroll_users([user_id], bulk=False)
         else:
             if request.user not in course.enrolled_users.all():
                 return Response(

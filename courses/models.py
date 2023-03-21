@@ -119,27 +119,38 @@ class Course(TimestampableModel):
     def __str__(self):
         return self.name
 
-    def enroll_users(self, user_ids, enrolled_by=None):
+    def enroll_users(self, user_ids, enrolled_by=None, bulk=True):
         enrollment_type = (
             UserCourseEnrollment.EnrollmentType.DEFAULT
             if enrolled_by is None
             else UserCourseEnrollment.EnrollmentType.BY_TEACHER
         )
-        enrollments = UserCourseEnrollment.objects.bulk_create(
-            [
-                UserCourseEnrollment(
+        if bulk:
+            # TODO this won't trigger the lifecycle hook that fires the integration event
+            enrollments = UserCourseEnrollment.objects.bulk_create(
+                [
+                    UserCourseEnrollment(
+                        course=self, user_id=uid, enrollment_type=enrollment_type
+                    )
+                    for uid in user_ids
+                ]
+            )
+        else:
+            enrollments = [
+                UserCourseEnrollment.objects.create(
                     course=self, user_id=uid, enrollment_type=enrollment_type
                 )
                 for uid in user_ids
             ]
-        )
+
         return enrollments
 
     def unenroll_users(self, user_ids):
+        # TODO bulk removals don't trigger lifecycle hooks, find a workaround
         self.enrolled_users.remove(*User.objects.filter(pk__in=user_ids))
 
 
-class UserCourseEnrollment(TimestampableModel):
+class UserCourseEnrollment(LifecycleModelMixin, TimestampableModel):
     class EnrollmentType(models.IntegerChoices):
         DEFAULT = 0
         AUTOMATIC = 1
@@ -170,6 +181,14 @@ class UserCourseEnrollment(TimestampableModel):
 
     def __str__(self):
         return f"{str(self.course)} - {str(self.user)}"
+
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        IntegrationRegistry().dispatch(
+            "student_enrolled",
+            course=self.course,
+            enrollment=self,
+        )
 
 
 class UserCoursePrivilege(models.Model):
@@ -1371,7 +1390,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     def on_create(self):
         IntegrationRegistry().dispatch(
             "exam_participation_created",
-            course=self.course,
+            course=self.event.course,
             participation=self,
         )
 

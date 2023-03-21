@@ -12,6 +12,7 @@ from integrations.classroom.models import (
     GoogleClassroomAnnouncementTwin,
     GoogleClassroomCourseTwin,
     GoogleClassroomCourseWorkTwin,
+    GoogleClassroomEnrollmentTwin,
     GoogleClassroomMaterialTwin,
 )
 
@@ -20,7 +21,7 @@ from integrations.integration import BaseEvoIntegration
 from integrations.models import GoogleOAuth2Credentials
 from users.models import User
 from course_tree.models import AnnouncementNode, LessonNode
-from courses.models import Event, Course, EventParticipation
+from courses.models import Event, Course, EventParticipation, UserCourseEnrollment
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -61,6 +62,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
     def get_classroom_course_id_from_evo_course(self, course: Course):
         return GoogleClassroomCourseTwin.objects.get(course=course).remote_object_id
+
+    def get_classroom_course_from_evo_course(self, course: Course):
+        return GoogleClassroomCourseTwin.objects.get(course=course)
 
     def get_classroom_coursework_id_from_evo_exam(self, exam: Event):
         return "543007020813"
@@ -343,3 +347,40 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
     def get_course_teachers(self, course: Course):
         ...
+
+    def on_student_enrolled(self, enrollment: UserCourseEnrollment):
+        user = enrollment.user
+        course = enrollment.course
+
+        service = self.get_service(user)
+        classroom_course = self.get_classroom_course_from_evo_course(course)
+
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+
+        # enrollment code is required to enroll student
+        enrollment_code = classroom_course.data["enrollmentCode"]
+
+        try:
+            classroom_enrollment = (
+                service.courses()
+                .students()
+                .create(
+                    courseId=course_id,
+                    enrollmentCode=enrollment_code,
+                    body={"userId": "me"},
+                )
+                .execute()
+            )
+            twin = GoogleClassroomEnrollmentTwin(enrollment=enrollment)
+            twin.set_remote_object(classroom_enrollment)
+            twin.save()
+            return twin
+        except HttpError as error:
+            # we're fine with error 409 - it means the student is already enrolled on Classroom
+            # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
+            if error.status_code != 409:
+                logger.error(
+                    f"Error during on_student_enrolled with enrollment {enrollment.pk}",
+                    exc_info=error,
+                )
+                raise

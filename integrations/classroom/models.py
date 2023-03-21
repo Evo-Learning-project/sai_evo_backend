@@ -1,6 +1,6 @@
 from django.db import models
 from course_tree.models import AnnouncementNode, LessonNode
-from courses.models import Course, Event
+from courses.models import Course, Event, UserCourseEnrollment
 
 from integrations.models import RemoteTwinResource
 from users.models import User
@@ -85,3 +85,16 @@ class GoogleClassroomMaterialTwin(RemoteTwinResource):
 
     def __str__(self):
         return f"{str(self.lesson)} - ({self.remote_object_id})"
+
+
+class GoogleClassroomEnrollmentTwin(RemoteTwinResource):
+    REMOTE_OBJECT_FIELDS = [
+        "courseId",
+        "userId",
+        "profile",
+    ]
+
+    enrollment = models.OneToOneField(UserCourseEnrollment, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{str(self.enrollment)} - ({self.remote_object_id})"
