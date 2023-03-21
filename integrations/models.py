@@ -51,6 +51,13 @@ class RemoteTwinResource(models.Model):
     class Meta:
         abstract = True
 
+    @classmethod
+    def create_from_remote_object(cls, remote_object, **kwargs):
+        obj = cls(**kwargs)
+        obj.set_remote_object(remote_object)
+        obj.save()
+        return obj
+
     def save(self, *args, **kwargs):
         if self.pk is None:
             # populate `data` with data from the remote object

@@ -163,12 +163,11 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 .execute()
             )
             # TODO handle errors
-            twin = GoogleClassroomAnnouncementTwin(
+            twin = GoogleClassroomAnnouncementTwin.create_from_remote_object(
                 announcement=announcement,
                 remote_object_id=classroom_announcement["id"],
+                remote_object=classroom_announcement,
             )
-            twin.set_remote_object(classroom_announcement)
-            twin.save()
             return twin
         else:
             # TODO handle updates
@@ -201,11 +200,11 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 )
                 .execute()
             )
-            twin = GoogleClassroomCourseWorkTwin(
-                event=exam, remote_object_id=coursework["id"]
+            twin = GoogleClassroomCourseWorkTwin.create_from_remote_object(
+                event=exam,
+                remote_object_id=coursework["id"],
+                remote_object=coursework,
             )
-            twin.set_remote_object(coursework)
-            twin.save()
             return twin
         else:
             # TODO handle updates
@@ -274,11 +273,11 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 )
                 .execute()
             )
-            twin = GoogleClassroomMaterialTwin(
-                lesson=lesson, remote_object_id=material["id"]
+            twin = GoogleClassroomMaterialTwin.create_from_remote_object(
+                lesson=lesson,
+                remote_object_id=material["id"],
+                remote_object=material,
             )
-            twin.set_remote_object(material)
-            twin.save()
             return twin
         # TODO handle errors
         else:
@@ -391,7 +390,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 .execute()
             )
 
-        twin = GoogleClassroomEnrollmentTwin(enrollment=enrollment)
-        twin.set_remote_object(classroom_enrollment)
-        twin.save()
+        twin = GoogleClassroomEnrollmentTwin.create_from_remote_object(
+            enrollment=enrollment, remote_object=classroom_enrollment
+        )
         return twin

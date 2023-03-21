@@ -31,14 +31,12 @@ class GoogleClassroomIntegrationController:
         # create a twin resource that links the given course to the
         # specified classroom course
         # TODO handle unique constraint failure
-        twin_course = GoogleClassroomCourseTwin(
+        twin_course = GoogleClassroomCourseTwin.create_from_remote_object(
             course_id=course_id,
             fallback_user=requesting_user,
             remote_object_id=classroom_course_id,
+            remote_object=classroom_course,
         )
-        twin_course.set_remote_object(classroom_course)
-        twin_course.save()
-
         return twin_course
 
     def sync_enrolled_students(self, course: Course):
