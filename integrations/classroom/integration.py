@@ -371,12 +371,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 )
                 .execute()
             )
-            twin = GoogleClassroomEnrollmentTwin(enrollment=enrollment)
-            twin.set_remote_object(classroom_enrollment)
-            twin.save()
-            return twin
         except HttpError as error:
-            # we're fine with error 409 - it means the student is already enrolled on Classroom
+            # error 409 means the student is already enrolled on Classroom
             # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
             if error.status_code != 409:
                 logger.error(
@@ -384,3 +380,18 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     exc_info=error,
                 )
                 raise
+            # we retrieve the enrollment from Classroom and use that one for creating the twin
+            classroom_enrollment = (
+                service.courses()
+                .students()
+                .get(
+                    courseId=course_id,
+                    userId="me",
+                )
+                .execute()
+            )
+
+        twin = GoogleClassroomEnrollmentTwin(enrollment=enrollment)
+        twin.set_remote_object(classroom_enrollment)
+        twin.save()
+        return twin
