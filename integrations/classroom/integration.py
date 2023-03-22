@@ -11,6 +11,7 @@ from integrations.classroom import messages
 from integrations.classroom.models import (
     GoogleClassroomAnnouncementTwin,
     GoogleClassroomCourseTwin,
+    GoogleClassroomCourseWorkSubmissionTwin,
     GoogleClassroomCourseWorkTwin,
     GoogleClassroomEnrollmentTwin,
     GoogleClassroomMaterialTwin,
@@ -73,33 +74,41 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
     def get_classroom_student_submission_id_from_evo_event_participation(
         self, participation: EventParticipation
     ):
-        course = participation.event.course
-        user = participation.user
+        try:
+            return GoogleClassroomCourseWorkSubmissionTwin.objects.get(
+                participation=participation
+            ).remote_object_id
+        except GoogleClassroomCourseWorkSubmissionTwin.DoesNotExist:
+            course = participation.event.course
+            user = participation.user
 
-        print("USER", user)
+            course_id = self.get_classroom_course_id_from_evo_course(course)
 
-        course_id = self.get_classroom_course_id_from_evo_course(course)
-
-        coursework_id = self.get_classroom_coursework_id_from_evo_exam(
-            participation.event
-        )
-
-        service = self.get_service(user)
-
-        response = (
-            service.courses()
-            .courseWork()
-            .studentSubmissions()
-            .list(
-                courseId=course_id,
-                courseWorkId=coursework_id,
-                userId=participation.user.email,
+            coursework_id = self.get_classroom_coursework_id_from_evo_exam(
+                participation.event
             )
-            .execute()
-        )
-        # TODO handle case where the submission doesn't exist
-        submission_id = response["studentSubmissions"][0]["id"]
-        return submission_id
+
+            service = self.get_service(user)
+
+            response = (
+                service.courses()
+                .courseWork()
+                .studentSubmissions()
+                .list(
+                    courseId=course_id,
+                    courseWorkId=coursework_id,
+                    userId=participation.user.email,
+                )
+                .execute()
+            )
+            # TODO handle case where the submission doesn't exist
+            submission = response["studentSubmissions"][0]
+            twin = GoogleClassroomCourseWorkSubmissionTwin.create_from_remote_object(
+                participation=participation,
+                remote_object_id=submission["id"],
+                remote_object=submission,
+            )
+            return twin.remote_object_id
 
     def get_client_config(self):
         env = environ.Env()
@@ -255,6 +264,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         # TODO if the user hasn't granted scopes, we may get 403 - in that case, use fallback user
+        # TODO will error with 400 if submission has already been turned in
         # add a URL attachment to the existing student submission linking to
         # the corresponding EventParticipation object
         (

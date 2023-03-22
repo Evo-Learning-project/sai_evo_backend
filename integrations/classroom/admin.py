@@ -26,3 +26,8 @@ class GoogleClassroomMaterialTwinAdmin(admin.ModelAdmin):
 @admin.register(GoogleClassroomEnrollmentTwin)
 class GoogleClassroomEnrollmentTwinAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(GoogleClassroomCourseWorkSubmissionTwin)
+class GoogleClassroomCourseWorkSubmissionTwinAdmin(admin.ModelAdmin):
+    pass
