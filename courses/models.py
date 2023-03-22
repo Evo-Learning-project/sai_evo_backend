@@ -1304,7 +1304,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def score(self):
-        if self._score is None:
+        if self._score is None or len(self._score) == 0:
             return str(
                 round(
                     sum(
@@ -1391,6 +1391,15 @@ class EventParticipation(LifecycleModelMixin, models.Model):
         if self.event.event_type == Event.EXAM:
             IntegrationRegistry().dispatch(
                 "exam_participation_created",
+                course=self.event.course,
+                participation=self,
+            )
+
+    @hook(AFTER_UPDATE, when="_assessment_state", changes_to=PUBLISHED)
+    def on_assessment_published(self):
+        if self.event.event_type == Event.EXAM:
+            IntegrationRegistry().dispatch(
+                "exam_participation_assessment_published",
                 course=self.event.course,
                 participation=self,
             )

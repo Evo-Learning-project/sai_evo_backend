@@ -50,6 +50,33 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         "https://www.googleapis.com/auth/classroom.coursework.me",
     ]
 
+    def get_client_config(self):
+        env = environ.Env()
+
+        client_id = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_CLIENT_ID")
+        project_id = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_PROJECT_ID")
+        client_secret = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_CLIENT_SECRET")
+        redirect_uris = env.list(
+            "GOOGLE_CLASSROOM_INTEGRATION_REDIRECT_URIS", default=[]
+        )
+
+        if any(c is None for c in (client_id, project_id, client_secret)):
+            raise MissingIntegrationParameters(
+                "Missing parameters for Google Classroom integration"
+            )
+
+        return {
+            "installed": {
+                "client_id": client_id,
+                "project_id": project_id,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_secret": client_secret,
+                "redirect_uris": redirect_uris,
+            }
+        }
+
     def get_user_for_action(self, course: Course, user: User):
         """
         If the user supplied via the `user` parameter is suitable to perform
@@ -109,33 +136,6 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 remote_object=submission,
             )
             return twin.remote_object_id
-
-    def get_client_config(self):
-        env = environ.Env()
-
-        client_id = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_CLIENT_ID")
-        project_id = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_PROJECT_ID")
-        client_secret = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_CLIENT_SECRET")
-        redirect_uris = env.list(
-            "GOOGLE_CLASSROOM_INTEGRATION_REDIRECT_URIS", default=[]
-        )
-
-        if any(c is None for c in (client_id, project_id, client_secret)):
-            raise MissingIntegrationParameters(
-                "Missing parameters for Google Classroom integration"
-            )
-
-        return {
-            "installed": {
-                "client_id": client_id,
-                "project_id": project_id,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_secret": client_secret,
-                "redirect_uris": redirect_uris,
-            }
-        }
 
     def get_service(self, user: User):
         creds = self.get_credentials(user)
@@ -225,6 +225,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 description=messages.EXAM_PUBLISHED,
                 exam_url=exam_url,
                 scheduled_timestamp=exam.begin_timestamp,
+                # TODO we might need to make sure this value is correct when the exam beings (i.e. update it if changed)
+                max_score=exam.max_score,
             )
 
             coursework = (
@@ -286,12 +288,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         # TODO error handling
 
     def on_exam_participation_turned_in(self, participation: EventParticipation):
-        # TODO implement - turn in corresponding submission to coursework
         classroom_course = self.get_classroom_course_from_evo_course(
             participation.event.course
         )
 
-        # TODO we need to use fallback_user - if the student is used to modify the submission, we get 403 - fix this
         service = self.get_service(participation.user)
 
         course_id = classroom_course.remote_object_id
@@ -316,7 +316,57 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
             .execute()
         )
-        print("RES turn in", res)
+
+    def on_exam_participation_assessment_published(
+        self, participation: EventParticipation
+    ):
+        classroom_course = self.get_classroom_course_from_evo_course(
+            participation.event.course
+        )
+
+        service = self.get_service(classroom_course.fallback_user)
+
+        course_id = classroom_course.remote_object_id
+        coursework_id = self.get_classroom_coursework_id_from_evo_exam(
+            participation.event
+        )
+        # TODO ensure this exists
+        submission_id = (
+            self.get_classroom_student_submission_id_from_evo_event_participation(
+                participation
+            )
+        )
+
+        patched_submission = (
+            service.courses()
+            .courseWork()
+            .studentSubmissions()
+            .patch(
+                courseId=course_id,
+                courseWorkId=coursework_id,
+                id=submission_id,
+                updateMask="assignedGrade,draftGrade",
+                body={
+                    "assignedGrade": participation.score,
+                    "draftGrade": participation.score,
+                },
+            )
+            .execute()
+        )
+
+        if patched_submission["state"] == "TURNED_IN":
+            # if the submission had been turned in, return it
+            (
+                service.courses()
+                .courseWork()
+                .studentSubmissions()
+                .return_(
+                    courseId=course_id,
+                    courseWorkId=coursework_id,
+                    id=submission_id,
+                )
+                .execute()
+            )
 
     def on_lesson_published(self, user: User, lesson: LessonNode):
         course = lesson.get_course()

@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Union
 from django.utils.html import strip_tags
 from django.utils import timezone
+from math import ceil
 
 
 def get_material_payload(title, description, material_url):
@@ -33,6 +35,7 @@ def get_assignment_payload(
     description: str,
     exam_url: str,
     scheduled_timestamp: Union[datetime, None],
+    max_score: Union[int, Decimal],
 ):
     # TODO keep an eye on timezone issues
     now = timezone.localtime(timezone.now())
@@ -53,6 +56,11 @@ def get_assignment_payload(
         ],
         "workType": "ASSIGNMENT",
         "state": "PUBLISHED" if publish_immediately else "DRAFT",
+        # the Classroom API only accepts integers for maxPoints:
+        # see https://developers.google.com/classroom/reference/rest/v1/courses.courseWork
+        # we use `ceil` to prevent edge cases where a submission would end up having a grade
+        # higher than the maximum for the exam (submissions do allow decimal grades)
+        "maxPoints": ceil(max_score),
         **(
             {}
             if publish_immediately

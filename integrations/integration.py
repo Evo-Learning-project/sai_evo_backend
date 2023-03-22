@@ -39,6 +39,12 @@ class BaseEvoIntegration(ABC):
         ...
 
     @abstractmethod
+    def on_exam_participation_assessment_published(
+        self, participation: EventParticipation
+    ):
+        ...
+
+    @abstractmethod
     def on_lesson_published(self, user: User, lesson: LessonNode):
         ...
 
