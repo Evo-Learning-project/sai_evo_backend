@@ -1388,11 +1388,12 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @hook(AFTER_CREATE)
     def on_create(self):
-        IntegrationRegistry().dispatch(
-            "exam_participation_created",
-            course=self.event.course,
-            participation=self,
-        )
+        if self.event.event_type == Event.EXAM:
+            IntegrationRegistry().dispatch(
+                "exam_participation_created",
+                course=self.event.course,
+                participation=self,
+            )
 
     @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
     def on_turn_in(self):
