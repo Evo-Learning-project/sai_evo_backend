@@ -46,6 +46,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         "https://www.googleapis.com/auth/classroom.coursework.students",
         "https://www.googleapis.com/auth/classroom.rosters",
         "https://www.googleapis.com/auth/classroom.profile.emails",
+        "https://www.googleapis.com/auth/classroom.coursework.me",
     ]
 
     def get_user_for_action(self, course: Course, user: User):
@@ -67,12 +68,38 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         return GoogleClassroomCourseTwin.objects.get(course=course)
 
     def get_classroom_coursework_id_from_evo_exam(self, exam: Event):
-        return "543007020813"
+        return GoogleClassroomCourseWorkTwin.objects.get(event=exam).remote_object_id
 
     def get_classroom_student_submission_id_from_evo_event_participation(
         self, participation: EventParticipation
     ):
-        return "Cg4Imv_AkaoREI2u9u3mDw"
+        course = participation.event.course
+        user = participation.user
+
+        print("USER", user)
+
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+
+        coursework_id = self.get_classroom_coursework_id_from_evo_exam(
+            participation.event
+        )
+
+        service = self.get_service(user)
+
+        response = (
+            service.courses()
+            .courseWork()
+            .studentSubmissions()
+            .list(
+                courseId=course_id,
+                courseWorkId=coursework_id,
+                userId=participation.user.email,
+            )
+            .execute()
+        )
+        # TODO handle case where the submission doesn't exist
+        submission_id = response["studentSubmissions"][0]["id"]
+        return submission_id
 
     def get_client_config(self):
         env = environ.Env()
@@ -217,13 +244,17 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         course_id = self.get_classroom_course_id_from_evo_course(
             participation.event.course
         )
-        exam_id = self.get_classroom_coursework_id_from_evo_exam(participation.event)
+        coursework_id = self.get_classroom_coursework_id_from_evo_exam(
+            participation.event
+        )
+        # TODO ensure this exists
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
             )
         )
 
+        # TODO if the user hasn't granted scopes, we may get 403 - in that case, use fallback user
         # add a URL attachment to the existing student submission linking to
         # the corresponding EventParticipation object
         (
@@ -232,7 +263,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             .studentSubmissions()
             .modifyAttachments(
                 courseId=course_id,
-                courseWorkId=exam_id,
+                courseWorkId=coursework_id,
                 id=submission_id,
                 body={
                     "addAttachments": [
@@ -246,7 +277,36 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
     def on_exam_participation_turned_in(self, participation: EventParticipation):
         # TODO implement - turn in corresponding submission to coursework
-        ...
+        classroom_course = self.get_classroom_course_from_evo_course(
+            participation.event.course
+        )
+
+        # TODO we need to use fallback_user - if the student is used to modify the submission, we get 403 - fix this
+        service = self.get_service(participation.user)
+
+        course_id = classroom_course.remote_object_id
+        coursework_id = self.get_classroom_coursework_id_from_evo_exam(
+            participation.event
+        )
+        # TODO ensure this exists
+        submission_id = (
+            self.get_classroom_student_submission_id_from_evo_event_participation(
+                participation
+            )
+        )
+
+        res = (
+            service.courses()
+            .courseWork()
+            .studentSubmissions()
+            .turnIn(
+                courseId=course_id,
+                courseWorkId=coursework_id,
+                id=submission_id,
+            )
+            .execute()
+        )
+        print("RES turn in", res)
 
     def on_lesson_published(self, user: User, lesson: LessonNode):
         course = lesson.get_course()

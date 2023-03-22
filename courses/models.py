@@ -1399,7 +1399,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
         if self.event.event_type == Event.EXAM:
             IntegrationRegistry().dispatch(
                 "exam_participation_turned_in",
-                course=self.course,
+                course=self.event.course,
                 participation=self,
             )
 
