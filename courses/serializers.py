@@ -785,7 +785,7 @@ class EventParticipationSummarySerializer(
         ]
 
 
-class EventParticipationSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
+class EventParticipationSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     event = serializers.SerializerMethodField()  # to pass context
     slots = serializers.SerializerMethodField()  # to pass context
     user = UserSerializer(read_only=True)

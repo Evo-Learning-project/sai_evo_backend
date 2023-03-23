@@ -250,6 +250,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             ...
 
     def on_exam_participation_created(self, participation: EventParticipation):
+        # TODO maybe we should use the fallback_user instead of the student to reduce the risk for authentication issues
         service = self.get_service(participation.user)
 
         course_id = self.get_classroom_course_id_from_evo_course(
@@ -346,6 +347,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 courseWorkId=coursework_id,
                 id=submission_id,
                 updateMask="assignedGrade,draftGrade",
+                # TODO ensure score is a number
                 body={
                     "assignedGrade": participation.score,
                     "draftGrade": participation.score,
@@ -355,7 +357,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         if patched_submission["state"] == "TURNED_IN":
-            # if the submission had been turned in, return it
+            # if the submission had been turned in, return it - if we try to return
+            # a submission that hasn't been turned in, we'll get a 400 error
             (
                 service.courses()
                 .courseWork()

@@ -1163,7 +1163,7 @@ class EventTemplateRuleClause(models.Model):
         ordering = ["rule_id", "id"]
 
 
-class EventParticipation(LifecycleModelMixin, models.Model):
+class EventParticipation(LifecycleModelMixin, models.Model, IntegrationModelMixin):
     """
     A participation of a user to an event.
 
@@ -1397,7 +1397,8 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @hook(AFTER_UPDATE, when="_assessment_state", changes_to=PUBLISHED)
     def on_assessment_published(self):
-        if self.event.event_type == Event.EXAM:
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event and self.event.event_type == Event.EXAM:
             IntegrationRegistry().dispatch(
                 "exam_participation_assessment_published",
                 course=self.event.course,
