@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 class IntegrationRegistry:
     def schedule_integration_method_execution(self, method: Callable, **kwargs):
         # TODO schedule a celery task
-        method(**kwargs)
+        try:
+            method(**kwargs)
+        except:
+            pass
 
     def dispatch(self, action_name: str, course: "Course", **kwargs):
         integrations = self.get_enabled_integrations_for(course)

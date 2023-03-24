@@ -1174,10 +1174,12 @@ class EventParticipation(LifecycleModelMixin, models.Model, IntegrationModelMixi
 
     IN_PROGRESS = 0
     TURNED_IN = 1
+    CLOSED_BY_TEACHER = 2
     # TODO implement ABANDONED state
     PARTICIPATION_STATES = (
         (IN_PROGRESS, "In progress"),
         (TURNED_IN, "Turned in"),
+        (CLOSED_BY_TEACHER, "Closed by teacher"),
     )
 
     NOT_ASSESSED = 0

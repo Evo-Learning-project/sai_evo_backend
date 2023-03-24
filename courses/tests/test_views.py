@@ -1230,6 +1230,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show that after it's been turned in, no fields or slots can be updated
         """
+        # TODO test CLOSED_BY_TEACHER state
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
             {"state": EventParticipation.IN_PROGRESS},

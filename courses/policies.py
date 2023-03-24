@@ -350,6 +350,7 @@ class ExerciseRelatedObjectsPolicy(BaseAccessPolicy):
 class EventParticipationPolicyMixin:
     NOT_IN_EVENT_ALLOWED_LIST = "NOT_IN_EVENT_ALLOWED_LIST"
     EVENT_CLOSED = "EVENT_CLOSED"
+    YOU_TURNED_IN = "YOU_TURNED_IN"
 
     @lru_cache(maxsize=None)
     def get_participation(self, view):
@@ -376,6 +377,11 @@ class EventParticipationPolicyMixin:
         participation = self.get_participation(view)
 
         if participation.state == EventParticipation.TURNED_IN:
+            self.message = self.YOU_TURNED_IN
+            return False
+
+        if participation.state == EventParticipation.CLOSED_BY_TEACHER:
+            self.message = self.EVENT_CLOSED
             return False
 
         # check that there is time left for the participation

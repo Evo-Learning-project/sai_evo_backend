@@ -106,6 +106,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 participation=participation
             ).remote_object_id
         except GoogleClassroomCourseWorkSubmissionTwin.DoesNotExist:
+            # Retrieve the submission from Classroom & create twin model
             course = participation.event.course
             user = participation.user
 
@@ -116,26 +117,35 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
 
             service = self.get_service(user)
-
-            response = (
-                service.courses()
-                .courseWork()
-                .studentSubmissions()
-                .list(
-                    courseId=course_id,
-                    courseWorkId=coursework_id,
-                    userId=participation.user.email,
+            try:
+                response = (
+                    service.courses()
+                    .courseWork()
+                    .studentSubmissions()
+                    .list(
+                        courseId=course_id,
+                        courseWorkId=coursework_id,
+                        userId=participation.user.email,
+                    )
+                    .execute()
                 )
-                .execute()
-            )
-            # TODO handle case where the submission doesn't exist
-            submission = response["studentSubmissions"][0]
-            twin = GoogleClassroomCourseWorkSubmissionTwin.create_from_remote_object(
-                participation=participation,
-                remote_object_id=submission["id"],
-                remote_object=submission,
-            )
-            return twin.remote_object_id
+                submission = response["studentSubmissions"][0]
+                twin = (
+                    GoogleClassroomCourseWorkSubmissionTwin.create_from_remote_object(
+                        participation=participation,
+                        remote_object_id=submission["id"],
+                        remote_object=submission,
+                    )
+                )
+                return twin.remote_object_id
+            except HttpError as error:
+                # TODO if error is 404 & the user is a teacher, just ignore the error
+                logger.error(
+                    f"Error during on_exam_participation_created with participation {participation.pk}",
+                    exc_info=error,
+                )
+                # TODO handle case where the submission doesn't exist
+                return None
 
     def get_service(self, user: User):
         creds = self.get_credentials(user)
@@ -266,6 +276,13 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
         )
 
+        if submission_id is None:
+            logger.debug(
+                f"get_classroom_student_submission_id_from_evo_event_participation \
+                    returned None in on_exam_participation_created with pk {participation.pk}"
+            )
+            return
+
         # TODO if the user hasn't granted scopes, we may get 403 - in that case, use fallback user
         # TODO will error with 400 if submission has already been turned in
         # add a URL attachment to the existing student submission linking to
@@ -305,6 +322,13 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 participation
             )
         )
+
+        if submission_id is None:
+            logger.debug(
+                f"get_classroom_student_submission_id_from_evo_event_participation \
+                    returned None in on_exam_participation_turned_in with pk {participation.pk}"
+            )
+            return
 
         res = (
             service.courses()
