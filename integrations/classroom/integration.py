@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleClassroomIntegration(BaseEvoIntegration):
+    # TODO change to TEACHER_SCOPES and create STUDENT_SCOPES
     SCOPES = [
         "https://www.googleapis.com/auth/classroom.courses.readonly",
         "https://www.googleapis.com/auth/classroom.announcements",
@@ -76,6 +77,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 "redirect_uris": redirect_uris,
             }
         }
+
+    """
+    Getters
+    """
 
     def get_user_for_action(self, course: Course, user: User):
         """
@@ -188,6 +193,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
         return creds
 
+    """
+    Event handlers
+    """
+
     def on_announcement_published(self, user: User, announcement: AnnouncementNode):
         course = announcement.get_course()
         course_id = self.get_classroom_course_id_from_evo_course(course)
@@ -217,7 +226,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             return twin
         else:
             # TODO handle updates
-            logger.debug("Announcement already has a twin")
+            logger.warning("Announcement already has a twin")
             ...
 
     def on_exam_published(self, user: User, exam: Event):
@@ -235,7 +244,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 description=messages.EXAM_PUBLISHED,
                 exam_url=exam_url,
                 scheduled_timestamp=exam.begin_timestamp,
-                # TODO we might need to make sure this value is correct when the exam beings (i.e. update it if changed)
+                # TODO we might need to make sure this value is correct when the exam begins (i.e. update it if changed)
                 max_score=exam.max_score,
             )
 
@@ -256,9 +265,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             return twin
         else:
             # TODO handle updates
-            logger.debug("Exams already has a twin")
+            logger.warning("Exams already has a twin")
             ...
 
+    # TODO consider: add a fallback=False kwarg that can be set to True when retrying the task to use the fallback_user
     def on_exam_participation_created(self, participation: EventParticipation):
         # TODO maybe we should use the fallback_user instead of the student to reduce the risk for authentication issues
         service = self.get_service(participation.user)
@@ -277,6 +287,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         if submission_id is None:
+            # TODO handle this - this should only happen if the user is a teacher in the classroom course
             logger.debug(
                 f"get_classroom_student_submission_id_from_evo_event_participation \
                     returned None in on_exam_participation_created with pk {participation.pk}"
@@ -284,7 +295,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             return
 
         # TODO if the user hasn't granted scopes, we may get 403 - in that case, use fallback user
-        # TODO will error with 400 if submission has already been turned in
+
+        # TODO will error with 400 if submission has already been turned in - but this shouldn't happen
         # add a URL attachment to the existing student submission linking to
         # the corresponding EventParticipation object
         (
@@ -398,6 +410,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
     def on_lesson_published(self, user: User, lesson: LessonNode):
         course = lesson.get_course()
         course_id = self.get_classroom_course_id_from_evo_course(course)
+
         action_user = self.get_user_for_action(course, user)
 
         service = self.get_service(action_user)
@@ -408,7 +421,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             description=messages.VIEW_LESSON_ON_EVO,
             material_url=lesson_url,
         )
-        # if the exam doesn't have a twin resource on Classroom yet, create one
+        # if the lesson doesn't have a twin resource on Classroom yet, create one
         if not GoogleClassroomMaterialTwin.objects.filter(lesson=lesson).exists():
             # TODO handle topics - https://developers.google.com/classroom/reference/rest/v1/courses.topics
             material = (
@@ -431,6 +444,62 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             # TODO handle updates
             logger.warning("Lesson already has a twin")
             ...
+
+    def on_student_enrolled(self, enrollment: UserCourseEnrollment):
+        # we need to use the student's credentials for enrollment. in the future, it could
+        # be taken into consideration to use the credentials of a domain administrator
+        # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
+        user = enrollment.user
+        course = enrollment.course
+
+        service = self.get_service(user)
+        classroom_course = self.get_classroom_course_from_evo_course(course)
+
+        course_id = self.get_classroom_course_id_from_evo_course(course)
+
+        # enrollment code is required to enroll student
+        enrollment_code = classroom_course.data["enrollmentCode"]
+
+        try:
+            classroom_enrollment = (
+                service.courses()
+                .students()
+                .create(
+                    courseId=course_id,
+                    enrollmentCode=enrollment_code,
+                    body={"userId": "me"},
+                )
+                .execute()
+            )
+        except HttpError as error:
+            # error 409 means the student is already enrolled on Classroom
+            # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
+            if error.status_code != 409:
+                logger.error(
+                    f"Error during on_student_enrolled with enrollment {enrollment.pk}",
+                    exc_info=error,
+                )
+                raise
+            # this means the student had already enrolled on Classroom before they did on Evo:
+            # we retrieve the enrollment from Classroom and use it for creating the twin
+            classroom_enrollment = (
+                service.courses()
+                .students()
+                .get(
+                    courseId=course_id,
+                    userId="me",
+                )
+                .execute()
+            )
+
+        twin = GoogleClassroomEnrollmentTwin.create_from_remote_object(
+            enrollment=enrollment, remote_object=classroom_enrollment
+        )
+        return twin
+
+    """
+    Utility
+    """
 
     def get_courses_taught_by(self, user: User):
         """
@@ -493,51 +562,3 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
     def get_course_teachers(self, course: Course):
         ...
-
-    def on_student_enrolled(self, enrollment: UserCourseEnrollment):
-        user = enrollment.user
-        course = enrollment.course
-
-        service = self.get_service(user)
-        classroom_course = self.get_classroom_course_from_evo_course(course)
-
-        course_id = self.get_classroom_course_id_from_evo_course(course)
-
-        # enrollment code is required to enroll student
-        enrollment_code = classroom_course.data["enrollmentCode"]
-
-        try:
-            classroom_enrollment = (
-                service.courses()
-                .students()
-                .create(
-                    courseId=course_id,
-                    enrollmentCode=enrollment_code,
-                    body={"userId": "me"},
-                )
-                .execute()
-            )
-        except HttpError as error:
-            # error 409 means the student is already enrolled on Classroom
-            # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
-            if error.status_code != 409:
-                logger.error(
-                    f"Error during on_student_enrolled with enrollment {enrollment.pk}",
-                    exc_info=error,
-                )
-                raise
-            # we retrieve the enrollment from Classroom and use that one for creating the twin
-            classroom_enrollment = (
-                service.courses()
-                .students()
-                .get(
-                    courseId=course_id,
-                    userId="me",
-                )
-                .execute()
-            )
-
-        twin = GoogleClassroomEnrollmentTwin.create_from_remote_object(
-            enrollment=enrollment, remote_object=classroom_enrollment
-        )
-        return twin
