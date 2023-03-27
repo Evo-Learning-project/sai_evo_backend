@@ -21,6 +21,14 @@ class GoogleOAuth2Credentials(models.Model):
     def __str__(self):
         return str(self.user)
 
+    @classmethod
+    def create_from_auth_response(cls, user, response):
+        # keep data we're interested in
+        keys = ["access_token", "refresh_token", "scope", "id_token"]
+        data = {key: response[key] for key in keys}
+        # create credentials object and associate it to user
+        return cls.objects.update_or_create(user=user, defaults=data)
+
 
 class RemoteTwinResource(models.Model):
     """

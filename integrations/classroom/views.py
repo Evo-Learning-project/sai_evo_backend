@@ -62,7 +62,7 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
         request_url = settings.BASE_BACKEND_URL + request.get_full_path()
 
         # see comment on `get_flow` about the `no_scopes` arg
-        flow = auth.get_flow(no_scopes=True)
+        flow = auth.get_flow(scope_role=None)
 
         try:
             response = flow.fetch_token(authorization_response=request_url)
@@ -84,11 +84,8 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
             )
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # keep data we're interested in
-        keys = ["access_token", "refresh_token", "scope", "id_token"]
-        data = {key: response[key] for key in keys}
         # create credentials object and associate it to user
-        GoogleOAuth2Credentials.objects.update_or_create(user=user, defaults=data)
+        GoogleOAuth2Credentials.create_from_auth_response(user, response)
 
         # this view will be reached directly by the user's browser since
         # it'll be accessed through the redirect_uri param of google oauth.
@@ -119,7 +116,10 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
 
     @action(methods=["get"], detail=False)
     def auth_url(self, request, *args, **kwargs):
-        url = auth.get_auth_request_url(user=request.user)
+        role = request.query_params.get("role")
+        if role not in ["teacher", "student"]:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        url = auth.get_auth_request_url(user=request.user, scope_role=role)
         return Response(data=url, status=status.HTTP_200_OK)
 
     @action(methods=["get"], detail=False)

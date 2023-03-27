@@ -40,8 +40,11 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleClassroomIntegration(BaseEvoIntegration):
-    # TODO change to TEACHER_SCOPES and create STUDENT_SCOPES
-    SCOPES = [
+    STUDENT_SCOPES = [
+        "https://www.googleapis.com/auth/classroom.rosters",
+        "https://www.googleapis.com/auth/classroom.coursework.me",
+    ]
+    TEACHER_SCOPES = [
         "https://www.googleapis.com/auth/classroom.courses.readonly",
         "https://www.googleapis.com/auth/classroom.announcements",
         "https://www.googleapis.com/auth/classroom.courseworkmaterials",
@@ -54,9 +57,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
     def get_client_config(self):
         env = environ.Env()
 
-        client_id = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_CLIENT_ID")
-        project_id = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_PROJECT_ID")
-        client_secret = os.environ.get("GOOGLE_CLASSROOM_INTEGRATION_CLIENT_SECRET")
+        client_id = os.environ.get("GOOGLE_INTEGRATION_CLIENT_ID")
+        project_id = os.environ.get("GOOGLE_INTEGRATION_PROJECT_ID")
+        client_secret = os.environ.get("GOOGLE_INTEGRATION_CLIENT_SECRET")
         redirect_uris = env.list(
             "GOOGLE_CLASSROOM_INTEGRATION_REDIRECT_URIS", default=[]
         )

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Literal, Optional, Union
 import google.oauth2.credentials
 from google_auth_oauthlib.flow import Flow
 
@@ -9,17 +9,24 @@ from django.conf import settings
 from users.models import User
 
 
-def get_flow(no_scopes=False):
+def get_flow(scope_role: Optional[Union[Literal["teacher"], Literal["student"]]]):
     from integrations.classroom.views import GoogleClassroomViewSet
 
     """
     If `no_scopes` is True, the value `None` will be passed to `Flow` instead of the list of scopes.
     See https://stackoverflow.com/a/52085446/12424975
     """
+    scopes = (
+        GoogleClassroomIntegration.TEACHER_SCOPES
+        if scope_role == "teacher"
+        else GoogleClassroomIntegration.STUDENT_SCOPES
+        if scope_role == "student"
+        else None
+    )
+
     flow = Flow.from_client_config(
         GoogleClassroomIntegration().get_client_config(),
-        # TODO may need to parametrize this e.g. for student flow vs teacher
-        scopes=None if no_scopes else GoogleClassroomIntegration.SCOPES,
+        scopes=scopes,
     )
     # TODO get url from router
     flow.redirect_uri = (
@@ -28,8 +35,10 @@ def get_flow(no_scopes=False):
     return flow
 
 
-def get_auth_request_url(user: Union[User, None]):
-    flow = get_flow()
+def get_auth_request_url(
+    user: Union[User, None], scope_role: Union[Literal["teacher"], Literal["student"]]
+):
+    flow = get_flow(scope_role=scope_role)
 
     # Indicate where the API server will redirect the user after the user completes
     # the authorization flow. The redirect URI is required. The value must exactly
