@@ -62,6 +62,7 @@ class LessonNodeSerializer(IntegrationModelSerializer, CourseTreeNodeSerializer)
             "comment_count",
             "created",
             "modified",
+            "schedule_publish_at",
         ]
 
     def get_comment_count(self, obj):
@@ -80,6 +81,7 @@ class AnnouncementNodeSerializer(IntegrationModelSerializer, CourseTreeNodeSeria
             "state",
             "created",
             "modified",
+            "schedule_publish_at",
         ]
 
 
