@@ -10,14 +10,15 @@ from integrations.models import GoogleOAuth2Credentials
 
 class GoogleOAuth2Backend(GoogleOAuth2):
     def do_auth(self, access_token, *args, **kwargs):
+        # ! TODO monkey patch convert-token endpoint to accept "code" in addition to "token"
         code = self.data.get("code")
-        """
+        if code is not None:
+            """
             An authorization code was provided - use it to fetch a pair of
             access and refresh tokens, store them, and complete normal
             authentication flow
             https://developers.google.com/identity/protocols/oauth2/web-server#exchange-authorization-code
-        """
-        if code is not None:
+            """
             flow = Flow.from_client_config(
                 {
                     "installed": {
@@ -42,6 +43,9 @@ class GoogleOAuth2Backend(GoogleOAuth2):
             # store user's credentials for offline use
             GoogleOAuth2Credentials.create_from_auth_response(user, response)
         else:
+            """
+            No authorization code provided, just an access token - use normal flow
+            """
             user = super().do_auth(access_token, *args, **kwargs)
 
         return user

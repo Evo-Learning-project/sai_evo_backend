@@ -21,6 +21,8 @@ from course_tree.managers import CourseTreeNodeManager
 
 from django.conf import settings
 
+from .tasks import publish_scheduled_node
+
 from django_lifecycle import (
     LifecycleModel,
     LifecycleModelMixin,
@@ -133,6 +135,29 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
         return self.get_root().course
 
 
+class SchedulableModel(LifecycleModelMixin, models.Model):
+    schedule_publish_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def is_draft(self):
+        raise NotImplementedError
+
+    def publish(self):
+        raise NotImplementedError
+
+    @hook(AFTER_UPDATE, when="schedule_publish_at", has_changed=True, is_not=None)
+    def on_schedule(self):
+        if self.is_draft:
+            print("scheduling", self._meta.model_name, self.pk)
+            publish_scheduled_node.apply_async(
+                args=(self._meta.model_name, self.pk),
+                eta=self.schedule_publish_at,
+            )
+
+
 class RootCourseTreeNode(BaseCourseTreeNode):
     course = models.ForeignKey(
         Course,
@@ -147,17 +172,29 @@ class TopicNode(BaseCourseTreeNode):
     name = models.CharField(max_length=200, blank=True)
 
 
-class LessonNode(LifecycleModelMixin, BaseCourseTreeNode, IntegrationModelMixin):
+class LessonNode(
+    SchedulableModel,
+    LifecycleModelMixin,
+    BaseCourseTreeNode,
+    IntegrationModelMixin,
+):
     class LessonState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
-        # SCHEDULED = 2
 
     title = models.CharField(max_length=200, blank=True)
     body = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(
         default=LessonState.DRAFT, choices=LessonState.choices
     )
+
+    @property
+    def is_draft(self):
+        return self.state == self.LessonState.DRAFT
+
+    def publish(self):
+        self.state = self.LessonState.PUBLISHED
+        self.save()
 
     @hook(
         AFTER_UPDATE,
@@ -176,16 +213,28 @@ class LessonNode(LifecycleModelMixin, BaseCourseTreeNode, IntegrationModelMixin)
             )
 
 
-class AnnouncementNode(LifecycleModelMixin, BaseCourseTreeNode, IntegrationModelMixin):
+class AnnouncementNode(
+    SchedulableModel,
+    LifecycleModelMixin,
+    BaseCourseTreeNode,
+    IntegrationModelMixin,
+):
     class AnnouncementState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
-        # SCHEDULED = 2
 
     body = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(
         default=AnnouncementState.DRAFT, choices=AnnouncementState.choices
     )
+
+    @property
+    def is_draft(self):
+        return self.state == self.AnnouncementState.DRAFT
+
+    def publish(self):
+        self.state = self.AnnouncementState.PUBLISHED
+        self.save()
 
     @hook(
         AFTER_UPDATE,
