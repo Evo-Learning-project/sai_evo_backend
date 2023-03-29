@@ -148,10 +148,10 @@ class SchedulableModel(LifecycleModelMixin, models.Model):
     def publish(self):
         raise NotImplementedError
 
+    @hook(AFTER_CREATE, when="schedule_publish_at", is_not=None)
     @hook(AFTER_UPDATE, when="schedule_publish_at", has_changed=True, is_not=None)
     def on_schedule(self):
         if self.is_draft:
-            print("scheduling", self._meta.model_name, self.pk)
             publish_scheduled_node.apply_async(
                 args=(self._meta.model_name, self.pk),
                 eta=self.schedule_publish_at,
