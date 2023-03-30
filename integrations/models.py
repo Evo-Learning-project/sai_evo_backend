@@ -71,12 +71,19 @@ class RemoteTwinResource(models.Model):
             # populate `data` with data from the remote object
             # that we're interested in keeping
             remote_object = self.get_remote_object()
-            for field in self.REMOTE_OBJECT_FIELDS:
-                self.data[field] = remote_object.get(field)
+            self.set_data_from_remote_object(remote_object)
         return super().save(*args, **kwargs)
+
+    def update_from_remote_object(self, remote_object):
+        self.set_data_from_remote_object(remote_object)
+        self.save(update_fields=["data"])
 
     def set_remote_object(self, obj):
         self._remote_object = obj
 
     def get_remote_object(self):
         return self._remote_object
+
+    def set_data_from_remote_object(self, remote_object):
+        for field in self.REMOTE_OBJECT_FIELDS:
+            self.data[field] = remote_object.get(field)

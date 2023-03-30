@@ -477,23 +477,47 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         except HttpError as error:
             # error 409 means the student is already enrolled on Classroom
             # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
-            if error.status_code != 409:
+            if error.status_code == 409:
+                # this means the student had already enrolled on Classroom before they did on Evo:
+                # we retrieve the enrollment from Classroom and use it for creating the twin
+                classroom_enrollment = (
+                    service.courses()
+                    .students()
+                    .get(
+                        courseId=course_id,
+                        userId="me",
+                    )
+                    .execute()
+                )
+            # error 403 may be returned because the enrollmentCode used is invalid.
+            # try to get the up-to-date enrollmentCode and retry the request
+            elif error.status_code == 403:
+                up_to_date_classroom_course = self.get_course_by_id(
+                    classroom_course.fallback_user, classroom_course.remote_object_id
+                )
+                classroom_course.update_from_remote_object(up_to_date_classroom_course)
+                enrollment_code = classroom_course.data["enrollmentCode"]
+                # TODO refactor as this doesn't benefit from the rest of the try-except
+                classroom_enrollment = (
+                    service.courses()
+                    .students()
+                    .create(
+                        courseId=course_id,
+                        enrollmentCode=enrollment_code,
+                        body={"userId": "me"},
+                    )
+                    .execute()
+                )
+                logger.info(
+                    f"Updated enrollmentCode for course {classroom_course.remote_object_id} fixed \
+                        403 error on the first try"
+                )
+            else:
                 logger.error(
                     f"Error during on_student_enrolled with enrollment {enrollment.pk}",
                     exc_info=error,
                 )
                 raise
-            # this means the student had already enrolled on Classroom before they did on Evo:
-            # we retrieve the enrollment from Classroom and use it for creating the twin
-            classroom_enrollment = (
-                service.courses()
-                .students()
-                .get(
-                    courseId=course_id,
-                    userId="me",
-                )
-                .execute()
-            )
 
         twin = GoogleClassroomEnrollmentTwin.create_from_remote_object(
             enrollment=enrollment, remote_object=classroom_enrollment
