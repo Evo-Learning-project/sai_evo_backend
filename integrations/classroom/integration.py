@@ -152,7 +152,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     f"Error during on_exam_participation_created with participation {participation.pk}",
                     exc_info=error,
                 )
-                # TODO handle case where the submission doesn't exist
+                # TODO handle case where the submission doesn't exist - if they aren't enrolled, try to enroll them
                 return None
 
     def get_service(self, user: User):
@@ -370,7 +370,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         coursework_id = self.get_classroom_coursework_id_from_evo_exam(
             participation.event
         )
-        # TODO ensure this exists
+        # TODO ensure this exists - if you end up creating it on the fly here, it should also have the link attachment
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
