@@ -1424,26 +1424,31 @@ class EventParticipation(LifecycleModelMixin, models.Model, IntegrationModelMixi
                     "related_objects": [self.event.course],
                     "user": self.user,
                     "extras": {},
+                    "amount": 1,
                 }
             )
 
             # for each correctly-answered exercise, dispatch an action
+            correctly_answered_exercises = 0
             for slot in self.base_slots:
-                # TODO review
+                # TODO turn into a single query instead of looping
                 # max score obtained for this exercise
                 if (
                     slot.populating_rule is not None  # for backward compatibility
                     and slot.score == slot.populating_rule.weight
                 ):
-                    get_gamification_engine().dispatch_action(
-                        {
-                            "action": CORRECTLY_ANSWERED_EXERCISE,
-                            "main_object": slot.exercise,
-                            "related_objects": [self.event.course, self, slot],
-                            "user": self.user,
-                            "extras": {},  # TODO might put exercise tags or other information to create more complex goals
-                        }
-                    )
+                    correctly_answered_exercises += 1
+
+            get_gamification_engine().dispatch_action(
+                {
+                    "action": CORRECTLY_ANSWERED_EXERCISE,
+                    "main_object": slot.exercise,
+                    "related_objects": [self.event.course, self, slot],
+                    "user": self.user,
+                    "extras": {},  # TODO might put exercise tags or other information to create more complex goals
+                    "amount": correctly_answered_exercises,
+                }
+            )
 
     def move_current_slot_cursor_forward(self):
         if self.is_cursor_last_position:
