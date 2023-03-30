@@ -167,12 +167,12 @@ class Action(TimestampableModel):
     def __str__(self) -> str:
         return str(self.pk) + " " + str(self.definition) + " by " + str(self.user)
 
-    def award_reputation_and_badges(self, to_user: User):
-        GamificationReputationDelta.objects.create(
-            user=to_user,
-            context=self.definition.context,
-            delta=self.definition.reputation_awarded,
-        )
+    # def award_reputation_and_badges(self, to_user: User):
+    #     GamificationReputationDelta.objects.create(
+    #         user=to_user,
+    #         context=self.definition.context,
+    #         delta=self.definition.reputation_awarded,
+    #     )
 
 
 class BadgeDefinition(models.Model):

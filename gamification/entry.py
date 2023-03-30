@@ -5,6 +5,5 @@ def get_gamification_engine():
         @staticmethod
         def dispatch_action(payload: ActionPayload):
             return dispatch_action(payload)
-        
 
     return GamificationEngine

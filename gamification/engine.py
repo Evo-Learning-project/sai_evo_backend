@@ -50,11 +50,13 @@ class ActionPayload(TypedDict):
         Any
     ]  # other related objects that could have GamificationContexts associated
     extras: Dict[str, Any]
+    amount: Optional[int]
 
 
 def dispatch_action(payload: ActionPayload) -> None:
     contexts = get_contexts(payload["main_object"], *payload["related_objects"])
     user = payload["user"]
+    amount = payload.get("amount", 1)
 
     # get gamification context(s) for all involved objects
     for context in contexts:
@@ -63,11 +65,24 @@ def dispatch_action(payload: ActionPayload) -> None:
         if action_definition is None:
             continue
         # record action done by user
-        action = record_action(action_definition, user)
+        record_action(action_definition, user, amount)
         # if action has points or badges associated to it, award them
-        action.award_reputation_and_badges(user)
+        award_reputation_and_badges(action_definition, amount, context, user)
         # if user has reached new levels or goals with this action, award them
         award_points_and_badges_for_progress(context, user)
+
+
+def award_reputation_and_badges(
+    action_definition,
+    amount,
+    context,
+    to_user: User,
+):
+    GamificationReputationDelta.objects.create(
+        user=to_user,
+        context=context,
+        delta=action_definition.reputation_awarded * amount,
+    )
 
 
 def get_contexts(*args: Any) -> List[GamificationContext]:
@@ -91,8 +106,11 @@ def get_action_definition(
         return None
 
 
-def record_action(action_definition: ActionDefinition, user: User) -> Action:
-    return Action.objects.create(user=user, definition=action_definition)
+def record_action(action_definition: ActionDefinition, user: User, amount: int) -> None:
+    Action.objects.bulk_create(
+        [Action(user=user, definition=action_definition) for _ in range(amount)]
+    )
+    # return Action.objects.create(user=user, definition=action_definition)
 
 
 # def award_points_and_badges_for_action(action: Action, user: User) -> None:
@@ -110,6 +128,7 @@ def award_points_and_badges_for_progress(
         goal_progress: GoalProgress = goal.progresses.get_or_create(user=user)[0]
         highest_level_satisfied: GoalLevel = (
             goal.levels.all()
+            .select_related("goal__context")
             .prefetch_related("requirements")
             .get_highest_satisfied_by_user(
                 user, starting_from=goal_progress.current_level
