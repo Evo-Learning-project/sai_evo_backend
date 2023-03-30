@@ -21,8 +21,6 @@ def run_google_classroom_integration_method(self, method_name, **kwargs):
     integration = GoogleClassroomIntegration()
     method = getattr(integration, method_name)
 
-    print("-----\n\n", kwargs, "\n\n----")
-
     """
     The kwargs passed for the task only contain id's of models, but the integration
     methods expect model instances - query to get actual model instances from id's
@@ -33,10 +31,15 @@ def run_google_classroom_integration_method(self, method_name, **kwargs):
             suffix = kwarg_value.split("_", 1)[1]
 
             # kwarg is in the form `<app_label>.<model_label>_<pk>`
+            # TODO what if the id contains a _? e.g. hashid
             pk = kwarg_value.split("_")[-1]
             app_model_label = suffix[: -(len(pk) + 1)]
 
             model_cls = apps.get_model(app_model_label)
             kwargs[kwarg_name] = model_cls.objects.get(pk=pk)
 
+    """
+    TODO logging, different retrying policies depending on the error (some errors such as insufficient scopes 
+    require using fallback user) and some other errors are unrecoverable until a certain event happens
+    """
     method(**kwargs)
