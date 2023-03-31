@@ -49,8 +49,8 @@ def get_assignment_payload(
     )
 
     return {
-        "title": strip_tags(title),
-        "description": strip_tags(description),
+        "title": strip_tags(title),  # TODO limit to <= 3000 chars
+        "description": strip_tags(description),  # TODO limit to <= 30k chars
         "materials": [
             {"link": {"url": exam_url}},
         ],

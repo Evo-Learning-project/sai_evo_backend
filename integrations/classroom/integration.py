@@ -220,7 +220,6 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 .create(courseId=course_id, body=announcement_payload)
                 .execute()
             )
-            # TODO handle errors
             twin = GoogleClassroomAnnouncementTwin.create_from_remote_object(
                 announcement=announcement,
                 remote_object_id=classroom_announcement["id"],
@@ -228,9 +227,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
             return twin
         else:
-            # TODO handle updates
-            logger.warning("Announcement already has a twin")
-            ...
+            logger.warning(
+                f"Announcement {str(announcement.pk)} was published but it already has a twin"
+            )
 
     def on_exam_published(self, user: User, exam: Event):
         course = exam.course
@@ -267,9 +266,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
             return twin
         else:
-            # TODO handle updates
-            logger.warning("Exams already has a twin")
-            ...
+            logger.warning(
+                f"Exam {str(exam.pk)} was published but it already has a twin"
+            )
 
     # TODO consider: add a fallback=False kwarg that can be set to True when retrying the task to use the fallback_user
     def on_exam_participation_created(self, participation: EventParticipation):
@@ -345,7 +344,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
             return
 
-        res = (
+        (
             service.courses()
             .courseWork()
             .studentSubmissions()
@@ -426,7 +425,8 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
         # if the lesson doesn't have a twin resource on Classroom yet, create one
         if not GoogleClassroomMaterialTwin.objects.filter(lesson=lesson).exists():
-            # TODO handle topics - https://developers.google.com/classroom/reference/rest/v1/courses.topics
+            # in the future we may also take into consideration topics
+            # see: https://developers.google.com/classroom/reference/rest/v1/courses.topics
             material = (
                 service.courses()
                 .courseWorkMaterials()
@@ -442,11 +442,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 remote_object=material,
             )
             return twin
-        # TODO handle errors
         else:
-            # TODO handle updates
-            logger.warning("Lesson already has a twin")
-            ...
+            logger.warning(
+                f"Lesson {str(lesson.pk)} was published but it already has a twin"
+            )
 
     def on_student_enrolled(self, enrollment: UserCourseEnrollment):
         # we need to use the student's credentials for enrollment. in the future, it could
