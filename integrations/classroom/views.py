@@ -61,7 +61,6 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
 
         request_url = settings.BASE_BACKEND_URL + request.get_full_path()
 
-        # see comment on `get_flow` about the `no_scopes` arg
         flow = auth.get_flow(scope_role=None)
 
         try:
