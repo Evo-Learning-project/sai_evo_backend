@@ -1428,27 +1428,31 @@ class EventParticipation(LifecycleModelMixin, models.Model, IntegrationModelMixi
                 }
             )
 
-            # for each correctly-answered exercise, dispatch an action
-            correctly_answered_exercises = 0
-            for slot in self.base_slots:
-                # TODO turn into a single query instead of looping
+            correctly_answered_exercises = [
+                slot
+                for slot in self.base_slots
                 # max score obtained for this exercise
                 if (
                     slot.populating_rule is not None  # for backward compatibility
                     and slot.score == slot.populating_rule.weight
-                ):
-                    correctly_answered_exercises += 1
+                )
+            ]
 
-            get_gamification_engine().dispatch_action(
-                {
-                    "action": CORRECTLY_ANSWERED_EXERCISE,
-                    "main_object": slot.exercise,
-                    "related_objects": [self.event.course, self, slot],
-                    "user": self.user,
-                    "extras": {},  # TODO might put exercise tags or other information to create more complex goals
-                    "amount": correctly_answered_exercises,
-                }
-            )
+            correctly_answered_exercises_count = len(correctly_answered_exercises)
+
+            if correctly_answered_exercises_count > 0:
+                # just take the first slot, it doesn't matter to the gamification engine
+                slot = correctly_answered_exercises[0]
+                get_gamification_engine().dispatch_action(
+                    {
+                        "action": CORRECTLY_ANSWERED_EXERCISE,
+                        "main_object": slot.exercise,
+                        "related_objects": [self.event.course, self, slot],
+                        "user": self.user,
+                        "extras": {},  # TODO might put exercise tags or other information to create more complex goals
+                        "amount": correctly_answered_exercises_count,
+                    }
+                )
 
     def move_current_slot_cursor_forward(self):
         if self.is_cursor_last_position:
