@@ -783,6 +783,7 @@ class EventParticipationSummarySerializer(
             "user",
             "score",
         ]
+        read_only_fields = ["id", "user", "score"]
 
 
 class EventParticipationSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):

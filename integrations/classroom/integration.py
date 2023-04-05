@@ -183,8 +183,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
+                # TODO handle google.auth.exceptions.RefreshError
                 creds.refresh(Request())
                 # save new token to credentials model instance
+                # TODO refactor - make a method for this
                 credentials_model_instance.access_token = creds.token
                 credentials_model_instance.save()
             else:
@@ -193,6 +195,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     "Unable to refresh credentials for user " + str(user.pk)
                 )
                 raise InvalidGoogleOAuth2Credentials
+
+        # TODO update credentials_model_instance.scope using creds.granted_scopes
+        print("GRANTED", creds.granted_scopes)
 
         return creds
 

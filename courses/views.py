@@ -361,6 +361,21 @@ class CourseViewSet(viewsets.ModelViewSet):
             for e in exams
         }
 
+        # TODO consider using this instead of the above for performance reasons
+        # report = {
+        #     e.hashid: [
+        #         {
+        #             "id": p.pk,
+        #             "user": p.user_id,
+        #             "score": p.score,
+        #         }
+        #         for p in EventParticipation.objects.filter(event_id=e)
+        #         .with_prefetched_base_slots()
+        #         .select_related("event")
+        #     ]
+        #     for e in exams
+        # }
+
         return Response(report, status=status.HTTP_200_OK)
 
     # TODO extract query logic

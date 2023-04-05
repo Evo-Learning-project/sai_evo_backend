@@ -35,11 +35,14 @@ class GoogleOAuth2Backend(GoogleOAuth2):
                 redirect_uri=os.environ.get("BASE_FRONTEND_URL"),
                 scopes=None,
             )
+            print("FETCHING TOKEN", code)
             response = flow.fetch_token(code=code)
+            print("RESPONSE", response)
             access_token = response["access_token"]
 
             # now that we've obtained an access token, complete normal flow
             user = super().do_auth(access_token, *args, **kwargs)
+            print("USER IS", user)
             # store user's credentials for offline use
             GoogleOAuth2Credentials.create_from_auth_response(user, response)
         else:
@@ -54,6 +57,8 @@ class GoogleOAuth2Backend(GoogleOAuth2):
         """Return True if the user should be allowed to authenticate"""
         emails = [email.lower() for email in self.setting("WHITELISTED_EMAILS", [])]
         domains = [domain.lower() for domain in self.setting("WHITELISTED_DOMAINS", [])]
+
+        print(emails, domains)
         email = details.get("email")
         if email and (emails or domains):
             email = email.lower()
