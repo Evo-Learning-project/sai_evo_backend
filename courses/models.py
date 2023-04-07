@@ -55,6 +55,7 @@ from .managers import (
     EventManager,
     EventParticipationManager,
     EventParticipationSlotManager,
+    EventTemplateManager,
     EventTemplateRuleManager,
     ExerciseManager,
     ExerciseSolutionManager,
@@ -1057,7 +1058,7 @@ class EventTemplate(models.Model):
         blank=True,
     )
 
-    # objects = EventTemplateManager()
+    objects = EventTemplateManager()
 
     class Meta:
         ordering = ["course_id", "pk"]

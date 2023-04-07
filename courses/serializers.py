@@ -473,7 +473,7 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 
 
 class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
-    clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
+    clauses = EventTemplateRuleClauseSerializer(many=True)
     _ordering = serializers.IntegerField(required=False)
     # TODO move this to a separate api view
     satisfying = serializers.SerializerMethodField()
@@ -499,6 +499,15 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFields
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.remove_unsatisfied_condition_fields()
+
+    def create(self, validated_data):
+        # allow for the creation of clauses together with the rule itself
+        return EventTemplateRule.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        # discard clauses, as they must be dealt with individually
+        validated_data.pop("clauses", [])
+        return super().update(instance, validated_data)
 
     def get_satisfying(self, obj):
         qs = Exercise.objects.filter(course=obj.template.event.course).satisfying(obj)
@@ -531,7 +540,7 @@ class EventSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
     state = ReadWriteSerializerMethodField()
     locked_by = UserSerializer(read_only=True)
-    template = serializers.SerializerMethodField()
+    template = ReadWriteSerializerMethodField()
     participation_exists = serializers.SerializerMethodField()
     max_score = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
 
@@ -582,6 +591,27 @@ class EventSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
             # method field that displays the effective time limit for
             # them taking into account exceptions
             self.fields["time_limit_seconds"] = serializers.SerializerMethodField()
+
+    def create(self, validated_data):
+        # the event manager will automatically create a template together with the event,
+        # but we can set its rules using the ones provided in the request
+        template = validated_data.pop("template", None)
+
+        event = super().create(validated_data)
+
+        if template is not None:
+            # use rule serializer to validate and create rules
+            # for the created event template
+            for rule in template.get("rules", []):
+                serializer = EventTemplateRuleSerializer(data=rule)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(template=event.template)
+        return event
+
+    def update(self, instance, validated_data):
+        # discard changes to template, as we don't allow it to be changed from the event
+        validated_data.pop("template", None)
+        return super().update(instance, validated_data)
 
     def get_time_limit_seconds(self, obj):
         return get_effective_time_limit(self.context["request"].user, obj)
