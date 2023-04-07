@@ -1130,6 +1130,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show the owner of the participation can update its slot
         """
+        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
             {"selected_choices": [self.exercise_1.choices.first().pk]},
@@ -1149,6 +1150,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show user cannot select choices that don't belong to the exercise or that don't exist
         """
+        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
             {"selected_choices": [self.exercise_2.choices.first().pk]},
@@ -1164,6 +1166,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show failure in updating an out-of-scope slot
         """
+        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{second_slot_pk}/",
             {"selected_choices": [self.exercise_2.choices.first().pk]},
@@ -1174,6 +1177,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         Show a user that's not the owner of the participation cannot retrieve or
         update it and its slots
         """
+        # TODO test also patch_submission endpoint
         self.client.force_authenticate(self.student_2)
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
@@ -1198,6 +1202,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show failure to update an assessment field as a student
         """
+        # TODO test also patch_submission endpoint
         slot_score = EventParticipationSlot.objects.get(pk=slot_pk).score
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
@@ -1236,6 +1241,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
             {"state": EventParticipation.IN_PROGRESS},
         )
         self.assertEqual(response.status_code, 403)
+        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
             {"selected_choices": [self.exercise_1.choices.first().pk]},
