@@ -803,9 +803,19 @@ class EventParticipationSlotSerializer(
         return text
 
 
-class EventParticipationSummarySerializer(
-    serializers.ModelSerializer, ConditionalFieldsMixin
-):
+class EventParticipationSlotSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventParticipationSlot
+        fields = [
+            "id",
+            "answer_text",
+            "selected_choices",
+            "attachment",
+            "execution_results",
+        ]
+
+
+class EventParticipationSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = EventParticipation
         fields = [
@@ -814,6 +824,10 @@ class EventParticipationSummarySerializer(
             "score",
         ]
         read_only_fields = ["id", "user", "score"]
+
+
+# class EventParticipationSlotSummarySerializer(serializers.ModelSerializer):
+#     pass
 
 
 class EventParticipationSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):

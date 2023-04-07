@@ -541,6 +541,12 @@ class EventParticipationSlotPolicy(
                     or has_teacher_privileges:assess_participations",
         },
         {
+            "action": ["patch_submission"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "is_own_participation and can_update_participation",
+        },
+        {
             "action": ["retrieve", "update", "partial_update"],
             "principal": ["authenticated"],
             "effect": "deny",

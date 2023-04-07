@@ -73,6 +73,7 @@ from .serializers import (
     CourseSerializer,
     EventParticipationSerializer,
     EventParticipationSlotSerializer,
+    EventParticipationSlotSubmissionSerializer,
     EventParticipationSummarySerializer,
     EventSerializer,
     EventTemplateRuleClauseSerializer,
@@ -1159,7 +1160,10 @@ class EventParticipationSlotViewSet(
         to display some fields ans whether to make them writable
         """
         # TODO improve this by checking for truthy values
-        force_student = "as_student" in self.request.query_params
+        force_student = "as_student" in self.request.query_params or self.action in (
+            "patch_submission",
+            "run",
+        )
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
 
@@ -1173,6 +1177,7 @@ class EventParticipationSlotViewSet(
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
             # students can access the submission fields with write privileges
+            # TODO this is hacky - only allow writing using the patch_submission endpoint
             "submission_fields_write": force_student
             or not has_assess_privilege
             and not has_manage_events_privilege,
@@ -1196,6 +1201,20 @@ class EventParticipationSlotViewSet(
             .select_related("exercise", "participation", "participation__event")
             .prefetch_related("sub_slots", "selected_choices")
         )
+
+    def get_serializer_class(self):
+        if self.action in ("patch_submission", "run"):
+            return EventParticipationSlotSubmissionSerializer
+        return super().get_serializer_class()
+
+    @action(detail=True, methods=["patch"])
+    def patch_submission(self, request, **kwargs):
+        """
+        Endpoint for updating the submission of a slot - this is preferred over a
+        regular PATCH request because the only fields that can be updated are the
+        ones related to the submission
+        """
+        return self.partial_update(request, **kwargs)
 
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):
