@@ -117,17 +117,20 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 participation=participation
             ).remote_object_id
         except GoogleClassroomCourseWorkSubmissionTwin.DoesNotExist:
-            # Retrieve the submission from Classroom & create twin model
+            # retrieve the submission from Classroom & create twin model
             course = participation.event.course
-            user = participation.user
-
-            course_id = self.get_classroom_course_id_from_evo_course(course)
-
+            classroom_course = self.get_classroom_course_from_evo_course(course)
+            course_id = classroom_course.remote_object_id
             coursework_id = self.get_classroom_coursework_id_from_evo_exam(
                 participation.event
             )
 
+            # we use the fallback user to handle edge cases where the student hasn't
+            # granted access to their Classroom data
+            user = classroom_course.fallback_user
+
             service = self.get_service(user)
+
             try:
                 response = (
                     service.courses()
@@ -140,6 +143,31 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     )
                     .execute()
                 )
+
+                if (
+                    "studentSubmissions" not in response
+                    or len(response["studentSubmissions"]) == 0
+                ):
+                    # TODO handle case where the submission doesn't exist - if they
+                    # TODO aren't enrolled, try to enroll them; if it's a teacher, just return
+                    logger.warning(
+                        f"Could not find submission for participation \
+                        {participation.pk}, response was {response}"
+                    )
+                    try:
+                        self.enroll_student(participation.user, course)
+                        # retry
+                        return self.get_classroom_student_submission_id_from_evo_event_participation(
+                            participation
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error while trying to enroll student {participation.user.pk} \
+                            in course {course_id}",
+                            exc_info=e,
+                        )
+                        return None
+
                 submission = response["studentSubmissions"][0]
                 twin = (
                     GoogleClassroomCourseWorkSubmissionTwin.create_from_remote_object(
@@ -150,12 +178,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 )
                 return twin.remote_object_id
             except HttpError as error:
-                # TODO if error is 404 & the user is a teacher, just ignore the error
                 logger.error(
                     f"Error during on_exam_participation_created with participation {participation.pk}",
                     exc_info=error,
                 )
-                # TODO handle case where the submission doesn't exist - if they aren't enrolled, try to enroll them
                 return None
 
     def get_service(self, user: User):
@@ -499,6 +525,18 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         user = enrollment.user
         course = enrollment.course
 
+        classroom_enrollment = self.enroll_student(user, course)
+
+        # create the twin, if it doesn't exist yet
+        try:
+            GoogleClassroomEnrollmentTwin.create_from_remote_object(
+                enrollment=enrollment, remote_object=classroom_enrollment
+            )
+        except IntegrityError:
+            # twin already exists
+            pass
+
+    def enroll_student(self, user: User, course: Course):
         service = self.get_service(user)
         classroom_course = self.get_classroom_course_from_evo_course(course)
 
@@ -583,19 +621,12 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 return
             else:
                 logger.error(
-                    f"Error during on_student_enrolled with enrollment {enrollment.pk}",
+                    f"Error during on_student_enrolled for user {user.pk} and course {course.pk}",
                     exc_info=error,
                 )
                 raise
 
-        # create the twin, if it doesn't exist yet
-        try:
-            GoogleClassroomEnrollmentTwin.create_from_remote_object(
-                enrollment=enrollment, remote_object=classroom_enrollment
-            )
-        except IntegrityError:
-            # twin already exists
-            pass
+        return classroom_enrollment
 
     """
     Utility
