@@ -30,6 +30,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from django.db import IntegrityError
+
+
 import os
 
 import environ
@@ -482,8 +485,24 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             # error 409 means the student is already enrolled on Classroom
             # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
             if error.status_code == 409:
-                # this means the student had already enrolled on Classroom before they did on Evo:
-                # we retrieve the enrollment from Classroom and use it for creating the twin
+                # this means the student had already enrolled on Classroom before they did on Evo
+                # or the user is a teacher in the Classroom course: if the user is a teacher,
+                # we can't enroll them as a student, so we just return, otherwise we retrieve
+                # the enrollment from Classroom and use it for creating the twin
+                try:
+                    (
+                        service.courses()
+                        .teachers()
+                        .get(
+                            courseId=course_id,
+                            userId="me",
+                        )
+                        .execute()
+                    )
+                    return
+                except:
+                    pass
+
                 classroom_enrollment = (
                     service.courses()
                     .students()
@@ -516,6 +535,15 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     f"Updated enrollmentCode for course {classroom_course.remote_object_id} fixed \
                         403 error on the first try"
                 )
+
+            elif error.status_code == 400 and error.reason.startswith(
+                "@DomainSettingsError"
+            ):
+                # the student has an email address whose domain is not allowed to be enrolled
+                # we can't do anything about it, so we just return
+                # TODO throw a custom exception indicating an unrecoverable error
+                logger.error(f"Domain error in enrolling student {user.pk}")
+                return
             else:
                 logger.error(
                     f"Error during on_student_enrolled with enrollment {enrollment.pk}",
@@ -523,10 +551,14 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 )
                 raise
 
-        twin = GoogleClassroomEnrollmentTwin.create_from_remote_object(
-            enrollment=enrollment, remote_object=classroom_enrollment
-        )
-        return twin
+        # create the twin, if it doesn't exist yet
+        try:
+            GoogleClassroomEnrollmentTwin.create_from_remote_object(
+                enrollment=enrollment, remote_object=classroom_enrollment
+            )
+        except IntegrityError:
+            # twin already exists
+            pass
 
     """
     Utility

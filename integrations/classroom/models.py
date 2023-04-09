@@ -5,8 +5,14 @@ from courses.models import Course, Event, EventParticipation, UserCourseEnrollme
 from integrations.models import RemoteTwinResource
 from users.models import User
 
+from django_lifecycle import (
+    LifecycleModelMixin,
+    hook,
+    AFTER_CREATE,
+)
 
-class GoogleClassroomCourseTwin(RemoteTwinResource):
+
+class GoogleClassroomCourseTwin(LifecycleModelMixin, RemoteTwinResource):
     """
     A Google Classroom course associated to a course on Evo
     """
@@ -34,6 +40,16 @@ class GoogleClassroomCourseTwin(RemoteTwinResource):
 
     def __str__(self):
         return f"{str(self.course)} - {self.data.get('name')} ({self.remote_object_id})"
+
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        from integrations.classroom.controller import (
+            GoogleClassroomIntegrationController,
+        )
+
+        # when a new Google Classroom course twin is created, enroll all students
+        # in the corresponding course to the paired Classroom course
+        GoogleClassroomIntegrationController().sync_enrolled_students(self.course)
 
 
 class GoogleClassroomCourseWorkTwin(RemoteTwinResource):

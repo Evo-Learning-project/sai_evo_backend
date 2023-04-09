@@ -1,6 +1,7 @@
-from courses.models import Course
+from courses.models import Course, UserCourseEnrollment
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.classroom.models import GoogleClassroomCourseTwin
+from integrations.classroom.tasks import bulk_run_google_classroom_integration_method
 from users.models import User
 
 
@@ -41,11 +42,18 @@ class GoogleClassroomIntegrationController:
 
     def sync_enrolled_students(self, course: Course):
         """
-        Retrieves the list of students enrolled in the twin Classroom course
-        for the given course, and syncs the students enrolled in the course on
-        Evo with the resulting list. This creates enrollments for any students
-        that are enrolled in the Classroom twin course and deletes any existing
-        enrollments for which there is no corresponding enrollment in the
-        Classroom twin course.
+        Enrolls all students in the given course to the corresponding Classroom course
         """
-        ...
+        twin_course = GoogleClassroomCourseTwin.objects.get(course_id=course.pk)
+
+        model_label = f"{UserCourseEnrollment._meta.app_label}.{UserCourseEnrollment._meta.model_name}"
+        enrollments = list(
+            UserCourseEnrollment.objects.filter(course=course).values_list(
+                "pk", flat=True
+            )
+        )
+
+        # dispatch the on_student_enrolled action for all enrolled students
+        bulk_run_google_classroom_integration_method.delay(
+            "on_student_enrolled", model_label, enrollments
+        )
