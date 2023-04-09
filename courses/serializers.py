@@ -473,7 +473,7 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 
 
 class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
-    clauses = EventTemplateRuleClauseSerializer(many=True)
+    clauses = EventTemplateRuleClauseSerializer(many=True, required=False)
     _ordering = serializers.IntegerField(required=False)
     # TODO move this to a separate api view
     satisfying = serializers.SerializerMethodField()
