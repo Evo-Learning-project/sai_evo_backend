@@ -1,4 +1,4 @@
-from courses.models import Course, UserCourseEnrollment
+from courses.models import Course, Event, EventParticipation, UserCourseEnrollment
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.classroom.models import GoogleClassroomCourseTwin
 from integrations.classroom.tasks import bulk_run_google_classroom_integration_method
@@ -44,10 +44,8 @@ class GoogleClassroomIntegrationController:
         """
         Enrolls all students in the given course to the corresponding Classroom course
         """
-        twin_course = GoogleClassroomCourseTwin.objects.get(course_id=course.pk)
-
         model_label = f"{UserCourseEnrollment._meta.app_label}.{UserCourseEnrollment._meta.model_name}"
-        enrollments = list(
+        enrollment_ids = list(
             UserCourseEnrollment.objects.filter(course=course).values_list(
                 "pk", flat=True
             )
@@ -55,5 +53,32 @@ class GoogleClassroomIntegrationController:
 
         # dispatch the on_student_enrolled action for all enrolled students
         bulk_run_google_classroom_integration_method.delay(
-            "on_student_enrolled", model_label, enrollments
+            "on_student_enrolled", model_label, enrollment_ids
+        )
+
+    def sync_exam_grades(self, exam: Event, publish: bool):
+        """
+        Syncs grades for all students who have taken the given exam.
+
+        If `publish` is True, the Classroom coursework submissions will be returned
+        and the grades will be published.
+        Otherwise, the grades will be set as draftGrade on the submissions but not
+        returned or published.
+        """
+        model_label = f"{EventParticipation._meta.app_label}.{EventParticipation._meta.model_name}"
+        participation_ids = list(
+            EventParticipation.objects.filter(event=exam).values_list("pk", flat=True)
+        )
+
+        method_name = (
+            "on_exam_participation_assessment_published"
+            if publish
+            else "on_exam_participation_assessment_updated"
+        )
+
+        # dispatch the on_student_enrolled action for all enrolled students
+        bulk_run_google_classroom_integration_method.delay(
+            method_name,
+            model_label,
+            participation_ids,
         )

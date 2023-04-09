@@ -224,3 +224,18 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
         )
         data = GoogleClassroomAnnouncementTwinSerializer(announcement).data
         return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["post"], detail=False)
+    def sync_exam_grades(self, request, *args, **kwargs):
+        event_id = request.query_params.get("event_id")
+        if event_id is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        event = get_object_or_404(Event.objects.all(), pk=event_id)
+
+        # TODO create some model to store the status of the task
+        GoogleClassroomIntegrationController().sync_exam_grades(
+            exam=event, publish=False
+        )
+
+        return Response(status=status.HTTP_202_ACCEPTED)

@@ -18,6 +18,7 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
                 "announcement",
                 "material",
                 "classroom_courses",
+                "sync_exam_grades",
             ],  # TODO ---
             "principal": ["authenticated"],
             "effect": "allow",

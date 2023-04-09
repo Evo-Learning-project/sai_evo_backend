@@ -364,6 +364,43 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             .execute()
         )
 
+    def on_exam_participation_assessment_updated(
+        self, participation: EventParticipation
+    ):
+        classroom_course = self.get_classroom_course_from_evo_course(
+            participation.event.course
+        )
+
+        service = self.get_service(classroom_course.fallback_user)
+
+        course_id = classroom_course.remote_object_id
+        coursework_id = self.get_classroom_coursework_id_from_evo_exam(
+            participation.event
+        )
+        # TODO ensure this exists - if you end up creating it on the fly here, it should also have the link attachment
+        submission_id = (
+            self.get_classroom_student_submission_id_from_evo_event_participation(
+                participation
+            )
+        )
+
+        (
+            service.courses()
+            .courseWork()
+            .studentSubmissions()
+            .patch(
+                courseId=course_id,
+                courseWorkId=coursework_id,
+                id=submission_id,
+                updateMask="draftGrade",
+                # TODO ensure score is a number
+                body={
+                    "draftGrade": participation.score,
+                },
+            )
+            .execute()
+        )
+
     def on_exam_participation_assessment_published(
         self, participation: EventParticipation
     ):
