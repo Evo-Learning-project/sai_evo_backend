@@ -1,5 +1,7 @@
 from typing import Optional
 from integrations.classroom.exceptions import (
+    DomainSettingsError,
+    CannotEnrollTeacher,
     InvalidGoogleOAuth2Credentials,
     MissingGoogleOAuth2Credentials,
 )
@@ -153,7 +155,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     f"Error during on_exam_participation_created with participation {participation.pk}",
                     exc_info=error,
                 )
-                return None
+                raise
 
             if (
                 "studentSubmissions" in response
@@ -176,17 +178,19 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             if allow_retry:
                 try:
                     self.enroll_student(participation.user, course)
-                    # retry
-                    return self.get_classroom_student_submission_id_from_evo_event_participation(
-                        participation, False
-                    )
+                except CannotEnrollTeacher:
+                    return None
                 except Exception as e:
                     logger.error(
                         f"Error while trying to enroll student {participation.user.pk} "
                         f"in course {course_id}",
                         exc_info=e,
                     )
-                    return None
+                    raise
+                # retry
+                return self.get_classroom_student_submission_id_from_evo_event_participation(
+                    participation, False
+                )
             else:
                 return None
 
@@ -310,17 +314,17 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 f"Exam {str(exam.pk)} was published but it already has a twin"
             )
 
-    # TODO consider: add a fallback=False kwarg that can be set to True when retrying the task to use the fallback_user
     def on_exam_participation_created(self, participation: EventParticipation):
-        # TODO maybe we should use the fallback_user instead of the student to reduce the risk for authentication issues
-        service = self.get_service(participation.user)
-
-        course_id = self.get_classroom_course_id_from_evo_course(
+        classroom_course = self.get_classroom_course_from_evo_course(
             participation.event.course
         )
+        course_id = classroom_course.remote_object_id
         coursework_id = self.get_classroom_coursework_id_from_evo_exam(
             participation.event
         )
+
+        service = self.get_service(classroom_course.fallback_user)
+
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
@@ -328,18 +332,17 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         if submission_id is None:
-            # TODO handle this - this should only happen if the user is a teacher in the classroom course
+            # this should only happen if the user is a teacher in the classroom course
             logger.debug(
                 f"get_classroom_student_submission_id_from_evo_event_participation \
                     returned None in on_exam_participation_created with pk {participation.pk}"
             )
             return
 
-        # TODO if the user hasn't granted scopes, we may get 403 - in that case, use fallback user
-
         # TODO will error with 400 if submission has already been turned in - but this shouldn't happen
         # add a URL attachment to the existing student submission linking to
         # the corresponding EventParticipation object
+        # TODO error handling
         (
             service.courses()
             .courseWork()
@@ -356,7 +359,6 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
             .execute()
         )
-        # TODO error handling
 
     def on_exam_participation_turned_in(self, participation: EventParticipation):
         classroom_course = self.get_classroom_course_from_evo_course(
@@ -369,7 +371,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         coursework_id = self.get_classroom_coursework_id_from_evo_exam(
             participation.event
         )
-        # TODO ensure this exists
+
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
@@ -377,6 +379,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         if submission_id is None:
+            # this should only happen if the user is a teacher in the classroom course
             logger.debug(
                 f"get_classroom_student_submission_id_from_evo_event_participation \
                     returned None in on_exam_participation_turned_in with pk {participation.pk}"
@@ -408,7 +411,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         coursework_id = self.get_classroom_coursework_id_from_evo_exam(
             participation.event
         )
-        # TODO ensure this exists - if you end up creating it on the fly here, it should also have the link attachment
+
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
@@ -416,6 +419,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         if submission_id is None:
+            # this should only happen if the user is a teacher in the classroom course
             return
 
         (
@@ -448,7 +452,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         coursework_id = self.get_classroom_coursework_id_from_evo_exam(
             participation.event
         )
-        # TODO ensure this exists - if you end up creating it on the fly here, it should also have the link attachment
+
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
@@ -456,6 +460,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         )
 
         if submission_id is None:
+            # this should only happen if the user is a teacher in the classroom course
             return
 
         patched_submission = (
@@ -536,10 +541,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         user = enrollment.user
         course = enrollment.course
 
-        classroom_enrollment = self.enroll_student(user, course)
-
-        if classroom_enrollment is None:
-            # if the enrollment failed, don't create the twin
+        try:
+            classroom_enrollment = self.enroll_student(user, course)
+        except CannotEnrollTeacher:
             return
 
         # create the twin, if it doesn't exist yet
@@ -551,7 +555,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             # twin already exists
             pass
 
-    def enroll_student(self, user: User, course: Course):
+    def enroll_student(self, user: User, course: Course, allow_retry: bool = True):
         classroom_course = self.get_classroom_course_from_evo_course(course)
         course_id = classroom_course.remote_object_id
 
@@ -561,14 +565,13 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             # if the user doesn't have valid credentials, try
             # to use the domain administrator's credentials
             domain_administrator = self.get_domain_administrator_user()
-            if domain_administrator is not None:
-                logging.warning(
-                    f"User {user.pk} doesn't have valid credentials, "
-                    "falling back to domain administrator's"
-                )
-                service = self.get_service(classroom_course.fallback_user)
-            else:
+            if domain_administrator is None:
                 raise
+            logging.warning(
+                f"User {user.pk} doesn't have valid credentials, "
+                "falling back to domain administrator's"
+            )
+            service = self.get_service(classroom_course.fallback_user)
 
         # enrollment code is required to enroll student
         enrollment_code = classroom_course.data["enrollmentCode"]
@@ -585,24 +588,19 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 .execute()
             )
         except HttpError as error:
+            status = error.status_code
+
             # error 409 means the student is already enrolled on Classroom
             # see https://developers.google.com/classroom/reference/rest/v1/courses.students/create
-            if error.status_code == 409:
+            if status == 409:
                 # this means the student had already enrolled on Classroom before they did on Evo
                 # or the user is a teacher in the Classroom course: if the user is a teacher,
-                # we can't enroll them as a student, so we just return, otherwise we retrieve
-                # the enrollment from Classroom and use it for creating the twin
-                try:
-                    (
-                        service.courses()
-                        .teachers()
-                        .get(courseId=course_id, userId=user.email)
-                        .execute()
-                    )
-                    return None
-                except:
-                    pass
+                # we can't enroll them as a student, so we raise an exception to signal that,
+                # otherwise we retrieve the enrollment from Classroom and return it
+                if self.is_teacher_on_classroom_course(user, course):
+                    raise CannotEnrollTeacher
 
+                # retrieve the existing enrollment from Classroom
                 classroom_enrollment = (
                     service.courses()
                     .students()
@@ -611,36 +609,20 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 )
             # error 403 may be returned because the enrollmentCode used is invalid.
             # try to get the up-to-date enrollmentCode and retry the request
-            elif error.status_code == 403:
+            elif status == 403:
+                if not allow_retry:
+                    raise
                 up_to_date_classroom_course = self.get_course_by_id(
                     classroom_course.fallback_user, classroom_course.remote_object_id
                 )
                 classroom_course.update_from_remote_object(up_to_date_classroom_course)
-                enrollment_code = classroom_course.data["enrollmentCode"]
-                # TODO refactor as this doesn't benefit from the rest of the try-except
-                classroom_enrollment = (
-                    service.courses()
-                    .students()
-                    .create(
-                        courseId=course_id,
-                        enrollmentCode=enrollment_code,
-                        body={"userId": user.email},
-                    )
-                    .execute()
-                )
-                logger.info(
-                    f"Updated enrollmentCode for course {classroom_course.remote_object_id} fixed \
-                        403 error on the first try"
-                )
-
-            elif error.status_code == 400 and error.reason.startswith(
-                "@DomainSettingsError"
-            ):
+                # retry the request with the new enrollmentCode
+                return self.enroll_student(user, course, allow_retry=False)
+            elif status == 400 and error.reason.startswith("@DomainSettingsError"):
                 # the student has an email address whose domain is not allowed to be enrolled
-                # we can't do anything about it, so we just return
-                # TODO throw a custom exception indicating an unrecoverable error
+                # we can't do anything about it, so we raise an unrecoverable exception
                 logger.error(f"Domain error in enrolling student {user.pk}")
-                return None
+                raise DomainSettingsError
             else:
                 logger.error(
                     f"Error during on_student_enrolled for user {user.pk} and course {course.pk}",
@@ -653,6 +635,18 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
     """
     Utility
     """
+
+    def is_teacher_on_classroom_course(self, user: User, course: Course):
+        classroom_course = self.get_classroom_course_from_evo_course(course)
+        course_id = classroom_course.remote_object_id
+        service = self.get_service(classroom_course.fallback_user)
+        try:
+            service.courses().teachers().get(
+                courseId=course_id, userId=user.email
+            ).execute()
+            return True
+        except:
+            return False
 
     def get_courses_taught_by(self, user: User):
         """
