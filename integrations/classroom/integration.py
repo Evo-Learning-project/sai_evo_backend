@@ -1,3 +1,4 @@
+from typing import Optional
 from integrations.classroom.exceptions import (
     InvalidGoogleOAuth2Credentials,
     MissingGoogleOAuth2Credentials,
@@ -88,6 +89,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
     Getters
     """
 
+    def get_domain_administrator_user(self) -> Optional[User]:
+        # TODO implement
+        return None
+
     def get_user_for_action(self, course: Course, user: User):
         """
         If the user supplied via the `user` parameter is suitable to perform
@@ -110,7 +115,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         return GoogleClassroomCourseWorkTwin.objects.get(event=exam).remote_object_id
 
     def get_classroom_student_submission_id_from_evo_event_participation(
-        self, participation: EventParticipation
+        self, participation: EventParticipation, allow_retry: bool = True
     ):
         try:
             return GoogleClassroomCourseWorkSubmissionTwin.objects.get(
@@ -121,6 +126,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             course = participation.event.course
             classroom_course = self.get_classroom_course_from_evo_course(course)
             course_id = classroom_course.remote_object_id
+
             coursework_id = self.get_classroom_coursework_id_from_evo_exam(
                 participation.event
             )
@@ -128,7 +134,6 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             # we use the fallback user to handle edge cases where the student hasn't
             # granted access to their Classroom data
             user = classroom_course.fallback_user
-
             service = self.get_service(user)
 
             try:
@@ -143,31 +148,17 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     )
                     .execute()
                 )
+            except HttpError as error:
+                logger.error(
+                    f"Error during on_exam_participation_created with participation {participation.pk}",
+                    exc_info=error,
+                )
+                return None
 
-                if (
-                    "studentSubmissions" not in response
-                    or len(response["studentSubmissions"]) == 0
-                ):
-                    # TODO handle case where the submission doesn't exist - if they
-                    # TODO aren't enrolled, try to enroll them; if it's a teacher, just return
-                    logger.warning(
-                        f"Could not find submission for participation \
-                        {participation.pk}, response was {response}"
-                    )
-                    try:
-                        self.enroll_student(participation.user, course)
-                        # retry
-                        return self.get_classroom_student_submission_id_from_evo_event_participation(
-                            participation
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Error while trying to enroll student {participation.user.pk} \
-                            in course {course_id}",
-                            exc_info=e,
-                        )
-                        return None
-
+            if (
+                "studentSubmissions" in response
+                and len(response["studentSubmissions"]) > 0
+            ):
                 submission = response["studentSubmissions"][0]
                 twin = (
                     GoogleClassroomCourseWorkSubmissionTwin.create_from_remote_object(
@@ -177,11 +168,26 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     )
                 )
                 return twin.remote_object_id
-            except HttpError as error:
-                logger.error(
-                    f"Error during on_exam_participation_created with participation {participation.pk}",
-                    exc_info=error,
-                )
+
+            logger.warning(
+                f"Could not find submission for participation "
+                f"{participation.pk}, response was {response}"
+            )
+            if allow_retry:
+                try:
+                    self.enroll_student(participation.user, course)
+                    # retry
+                    return self.get_classroom_student_submission_id_from_evo_event_participation(
+                        participation, False
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error while trying to enroll student {participation.user.pk} "
+                        f"in course {course_id}",
+                        exc_info=e,
+                    )
+                    return None
+            else:
                 return None
 
     def get_service(self, user: User):
@@ -315,7 +321,6 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         coursework_id = self.get_classroom_coursework_id_from_evo_exam(
             participation.event
         )
-        # TODO ensure this exists
         submission_id = (
             self.get_classroom_student_submission_id_from_evo_event_participation(
                 participation
@@ -410,6 +415,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             )
         )
 
+        if submission_id is None:
+            return
+
         (
             service.courses()
             .courseWork()
@@ -446,6 +454,9 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 participation
             )
         )
+
+        if submission_id is None:
+            return
 
         patched_submission = (
             service.courses()
@@ -527,6 +538,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
         classroom_enrollment = self.enroll_student(user, course)
 
+        if classroom_enrollment is None:
+            # if the enrollment failed, don't create the twin
+            return
+
         # create the twin, if it doesn't exist yet
         try:
             GoogleClassroomEnrollmentTwin.create_from_remote_object(
@@ -537,10 +552,23 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             pass
 
     def enroll_student(self, user: User, course: Course):
-        service = self.get_service(user)
         classroom_course = self.get_classroom_course_from_evo_course(course)
+        course_id = classroom_course.remote_object_id
 
-        course_id = self.get_classroom_course_id_from_evo_course(course)
+        try:
+            service = self.get_service(user)
+        except (MissingGoogleOAuth2Credentials, InvalidGoogleOAuth2Credentials):
+            # if the user doesn't have valid credentials, try
+            # to use the domain administrator's credentials
+            domain_administrator = self.get_domain_administrator_user()
+            if domain_administrator is not None:
+                logging.warning(
+                    f"User {user.pk} doesn't have valid credentials, "
+                    "falling back to domain administrator's"
+                )
+                service = self.get_service(classroom_course.fallback_user)
+            else:
+                raise
 
         # enrollment code is required to enroll student
         enrollment_code = classroom_course.data["enrollmentCode"]
@@ -552,7 +580,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 .create(
                     courseId=course_id,
                     enrollmentCode=enrollment_code,
-                    body={"userId": "me"},
+                    body={"userId": user.email},
                 )
                 .execute()
             )
@@ -568,23 +596,17 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     (
                         service.courses()
                         .teachers()
-                        .get(
-                            courseId=course_id,
-                            userId="me",
-                        )
+                        .get(courseId=course_id, userId=user.email)
                         .execute()
                     )
-                    return
+                    return None
                 except:
                     pass
 
                 classroom_enrollment = (
                     service.courses()
                     .students()
-                    .get(
-                        courseId=course_id,
-                        userId="me",
-                    )
+                    .get(courseId=course_id, userId=user.email)
                     .execute()
                 )
             # error 403 may be returned because the enrollmentCode used is invalid.
@@ -602,7 +624,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                     .create(
                         courseId=course_id,
                         enrollmentCode=enrollment_code,
-                        body={"userId": "me"},
+                        body={"userId": user.email},
                     )
                     .execute()
                 )
@@ -618,7 +640,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
                 # we can't do anything about it, so we just return
                 # TODO throw a custom exception indicating an unrecoverable error
                 logger.error(f"Domain error in enrolling student {user.pk}")
-                return
+                return None
             else:
                 logger.error(
                     f"Error during on_student_enrolled for user {user.pk} and course {course.pk}",
