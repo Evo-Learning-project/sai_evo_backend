@@ -43,6 +43,13 @@ class BaseAccessPolicy(AccessPolicy):
             self.message = self.NOT_ENROLLED
         return is_enrolled
 
+    def is_course_creator(self, request, view, action):
+        course = self.get_course(view)
+        if course is None:
+            return False
+
+        return course.creator == request.user
+
 
 class RequireCourseEnrollmentPolicy(BaseAccessPolicy):
     """
@@ -61,13 +68,6 @@ class RequireCourseEnrollmentPolicy(BaseAccessPolicy):
                 "condition_expression": "not has_teacher_privileges:__some__ and not is_enrolled",
             }
         ] + statements
-
-    def is_course_creator(self, request, view, action):
-        course = self.get_course(view)
-        if course is None:
-            return False
-
-        return course.creator == request.user
 
 
 class CoursePolicy(BaseAccessPolicy):
