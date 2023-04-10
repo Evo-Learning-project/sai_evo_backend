@@ -1,8 +1,12 @@
 from courses.models import Course, Event, EventParticipation, UserCourseEnrollment
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.classroom.models import GoogleClassroomCourseTwin
-from integrations.classroom.tasks import bulk_run_google_classroom_integration_method
+from integrations.classroom.tasks import (
+    bulk_run_google_classroom_integration_method,
+    run_google_classroom_integration_method,
+)
 from users.models import User
+from celery import group
 
 
 class GoogleClassroomIntegrationController:
@@ -51,10 +55,13 @@ class GoogleClassroomIntegrationController:
             )
         )
 
-        # dispatch the on_student_enrolled action for all enrolled students
-        bulk_run_google_classroom_integration_method.delay(
-            "on_student_enrolled", model_label, enrollment_ids
+        job = group(
+            run_google_classroom_integration_method.s(
+                "on_student_enrolled", enrollment=f"model_{model_label}_{e}"
+            )
+            for e in enrollment_ids
         )
+        job.delay()
 
     def sync_exam_grades(self, exam: Event, publish: bool):
         """
@@ -76,9 +83,10 @@ class GoogleClassroomIntegrationController:
             else "on_exam_participation_assessment_updated"
         )
 
-        # dispatch the on_student_enrolled action for all enrolled students
-        bulk_run_google_classroom_integration_method.delay(
-            method_name,
-            model_label,
-            participation_ids,
+        job = group(
+            run_google_classroom_integration_method.s(
+                method_name, participation=f"model_{model_label}_{p}"
+            )
+            for p in participation_ids
         )
+        job.delay()
