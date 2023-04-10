@@ -35,6 +35,8 @@ from googleapiclient.errors import HttpError
 
 from django.db import IntegrityError
 
+from google.auth.exceptions import RefreshError
+
 
 import os
 
@@ -222,21 +224,27 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                # TODO handle google.auth.exceptions.RefreshError
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except RefreshError as error:
+                    logger.error(
+                        f"Unable to refresh credentials for user {user.pk}",
+                        exc_info=error,
+                    )
+                    # delete credentials model instance as it's invalid
+                    credentials_model_instance.delete()
+                    raise InvalidGoogleOAuth2Credentials
                 # save new token to credentials model instance
-                # TODO refactor - make a method for this
-                credentials_model_instance.access_token = creds.token
-                credentials_model_instance.save()
+                credentials_model_instance.update_access_token(creds.token)
             else:
                 # credentials are invalid for some reason and we cannot refresh
-                logger.critical(
-                    "Unable to refresh credentials for user " + str(user.pk)
-                )
+                logger.error(f"Unable to refresh credentials for user {user.pk}")
+                # delete credentials model instance as it's invalid
+                credentials_model_instance.delete()
                 raise InvalidGoogleOAuth2Credentials
 
-        # TODO update credentials_model_instance.scope using creds.granted_scopes
-        print("GRANTED", creds.granted_scopes)
+        # ensure we're storing the latest scope
+        credentials_model_instance.update_scope_if_changed(creds.granted_scopes)
 
         return creds
 

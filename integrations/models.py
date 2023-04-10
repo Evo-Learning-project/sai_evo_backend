@@ -29,6 +29,15 @@ class GoogleOAuth2Credentials(models.Model):
         # create credentials object and associate it to user
         return cls.objects.update_or_create(user=user, defaults=data)
 
+    def update_access_token(self, access_token):
+        self.access_token = access_token
+        self.save(update_fields=["access_token"])
+
+    def update_scope_if_changed(self, scope):
+        if set(scope) != set(self.scope):
+            self.scope = scope
+            self.save(update_fields=["scope"])
+
 
 class RemoteTwinResource(models.Model):
     """
