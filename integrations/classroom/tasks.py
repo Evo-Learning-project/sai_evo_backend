@@ -4,50 +4,46 @@ from celery.exceptions import MaxRetriesExceededError
 
 import logging
 from django.apps import apps
+from integrations.classroom.exceptions import UnrecoverableGoogleClassroomError
 
 from integrations.classroom.integration import GoogleClassroomIntegration
+from integrations.classroom.models import GoogleClassroomIntegrationFailedTask
 
 logger = logging.getLogger(__name__)
 
 
-@app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_kwargs={"max_retries": 5},
-    retry_backoff=True,
-    max_retries=5,
-)
-def bulk_run_google_classroom_integration_method(
-    self, method_name, model_label, model_ids
-):
-    """
-    Takes in the name of a method in `GoogleClassroomIntegration` and runs it for each model
-    instance, as specified by the model label and model ids.
+# @app.task(
+#     bind=True,
+#     autoretry_for=(Exception,),
+#     retry_kwargs={"max_retries": 5},
+#     retry_backoff=True,
+#     max_retries=5,
+# )
+# def bulk_run_google_classroom_integration_method(
+#     self, method_name, model_label, model_ids
+# ):
+#     """
+#     Takes in the name of a method in `GoogleClassroomIntegration` and runs it for each model
+#     instance, as specified by the model label and model ids.
 
-    The method run must take in a single argument, which is the model instance.
-    """
-    integration = GoogleClassroomIntegration()
-    method = getattr(integration, method_name)
+#     The method run must take in a single argument, which is the model instance.
+#     """
+#     integration = GoogleClassroomIntegration()
+#     method = getattr(integration, method_name)
 
-    model_cls = apps.get_model(model_label)
-    model_instances = model_cls.objects.filter(pk__in=model_ids)
+#     model_cls = apps.get_model(model_label)
+#     model_instances = model_cls.objects.filter(pk__in=model_ids)
 
-    for model_instance in model_instances:
-        try:
-            print("running", method_name, "for", model_instance)
-            method(model_instance)
-        except Exception as e:
-            logger.error(f"Error running {method_name} for {model_instance}: {e}")
-            raise self.retry(exc=e)
+#     for model_instance in model_instances:
+#         try:
+#             print("running", method_name, "for", model_instance)
+#             method(model_instance)
+#         except Exception as e:
+#             logger.error(f"Error running {method_name} for {model_instance}: {e}")
+#             raise self.retry(exc=e)
 
 
-@app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_kwargs={"max_retries": 5},
-    retry_backoff=True,
-    max_retries=5,
-)
+@app.task(bind=True, default_retry_delay=20, max_retries=5)
 def run_google_classroom_integration_method(self, method_name, **kwargs):
     integration = GoogleClassroomIntegration()
     method = getattr(integration, method_name)
@@ -69,8 +65,18 @@ def run_google_classroom_integration_method(self, method_name, **kwargs):
             model_cls = apps.get_model(app_model_label)
             kwargs[kwarg_name] = model_cls.objects.get(pk=pk)
 
-    """
-    TODO logging, different retrying policies depending on the error (some errors such as insufficient scopes 
-    require using fallback user) and some other errors are unrecoverable until a certain event happens
-    """
-    method(**kwargs)
+    try:
+        method(**kwargs)
+    except UnrecoverableGoogleClassroomError as e:
+        logger.error(f"Unrecoverable error running {method_name}: {e}")
+        on_unrecoverable_google_classroom_error(self.request.id, e)
+        raise
+    except Exception as e:
+        logger.error(f"Error running {method_name}: {e}")
+        raise self.retry(exc=e)
+
+
+def on_unrecoverable_google_classroom_error(task_id, exc):
+    GoogleClassroomIntegrationFailedTask.objects.create(
+        task_id=task_id,
+    )

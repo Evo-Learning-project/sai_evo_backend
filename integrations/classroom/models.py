@@ -12,6 +12,18 @@ from django_lifecycle import (
 )
 
 
+class GoogleClassroomIntegrationFailedTask(models.Model):
+    """
+    Represents a failed task that was triggered by the Classroom integration.
+    It's used to keep track of failed tasks so that they can be notified to the user
+    and possibly retried.
+    """
+
+    task_id = models.CharField(max_length=255)
+    # related to the type of exception that was raised
+    error_kind = models.CharField(max_length=255, blank=True)
+
+
 class GoogleClassroomCourseTwin(LifecycleModelMixin, RemoteTwinResource):
     """
     A Google Classroom course associated to a course on Evo

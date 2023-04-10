@@ -31,3 +31,8 @@ class GoogleClassroomEnrollmentTwinAdmin(admin.ModelAdmin):
 @admin.register(GoogleClassroomCourseWorkSubmissionTwin)
 class GoogleClassroomCourseWorkSubmissionTwinAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(GoogleClassroomIntegrationFailedTask)
+class GoogleClassroomIntegrationFailedTaskAdmin(admin.ModelAdmin):
+    pass

@@ -2,7 +2,6 @@ from courses.models import Course, Event, EventParticipation, UserCourseEnrollme
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.classroom.models import GoogleClassroomCourseTwin
 from integrations.classroom.tasks import (
-    bulk_run_google_classroom_integration_method,
     run_google_classroom_integration_method,
 )
 from users.models import User
