@@ -10,7 +10,11 @@ from integrations.classroom.factories import (
     get_assignment_payload,
     get_material_payload,
 )
-from integrations.classroom import messages
+from integrations.classroom.messages import (
+    EXAM_PUBLISHED,
+    VIEW_LESSON_ON_EVO,
+    get_message,
+)
 from integrations.classroom.models import (
     GoogleClassroomAnnouncementTwin,
     GoogleClassroomCourseTwin,
@@ -295,7 +299,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
             exam_url = exam.get_absolute_url()
             coursework_payload = get_assignment_payload(
                 title=exam.name,
-                description=messages.EXAM_PUBLISHED,
+                description=get_message(EXAM_PUBLISHED),
                 exam_url=exam_url,
                 scheduled_timestamp=exam.begin_timestamp,
                 # TODO we might need to make sure this value is correct when the exam begins (i.e. update it if changed)
@@ -515,7 +519,7 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         lesson_url = lesson.get_absolute_url()
         coursework_payload = get_material_payload(
             title=lesson.title,
-            description=messages.VIEW_LESSON_ON_EVO,
+            description=get_message(VIEW_LESSON_ON_EVO),
             material_url=lesson_url,
         )
         # if the lesson doesn't have a twin resource on Classroom yet, create one
