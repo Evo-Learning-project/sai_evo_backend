@@ -58,6 +58,7 @@ google-auth-httplib2 = "*"
 google-auth-oauthlib = "*"
 google-cloud-pubsub = "*"
 django-encrypted-model-fields = "*"
+django-celery-beat = "*"
 
 [dev-packages]
 mypy = "*"
