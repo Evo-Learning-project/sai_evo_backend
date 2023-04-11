@@ -681,8 +681,10 @@ class GoogleClassroomIntegration(BaseEvoIntegration):
         Returns the list of students enrolled in the Classroom course
         corresponding to the Course object passed as argument
         """
-        course_id = self.get_classroom_course_id_from_evo_course(course)
-        service = self.get_service(course.creator)
+        classroom_course = self.get_classroom_course_from_evo_course(course)
+        course_id = classroom_course.remote_object_id
+
+        service = self.get_service(classroom_course.fallback_user)
 
         ret = []
 

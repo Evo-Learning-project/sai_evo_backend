@@ -2,6 +2,7 @@ from courses.models import Course, Event, EventParticipation, UserCourseEnrollme
 from integrations.classroom.integration import GoogleClassroomIntegration
 from integrations.classroom.models import GoogleClassroomCourseTwin
 from integrations.classroom.tasks import (
+    import_enrolled_student_from_twin_course,
     run_google_classroom_integration_method,
 )
 from users.models import User
@@ -42,6 +43,13 @@ class GoogleClassroomIntegrationController:
             remote_object=classroom_course,
         )
         return twin_course
+
+    def import_enrolled_students(self, course: Course):
+        """
+        Takes the list of students enrolled in the Classroom course associated with
+        the given course and creates UserCourseEnrollment objects for each student
+        """
+        import_enrolled_student_from_twin_course.delay(course.pk)
 
     def sync_enrolled_students(self, course: Course):
         """

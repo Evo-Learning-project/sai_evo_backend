@@ -55,7 +55,7 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
 
     def is_course_integration_request_allowed(self, request, view, action):
         try:
-            course = Course.objects.get(pk=view.kwargs["course_id"])
+            course = Course.objects.get(pk=request.query_params["course_id"])
         except:
             return False
 
