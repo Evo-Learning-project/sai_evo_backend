@@ -1,6 +1,9 @@
 import io
+import json
 import logging
 import os
+
+from django_celery_beat.models import PeriodicTask, ClockedSchedule
 
 from courses.models import Course, TimestampableModel
 from django.core.files.images import ImageFile
@@ -22,6 +25,9 @@ from course_tree.managers import CourseTreeNodeManager
 from django.conf import settings
 
 from .tasks import publish_scheduled_node
+
+from django.utils import timezone
+
 
 from django_lifecycle import (
     LifecycleModel,
@@ -152,9 +158,21 @@ class SchedulableModel(LifecycleModelMixin, models.Model):
     @hook(AFTER_UPDATE, when="schedule_publish_at", has_changed=True, is_not=None)
     def on_schedule(self):
         if self.is_draft:
-            publish_scheduled_node.apply_async(
-                args=(self._meta.model_name, self.pk),
-                eta=self.schedule_publish_at,
+            # create a clocked schedule for the value of `schedule_publish_at`
+            schedule, _ = ClockedSchedule.objects.get_or_create(
+                clocked_time=self.schedule_publish_at,
+            )
+            # schedule the task to publish the node
+            task_name = publish_scheduled_node.name
+            PeriodicTask.objects.create(
+                name=(
+                    f"{task_name}_{self.pk}_{self.schedule_publish_at.isoformat()}"
+                    f"_{timezone.localtime(timezone.now()).isoformat()}"
+                ),
+                clocked=schedule,
+                one_off=True,
+                task=task_name,
+                args=json.dumps([self._meta.model_name, self.pk]),
             )
 
 
