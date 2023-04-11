@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "polymorphic_tree",
     "polymorphic",
     "mptt",
+    "django_celery_beat"
 ]
 
 
