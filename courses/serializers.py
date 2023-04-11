@@ -830,13 +830,31 @@ class EventParticipationSummarySerializer(serializers.ModelSerializer):
 #     pass
 
 
+# class EventParticipationListSerializer(serializers.ListSerializer):
+#     def update(self, instance, validated_data):
+#         # Maps for id->instance and id->data item.
+#         participation_mapping = {p.id: p for p in instance}
+#         data_mapping = {item["id"]: item for item in validated_data}
+
+#         # Perform creations and updates.
+#         ret = []
+#         for participation_id, data in data_mapping.items():
+#             participation = participation_mapping.get(participation_id, None)
+#             if participation is not None:
+#                 ret.append(self.child.update(participation, data))
+
+#         return ret
+
+
 class EventParticipationSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     event = serializers.SerializerMethodField()  # to pass context
     slots = serializers.SerializerMethodField()  # to pass context
     user = UserSerializer(read_only=True)
+    # id = serializers.IntegerField() - required for custom list serializer to work
 
     class Meta:
         model = EventParticipation
+        # list_serializer_class = EventParticipationListSerializer
         fields = [
             "id",
             "state",

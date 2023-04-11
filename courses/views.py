@@ -962,6 +962,7 @@ class EventParticipationViewSet(
         )
         .order_by("-begin_timestamp")
         .with_prefetched_base_slots()
+        # .select_related("event__course__googleclassroomcoursetwin")
     )
     permission_classes = [policies.EventParticipationPolicy]
     serializer_class = EventParticipationSerializer

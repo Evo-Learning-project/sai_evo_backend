@@ -106,6 +106,24 @@ class BulkPatchMixin:
         return Response(serializer.data)
 
 
+"""
+TODO create serializer to support bulk update 
+(https://www.django-rest-framework.org/api-guide/serializers/#listserializer) and 
+then in the above use:
+      serializer_data = [{"id": p, **data} for p in id_list]
+        serializer = self.get_serializer_class()(
+            self.get_queryset().filter(id__in=id_list),
+            data=serializer_data,
+            many=True,
+            context=self.get_serializer_context(),
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
+"""
+
+
 class BulkGetMixin:
     @action(detail=False, methods=["get"])
     def bulk_get(self, request, **kwargs):
