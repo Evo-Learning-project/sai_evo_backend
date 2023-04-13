@@ -120,7 +120,7 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
 
     def can_sync_course_roster(self, request, view, action):
         try:
-            course = Course.objects.get(pk=view.kwargs["course_id"])
+            course = Course.objects.get(pk=request.query_params["course_id"])
         except:
             return False
 

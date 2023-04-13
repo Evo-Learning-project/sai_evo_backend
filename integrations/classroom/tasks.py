@@ -129,11 +129,18 @@ def import_enrolled_student_from_twin_course(self, course_id):
         [
             *(i for (i, _) in existing_users_by_email),
             *(u.id for u in created_users),
-        ]
+        ],
+        from_integration=True,  # signal that this enrollment is from an integration
+        raise_for_duplicates=False,  # just skip duplicates
     )
 
 
 def on_unrecoverable_google_classroom_error(task_id, exc):
+    """
+    Called when a task fails due to an unrecoverable error, e.g. invalid credentials.
+    For now it just creates a record in the database - in the future, we want to communicate these
+    types of failures to course teachers.
+    """
     GoogleClassroomIntegrationFailedTask.objects.create(
         task_id=task_id,
     )

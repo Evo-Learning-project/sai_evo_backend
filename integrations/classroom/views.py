@@ -247,6 +247,6 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         course = get_object_or_404(Course.objects.all(), pk=course_id)
-        GoogleClassroomIntegrationController().sync_enrolled_students(course=course)
+        GoogleClassroomIntegrationController().import_enrolled_students(course=course)
 
         return Response(status=status.HTTP_202_ACCEPTED)

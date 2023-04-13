@@ -120,12 +120,26 @@ class Course(TimestampableModel):
     def __str__(self):
         return self.name
 
-    def enroll_users(self, user_ids, enrolled_by=None, bulk=True):
+    def enroll_users(self, user_ids, enrolled_by=None, bulk=True, **kwargs):
+        from_integration = kwargs.get("from_integration", False)
+        raise_for_duplicates = kwargs.get("raise_for_duplicates", True)
+
         enrollment_type = (
-            UserCourseEnrollment.EnrollmentType.DEFAULT
+            UserCourseEnrollment.EnrollmentType.AUTOMATIC
+            if from_integration
+            else UserCourseEnrollment.EnrollmentType.DEFAULT
             if enrolled_by is None
             else UserCourseEnrollment.EnrollmentType.BY_TEACHER
         )
+        if not raise_for_duplicates:
+            # by default, trying to create enrollments for users already enrolled will raise
+            # IntegrityError. If `raise_for_duplicates` is False, we filter out the users that
+            # are already enrolled to prevent that
+            already_enrolled_ids = self.enrolled_users.filter(
+                pk__in=user_ids
+            ).values_list("pk", flat=True)
+            user_ids = list(set(user_ids) - set(already_enrolled_ids))
+
         if bulk:
             # TODO this won't trigger the lifecycle hook that fires the integration event
             enrollments = UserCourseEnrollment.objects.bulk_create(
