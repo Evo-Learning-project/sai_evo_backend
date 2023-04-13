@@ -1,6 +1,10 @@
 from rest_access_policy import AccessPolicy
 from course_tree.models import AnnouncementNode, LessonNode
-from courses.logic.privileges import ASSESS_PARTICIPATIONS, check_privilege
+from courses.logic.privileges import (
+    ASSESS_PARTICIPATIONS,
+    UPDATE_COURSE,
+    check_privilege,
+)
 
 from courses.models import Course, Event
 
@@ -50,6 +54,12 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
             "principal": ["authenticated"],
             "effect": "allow",
             "condition": "can_sync_exam_grades",
+        },
+        {
+            "action": ["sync_course_roster"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition": "can_sync_course_roster",
         },
     ]
 
@@ -107,3 +117,11 @@ class GoogleClassroomAccessPolicy(AccessPolicy):
             return False
 
         return check_privilege(request.user, course, ASSESS_PARTICIPATIONS)
+
+    def can_sync_course_roster(self, request, view, action):
+        try:
+            course = Course.objects.get(pk=view.kwargs["course_id"])
+        except:
+            return False
+
+        return check_privilege(request.user, course, UPDATE_COURSE)

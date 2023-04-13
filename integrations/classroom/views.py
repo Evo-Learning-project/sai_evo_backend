@@ -1,7 +1,7 @@
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from courses.models import Event
+from courses.models import Course, Event
 
 from integrations.classroom import auth
 from django.conf import settings
@@ -237,5 +237,16 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
         GoogleClassroomIntegrationController().sync_exam_grades(
             exam=event, publish=False
         )
+
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+    @action(methods=["post"], detail=False)
+    def sync_course_roster(self, request, *args, **kwargs):
+        course_id = request.query_params.get("course_id")
+        if course_id is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        course = get_object_or_404(Course.objects.all(), pk=course_id)
+        GoogleClassroomIntegrationController().sync_enrolled_students(course=course)
 
         return Response(status=status.HTTP_202_ACCEPTED)
