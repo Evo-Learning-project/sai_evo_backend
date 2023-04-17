@@ -806,9 +806,8 @@ class EventViewSetTestCase(BaseTestCase):
             f"/courses/{course_pk}/events/",
             {**events.exam_1_all_at_once, "state": Event.PLANNED},
         )
-        exam_pk = response.json()["id"]
-
         self.assertEquals(response.status_code, 201)
+        exam_pk = response.json()["id"]
 
         # Show an unprivileged user cannot create events which are not of type SELF_SERVICE_PRACTICE
         self.client.force_authenticate(user=self.student1)

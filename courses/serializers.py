@@ -540,7 +540,7 @@ class EventSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
     state = ReadWriteSerializerMethodField()
     locked_by = UserSerializer(read_only=True)
-    template = ReadWriteSerializerMethodField()
+    template = ReadWriteSerializerMethodField(required=False)
     participation_exists = serializers.SerializerMethodField()
     max_score = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
 
