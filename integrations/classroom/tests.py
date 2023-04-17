@@ -1,3 +1,8 @@
 from django.test import TestCase
 
-# Create your tests here.
+from integrations.classroom.integration import GoogleClassroomIntegration
+
+
+class ClassroomIntegrationTestCase(TestCase):
+    def setUp(self):
+        self.integration = GoogleClassroomIntegration()

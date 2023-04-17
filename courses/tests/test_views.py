@@ -1129,7 +1129,6 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show the owner of the participation can update its slot
         """
-        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
             {"selected_choices": [self.exercise_1.choices.first().pk]},
@@ -1146,12 +1145,33 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         self.assertNotIn("private_tags", exercise)
         self.assertNotIn("correctness", exercise["choices"][0])
 
+        # patch_submission endpoint only includes submission fields
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
+            {"selected_choices": [self.exercise_1.choices.last().pk]},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotIn("comment", response.data)
+        self.assertNotIn("populating_rule", response.data)
+        self.assertNotIn("score", response.data)
+
+        self.assertIn("selected_choices", response.data)
+        self.assertIn("answer_text", response.data)
+        self.assertIn("execution_results", response.data)
+        self.assertIn("attachment", response.data)
+
         """
         Show user cannot select choices that don't belong to the exercise or that don't exist
         """
-        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_2.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
             {"selected_choices": [self.exercise_2.choices.first().pk]},
         )
         self.assertEqual(response.status_code, 400)
@@ -1162,12 +1182,23 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
+            {"selected_choices": [123101]},
+        )
+        self.assertEqual(response.status_code, 400)
+
         """
         Show failure in updating an out-of-scope slot
         """
-        # TODO test also patch_submission endpoint
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{second_slot_pk}/",
+            {"selected_choices": [self.exercise_2.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{second_slot_pk}/patch_submission/",
             {"selected_choices": [self.exercise_2.choices.first().pk]},
         )
         self.assertEqual(response.status_code, 403)
@@ -1176,10 +1207,14 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         Show a user that's not the owner of the participation cannot retrieve or
         update it and its slots
         """
-        # TODO test also patch_submission endpoint
         self.client.force_authenticate(self.student_2)
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_1.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
             {"selected_choices": [self.exercise_1.choices.first().pk]},
         )
         self.assertEqual(response.status_code, 403)
@@ -1201,10 +1236,15 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show failure to update an assessment field as a student
         """
-        # TODO test also patch_submission endpoint
         slot_score = EventParticipationSlot.objects.get(pk=slot_pk).score
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"score": "10.0"},
+        )
+        slot = EventParticipationSlot.objects.get(pk=slot_pk)
+        self.assertEqual(slot.score, slot_score)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
             {"score": "10.0"},
         )
         slot = EventParticipationSlot.objects.get(pk=slot_pk)
@@ -1240,9 +1280,14 @@ class EventParticipationViewSetTestCase(BaseTestCase):
             {"state": EventParticipation.IN_PROGRESS},
         )
         self.assertEqual(response.status_code, 403)
-        # TODO test also patch_submission endpoint
+
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/",
+            {"selected_choices": [self.exercise_1.choices.first().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
             {"selected_choices": [self.exercise_1.choices.first().pk]},
         )
         self.assertEqual(response.status_code, 403)
@@ -1579,8 +1624,98 @@ class CoursePrivilegeTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_course_enrollments_endpoint(self):
-        # TODO implement
-        pass
+        from data import users
+
+        student_1 = User.objects.create(**users.student_3)
+        student_2 = User.objects.create(**users.student_4)
+
+        student_1_id = student_1.pk
+        student_2_id = student_2.pk
+
+        new_emails = [
+            "abc@gmail.com",
+            "def@gmail.com",
+            "ghi@gmail.com",
+        ]
+        for new_email in new_emails:
+            self.assertFalse(User.objects.filter(email=new_email).exists())
+
+        course_pk = self.course.pk
+
+        # Show that a user without the correct privileges cannot access the endpoint
+        self.client.force_authenticate(self.student_1)
+        response = self.client.get(f"/courses/{course_pk}/enrollments/")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/enrollments/", {"emails": new_emails}
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/enrollments/",
+            {"user_ids": [student_1_id, student_2_id]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.delete(
+            f"/courses/{course_pk}/enrollments/",
+            {"user_ids": [self.student_1.pk]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.put(
+            f"/courses/{course_pk}/enrollments/",
+            {"user_ids": [student_1_id, student_2_id], "emails": new_emails},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Show that a user with the correct privileges can access the endpoint
+        self.client.force_authenticate(self.teacher_1)
+        response = self.client.put(
+            f"/courses/{course_pk}/enrollments/",
+            {"user_ids": [student_1_id], "emails": new_emails},
+        )
+        self.assertEqual(response.status_code, 204)
+
+        # Show that an account has been created for each new email and that
+        # all requested users have been enrolled in the course
+        self.assertTrue(User.objects.filter(email=new_emails[0]).exists())
+        self.assertTrue(User.objects.filter(email=new_emails[1]).exists())
+        self.assertTrue(
+            User.objects.get(email=new_emails[0]) in self.course.enrolled_users.all()
+        )
+        self.assertTrue(
+            User.objects.get(email=new_emails[1]) in self.course.enrolled_users.all()
+        )
+        self.assertTrue(
+            User.objects.get(id=student_1_id) in self.course.enrolled_users.all()
+        )
+
+        # Show that a teacher can unenroll a student
+        response = self.client.delete(
+            f"/courses/{course_pk}/enrollments/",
+            {"user_ids": [student_1_id]},
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(
+            User.objects.get(id=student_1_id) in self.course.enrolled_users.all()
+        )
+
+        # Show a user can self-enroll in a course
+        self.client.force_authenticate(student_2)
+        response = self.client.put(
+            f"/courses/{course_pk}/my_enrollment/",
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(student_2 in self.course.enrolled_users.all())
+
+        # Show a user can self-unenroll from a course
+        response = self.client.delete(
+            f"/courses/{course_pk}/my_enrollment/",
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(student_2 in self.course.enrolled_users.all())
 
 
 class BulkActionsMixinsTestCase(BaseTestCase):

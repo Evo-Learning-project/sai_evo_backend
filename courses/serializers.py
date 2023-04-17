@@ -814,6 +814,18 @@ class EventParticipationSlotSubmissionSerializer(serializers.ModelSerializer):
             "execution_results",
         ]
 
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(instance, *args, **kwargs)
+        # limit queryset of selected_choices to choices for the exercise in the slot
+        self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
+            many=True,
+            queryset=(
+                ExerciseChoice.objects.all()
+                if instance is None
+                else ExerciseChoice.objects.filter(exercise_id=instance.exercise_id)
+            ),
+        )
+
 
 class EventParticipationSummarySerializer(serializers.ModelSerializer):
     class Meta:
