@@ -5,7 +5,14 @@ from courses.logic.participations import is_time_up
 from courses.logic.privileges import check_privilege
 from users.models import User
 
-from .models import Course, Event, EventTemplate, Exercise, ExerciseSolution
+from .models import (
+    Course,
+    Event,
+    EventParticipation,
+    EventTemplate,
+    Exercise,
+    ExerciseSolution,
+)
 
 
 class BaseAccessPolicy(AccessPolicy):
@@ -436,8 +443,9 @@ class EventParticipationPolicy(
             "principal": ["authenticated"],
             "effect": "allow",
             "condition_expression": "\
-                is_own_participation and \
-                    (can_update_participation or is_bookmark_request)\
+                (is_own_participation and \
+                    (can_update_participation or is_bookmark_request) and\
+                    not updating_to_closed_by_teacher_state)\
                 or has_teacher_privileges:assess_participations",
         },
         {
@@ -501,6 +509,9 @@ class EventParticipationPolicy(
         # turned in as long as their request only involves updating
         # the `bookmarked` field
         return "bookmarked" in request.data and len(request.data.keys()) == 1
+
+    def updating_to_closed_by_teacher_state(self, request, view, action):
+        return request.data.get("state") == EventParticipation.CLOSED_BY_TEACHER
 
     def can_go_forward(self, request, view, action):
         participation = self.get_participation(view)  # view.get_object()

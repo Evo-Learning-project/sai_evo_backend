@@ -1260,6 +1260,63 @@ class EventParticipationViewSetTestCase(BaseTestCase):
             {"state": EventParticipation.TURNED_IN},
         )
         self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.CLOSED_BY_TEACHER},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        """
+        Show a user cannot set a participation state to CLOSED_BY_TEACHER if they're not
+        a teacher
+        """
+        self.client.force_authenticate(self.student_1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.CLOSED_BY_TEACHER},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        """
+        Show a teacher can set a participation state to CLOSED_BY_TEACHER
+        """
+        self.client.force_authenticate(self.teacher_1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.CLOSED_BY_TEACHER},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        """
+        Show a student cannot update a participation when it's CLOSED_BY_TEACHER, nor
+        update its slots
+        """
+        self.client.force_authenticate(self.student_1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.IN_PROGRESS},
+        )
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.TURNED_IN},
+        )
+        self.assertEqual(response.status_code, 403)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/slots/{slot_pk}/patch_submission/",
+            {"selected_choices": [self.exercise_1.choices.last().pk]},
+        )
+        self.assertEqual(response.status_code, 403)
+
+        """
+        Show a teacher can set the closed participation back to IN_PROGRESS
+        """
+        self.client.force_authenticate(self.teacher_1)
+        response = self.client.patch(
+            f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
+            {"state": EventParticipation.IN_PROGRESS},
+        )
+        self.assertEqual(response.status_code, 200)
 
         """
         Show turning in the participation as the correct user 
@@ -1274,7 +1331,6 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         """
         Show that after it's been turned in, no fields or slots can be updated
         """
-        # TODO test CLOSED_BY_TEACHER state
         response = self.client.patch(
             f"/courses/{self.course.pk}/events/{self.event.pk}/participations/{participation_pk}/",
             {"state": EventParticipation.IN_PROGRESS},
