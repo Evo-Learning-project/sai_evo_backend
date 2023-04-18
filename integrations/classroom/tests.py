@@ -2,7 +2,7 @@ from datetime import timedelta
 from django.test import TestCase
 
 from course_tree.models import AnnouncementNode, LessonNode, RootCourseTreeNode
-from courses.models import Course, Event
+from courses.models import Course, Event, EventParticipation
 from integrations.classroom import messages
 from integrations.classroom.exceptions import CannotEnrollTeacher, DomainSettingsError
 from googleapiclient.errors import HttpError
@@ -10,7 +10,11 @@ from googleapiclient.errors import HttpError
 from integrations.classroom.integration import GoogleClassroomIntegration
 
 from courses.tests.data import users, courses, events
-from integrations.classroom.models import GoogleClassroomCourseTwin
+from integrations.classroom.models import (
+    GoogleClassroomCourseTwin,
+    GoogleClassroomCourseWorkSubmissionTwin,
+    GoogleClassroomCourseWorkTwin,
+)
 from integrations.registry import IntegrationRegistry
 from users.models import User
 
@@ -356,3 +360,193 @@ class ClassroomIntegrationTestCase(TestCase):
                     ).data["enrollmentCode"],
                     new_enrollment_code,
                 )
+
+    def test_get_classroom_student_submission_id_from_evo_event_participation(self):
+        exam = Event.objects.create(
+            course=self.course,
+            **{
+                "name": "exam_1",
+                "event_type": Event.EXAM,
+                "exercises_shown_at_a_time": None,
+                "begin_timestamp": timezone.now() - timedelta(minutes=5),
+                "state": Event.OPEN,
+            },
+        )
+        coursework = {
+            "id": "521084982261",
+            "courseId": self.classroom_course_twin.remote_object_id,
+            "scheduledTime": "null",
+            "creationTime": "2023-03-24T15:38:53.797Z",
+            "title": "exam_1",
+            "alternateLink": "https://classroom.google.com/c/NTQxNQyNqwQzOTQ3/a/NdjxMDg4OTgsMjYz/details",
+        }
+        GoogleClassroomCourseWorkTwin.create_from_remote_object(
+            event=exam,
+            remote_object=coursework,
+            remote_object_id=coursework["id"],
+        )
+
+        submission = {
+            "id": "Cf3Imv_AkaoRWKJN34vqQe",
+            "courseId": "541942443924",
+            "courseWorkId": "521084982261",
+            "userId": "229946036563518627236",
+            "alternateLink": "https://classroom.google.com/c/NTQxNQyNqwQzOTQ3/a/NdjxMDg4OTgsMjYz/submissions/by-status/and-sort-last-name/student/MTk1WDI2NTU3OEUw",
+        }
+        participation_with_twin = EventParticipation.objects.create(
+            user=self.student_2, event_id=exam.pk
+        )
+        twin = GoogleClassroomCourseWorkSubmissionTwin.create_from_remote_object(
+            remote_object=submission,
+            remote_object_id=submission["id"],
+            participation=participation_with_twin,
+        )
+
+        # Check that, if a twin for the submission exists, the method returns that twin's remote_object_id
+        self.assertEqual(
+            self.integration.get_classroom_student_submission_id_from_evo_event_participation(
+                participation_with_twin
+            ),
+            twin.remote_object_id,
+        )
+
+        participation_without_twin = EventParticipation.objects.create(
+            user=self.student_1, event_id=exam.pk
+        )
+
+        mock_service = Mock()
+        # mock the API call to retrieve a CourseWorkSubmission
+        mock_list = mock_service.courses().courseWork().studentSubmissions().list
+
+        # Show that, if the function is called on a participation that doesn't have a twin, but the student
+        # does have a submission on Classroom associated to the coursework twin, it'll fetch that submission,
+        # create a twin for it, and return the remote_object_id of the twin
+        with patch.object(self.integration, "get_service") as get_service_mock:
+            get_service_mock.return_value = mock_service
+            mock_list.return_value.execute.return_value = {
+                "studentSubmissions": [
+                    {
+                        "id": "Cf3Imv_AkaoRXKJH34vqQw",
+                        "courseId": "541942443924",
+                        "courseWorkId": "521084982261",
+                        "userId": "229946033563518627231",
+                        "alternateLink": "https://classroom.google.com/c/NTQxNQyNqwQzOTQ3/a/NdjxMDg4OTgsMjYz/submissions/by-status/and-sort-last-name/student/Mwx1WEI2NTU3OEUw",
+                    }
+                ]
+            }
+            # no twin prior to the call
+            self.assertFalse(
+                GoogleClassroomCourseWorkSubmissionTwin.objects.filter(
+                    participation=participation_without_twin
+                ).exists()
+            )
+            # Call the method and check that it returns the remote_object_id of the submission
+            self.assertEqual(
+                self.integration.get_classroom_student_submission_id_from_evo_event_participation(
+                    participation_without_twin
+                ),
+                "Cf3Imv_AkaoRXKJH34vqQw",
+            )
+            # twin has been created
+            self.assertTrue(
+                GoogleClassroomCourseWorkSubmissionTwin.objects.filter(
+                    participation=participation_without_twin
+                ).exists()
+            )
+
+        participation = EventParticipation.objects.create(
+            user=self.student_3, event_id=exam.pk
+        )
+
+        # Show that if the function is called on a participation that doesn't have a twin, and the student
+        # doesn't have a submission on Classroom associated to the coursework twin and retrying is
+        # not permitted, it'll return None
+        with patch.object(self.integration, "get_service") as get_service_mock:
+            get_service_mock.return_value = mock_service
+            mock_list.return_value.execute.return_value = {}
+
+            self.assertIsNone(
+                self.integration.get_classroom_student_submission_id_from_evo_event_participation(
+                    participation, allow_retry=False
+                ),
+            )
+        # when a student doesn't have a submission, the API call returns an empty dict, but
+        # we're checking for empty list too, just in case
+        with patch.object(self.integration, "get_service") as get_service_mock:
+            get_service_mock.return_value = mock_service
+            mock_list.return_value.execute.return_value = {"studentSubmissions": []}
+
+            self.assertIsNone(
+                self.integration.get_classroom_student_submission_id_from_evo_event_participation(
+                    participation, allow_retry=False
+                ),
+            )
+
+        # Show that if the function is called on a participation that doesn't have a twin, and the student
+        # doesn't have a submission on Classroom associated to the coursework twin and retrying is
+        # permitted, it'll enroll the user on Classroom and then retry
+        with patch.object(self.integration, "get_service") as get_service_mock:
+            with patch.object(
+                self.integration, "enroll_student"
+            ) as enroll_student_mock:
+                get_service_mock.return_value = mock_service
+                mock_list.return_value.execute.return_value = {}
+
+                # Call the method under test & check it tries to enroll the student
+                self.integration.get_classroom_student_submission_id_from_evo_event_participation(
+                    participation, allow_retry=True
+                )
+                enroll_student_mock.assert_called_once_with(
+                    participation.user, participation.event.course
+                )
+        # same as above, but with an empty list
+        with patch.object(self.integration, "get_service") as get_service_mock:
+            with patch.object(
+                self.integration, "enroll_student"
+            ) as enroll_student_mock:
+                get_service_mock.return_value = mock_service
+                mock_list.return_value.execute.return_value = {"studentSubmissions": []}
+
+                # Call the method under test & check it tries to enroll the student
+                self.integration.get_classroom_student_submission_id_from_evo_event_participation(
+                    participation, allow_retry=True
+                )
+                enroll_student_mock.assert_called_once_with(
+                    participation.user, participation.event.course
+                )
+
+    def test_get_course_students(self):
+        # TODO implement
+        ...
+
+    def test_is_teacher_on_classroom_course(self):
+        # TODO implement
+        ...
+
+    def test_on_exam_participation_created(self):
+        # TODO implement
+        ...
+
+    def test_on_exam_participation_turned_in(self):
+        # TODO implement
+        ...
+
+    def test_on_exam_participation_assessment_updated(self):
+        # TODO implement
+        ...
+
+    def test_on_exam_participation_assessment_published(self):
+        # TODO implement
+        ...
+
+    def test_sync_exam_grades(self):
+        # TODO implement
+        ...
+
+    def test_run_google_classroom_integration_method(self):
+        # TODO implement
+        ...
+
+    def test_import_enrolled_student_from_twin_course(self):
+        # TODO implement
+        ...
