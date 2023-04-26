@@ -17,6 +17,12 @@ course_router = routers.NestedSimpleRouter(
     lookup="course",
 )
 
+router.register(
+    r"features",
+    views.PretotypeDataCreationViewSet,
+    basename="features",
+)
+
 # `/courses/<pk>/roles` entry point
 course_router.register(
     r"roles",

@@ -42,6 +42,7 @@ from courses.models import (
     ExerciseSolutionVote,
     ExerciseTestCase,
     ExerciseTestCaseAttachment,
+    PretotypeData,
     Tag,
 )
 from courses.serializer_fields import (
@@ -859,3 +860,9 @@ class EventParticipationSerializer(serializers.ModelSerializer, ConditionalField
             context=self.context,
         ).data
         return ret
+
+
+class PretotypeDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PretotypeData
+        fields = "__all__"

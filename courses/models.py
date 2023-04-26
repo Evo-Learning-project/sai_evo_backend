@@ -1563,3 +1563,17 @@ class EventParticipationSlot(models.Model):
             or self.parent is not None
             and self.parent.is_in_scope()
         )
+
+
+class PretotypeData(TimestampableModel):
+    """
+    Model for storing data received by pretotyping
+    endpoints (used to test & validate possible future features)
+    """
+
+    feature_id = models.CharField(max_length=50)
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    data = models.JSONField(default=dict)
+
+    def __str__(self):
+        return f"{self.feature_id} - {self.user} - {self.data}"

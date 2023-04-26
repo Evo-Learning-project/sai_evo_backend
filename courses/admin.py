@@ -114,3 +114,8 @@ class EventParticipationSlotAdmin(admin.ModelAdmin):
 @admin.register(EventParticipation)
 class EventParticipationAdmin(admin.ModelAdmin):
     readonly_fields = ("begin_timestamp", "event", "user")
+
+
+@admin.register(PretotypeData)
+class PretotypeDataAdmin(admin.ModelAdmin):
+    pass

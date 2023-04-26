@@ -15,48 +15,89 @@ from users.models import User
 from users.serializers import UserCreationSerializer, UserSerializer
 
 from courses import policies
-from courses.filters import (EventFilter, EventParticipationFilter,
-                             ExerciseFilter, ExerciseSolutionFilter)
+from courses.filters import (
+    EventFilter,
+    EventParticipationFilter,
+    ExerciseFilter,
+    ExerciseSolutionFilter,
+)
 from courses.logic.event_instances import ExercisePicker
 from courses.logic.presentation import (
-    CHOICE_SHOW_SCORE_FIELDS, COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
-    EVENT_PARTICIPATION_SHOW_EVENT, EVENT_PARTICIPATION_SHOW_SCORE,
+    CHOICE_SHOW_SCORE_FIELDS,
+    COURSE_SHOW_PUBLIC_EXERCISES_COUNT,
+    EVENT_PARTICIPATION_SHOW_EVENT,
+    EVENT_PARTICIPATION_SHOW_SCORE,
     EVENT_PARTICIPATION_SHOW_SLOTS,
     EVENT_PARTICIPATION_SLOT_SHOW_DETAIL_FIELDS,
     EVENT_PARTICIPATION_SLOT_SHOW_EXERCISE,
-    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS, EVENT_SHOW_HIDDEN_FIELDS,
-    EVENT_SHOW_PARTICIPATION_EXISTS, EVENT_SHOW_TEMPLATE,
-    EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD, EXERCISE_SHOW_HIDDEN_FIELDS,
-    EXERCISE_SHOW_SOLUTION_FIELDS, TAG_SHOW_PUBLIC_EXERCISES_COUNT,
-    TESTCASE_SHOW_HIDDEN_FIELDS)
-from courses.logic.privileges import (ACCESS_EXERCISES, ASSESS_PARTICIPATIONS,
-                                      MANAGE_EVENTS, MANAGE_EXERCISES)
-from courses.models import (Course, CourseRole, Event, EventParticipation,
-                            EventParticipationSlot, EventTemplate,
-                            EventTemplateRule, EventTemplateRuleClause,
-                            Exercise, ExerciseChoice, ExerciseSolution,
-                            ExerciseSolutionComment, ExerciseSolutionVote,
-                            ExerciseTestCase, ExerciseTestCaseAttachment, Tag,
-                            UserCoursePrivilege)
+    EVENT_PARTICIPATION_SLOT_SHOW_SUBMISSION_FIELDS,
+    EVENT_SHOW_HIDDEN_FIELDS,
+    EVENT_SHOW_PARTICIPATION_EXISTS,
+    EVENT_SHOW_TEMPLATE,
+    EVENT_TEMPLATE_RULE_SHOW_SATISFYING_FIELD,
+    EXERCISE_SHOW_HIDDEN_FIELDS,
+    EXERCISE_SHOW_SOLUTION_FIELDS,
+    TAG_SHOW_PUBLIC_EXERCISES_COUNT,
+    TESTCASE_SHOW_HIDDEN_FIELDS,
+)
+from courses.logic.privileges import (
+    ACCESS_EXERCISES,
+    ASSESS_PARTICIPATIONS,
+    MANAGE_EVENTS,
+    MANAGE_EXERCISES,
+)
+from courses.models import (
+    Course,
+    CourseRole,
+    Event,
+    EventParticipation,
+    EventParticipationSlot,
+    EventTemplate,
+    EventTemplateRule,
+    EventTemplateRuleClause,
+    Exercise,
+    ExerciseChoice,
+    ExerciseSolution,
+    ExerciseSolutionComment,
+    ExerciseSolutionVote,
+    ExerciseTestCase,
+    ExerciseTestCaseAttachment,
+    PretotypeData,
+    Tag,
+    UserCoursePrivilege,
+)
 from courses.pagination import EventParticipationPagination, ExercisePagination
 from courses.tasks import run_participation_slot_code_task
 
-from .serializers import (CourseRoleSerializer, CourseSerializer,
-                          EventParticipationSerializer,
-                          EventParticipationSlotSerializer,
-                          EventParticipationSummarySerializer, EventSerializer,
-                          EventTemplateRuleClauseSerializer,
-                          EventTemplateRuleSerializer, EventTemplateSerializer,
-                          ExerciseChoiceSerializer, ExerciseSerializer,
-                          ExerciseSolutionCommentSerializer,
-                          ExerciseSolutionSerializer,
-                          ExerciseSolutionVoteSerializer,
-                          ExerciseTestCaseAttachmentSerializer,
-                          ExerciseTestCaseSerializer, TagSerializer)
-from .view_mixins import (BulkCreateMixin, BulkGetMixin, BulkPatchMixin,
-                          LockableModelViewSetMixin,
-                          RequestingUserPrivilegesMixin, RestrictedListMixin,
-                          ScopeQuerySetByCourseMixin)
+from .serializers import (
+    CourseRoleSerializer,
+    CourseSerializer,
+    EventParticipationSerializer,
+    EventParticipationSlotSerializer,
+    EventParticipationSummarySerializer,
+    EventSerializer,
+    EventTemplateRuleClauseSerializer,
+    EventTemplateRuleSerializer,
+    EventTemplateSerializer,
+    ExerciseChoiceSerializer,
+    ExerciseSerializer,
+    ExerciseSolutionCommentSerializer,
+    ExerciseSolutionSerializer,
+    ExerciseSolutionVoteSerializer,
+    ExerciseTestCaseAttachmentSerializer,
+    ExerciseTestCaseSerializer,
+    PretotypeDataSerializer,
+    TagSerializer,
+)
+from .view_mixins import (
+    BulkCreateMixin,
+    BulkGetMixin,
+    BulkPatchMixin,
+    LockableModelViewSetMixin,
+    RequestingUserPrivilegesMixin,
+    RestrictedListMixin,
+    ScopeQuerySetByCourseMixin,
+)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -224,9 +265,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         report = {
             e.hashid: EventParticipationSummarySerializer(
-                EventParticipation.objects.filter(
-                    event_id=e
-                ).with_prefetched_base_slots().select_related("event"),
+                EventParticipation.objects.filter(event_id=e)
+                .with_prefetched_base_slots()
+                .select_related("event"),
                 many=True,
             ).data
             for e in exams
@@ -1097,3 +1138,11 @@ class EventParticipationSlotViewSet(
             as_attachment=True,
             filename=os.path.split(attachment.name)[1],
         )
+
+
+class PretotypeDataCreationViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
+    serializer_class = PretotypeDataSerializer
+    queryset = PretotypeData.objects.all()
+
+    def perform_create(self, serializer):
+        return serializer.save(user=self.request.user)
