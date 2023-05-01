@@ -71,7 +71,7 @@ class GoogleClassroomViewSet(viewsets.ViewSet):
                 access_token=response["access_token"]
             )
         except Exception as e:
-            logger.exception("Google OAuth callback failed to fetch token")
+            logger.exception("Google OAuth callback failed to fetch token", exc_info=e)
             return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:

@@ -53,10 +53,12 @@ logger = logging.getLogger(__name__)
 
 class GoogleClassroomIntegration(BaseEvoIntegration):
     STUDENT_SCOPES = [
+        "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/classroom.rosters",
         "https://www.googleapis.com/auth/classroom.coursework.me",
     ]
     TEACHER_SCOPES = [
+        "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/classroom.courses.readonly",
         "https://www.googleapis.com/auth/classroom.announcements",
         "https://www.googleapis.com/auth/classroom.courseworkmaterials",
