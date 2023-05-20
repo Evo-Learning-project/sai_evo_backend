@@ -38,12 +38,23 @@ class GamificationContextAccessPolicy(BaseGamificationAccessPolicy):
             "principal": ["authenticated"],
             "effect": "allow",
         },
+    ]
+
+    def is_visible_to(self, request, view, action):
+        from demo_mode.logic import is_demo_mode
+
+
+class GamificationGoalAccessPolicy(BaseGamificationAccessPolicy):
+    statements = [
         {
-            "action": [""],
+            "action": ["create", "update", "partial_update", "destroy"],
+            "principal": ["authenticated"],
+            "effect": "has_update_privileges_on_context_course",
+        },
+        {
+            "action": ["list", "retrieve", "progress"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "has_teacher_privileges:update_course and \
-                not is_personal_account and not is_course_creator",
         },
     ]
 
