@@ -213,6 +213,31 @@ JS/TS
 """
 
 
+def test_playground(code, stream):
+    import subprocess
+    import json
+
+    node_vm_path = "coding/ts/runPlayground.js"  # os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
+
+    # Create a subprocess
+    process = subprocess.Popen(
+        ["node", node_vm_path, code, "false", json.dumps(stream)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    # Loop over stdout in real-time
+    for line in iter(process.stdout.readline, b""):
+        # Decode the line and strip newline characters
+        line = line.decode("utf-8").rstrip()
+
+        # Since you're using JSON to communicate, we can parse the line as JSON
+        data = json.loads(line)
+
+        # Do something with the data...
+        print(data)
+
+
 def run_js_code_in_vm(code, exercise, testcases, use_ts):
     """
     Takes in a string containing JS code and a list of testcases; runs the code in a JS
