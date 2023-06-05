@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import subprocess
+import threading
 from django.core.exceptions import ValidationError
 import requests
 from coding.python.runPython import get_python_program_for_vm
@@ -226,6 +227,17 @@ def test_playground(code, stream):
         stderr=subprocess.PIPE,
     )
 
+    # kill the process if it takes too long
+    killed_by_timeout = []
+    timeout_thread = threading.Timer(
+        5,  # TODO parametrize timeout
+        # TODO horrible hack, just as proof of concept of how to track timeouts
+        lambda: process.kill() or killed_by_timeout.append(True)
+        if process.poll() is None
+        else True,
+    )
+    timeout_thread.start()
+
     # Loop over stdout in real-time
     for line in iter(process.stdout.readline, b""):
         # Decode the line and strip newline characters
@@ -236,6 +248,10 @@ def test_playground(code, stream):
 
         # Do something with the data...
         print(data)
+
+    # TODO dont wait for timeout thread to finish
+    timeout_thread_result = timeout_thread.join()
+    print(killed_by_timeout)
 
 
 def run_js_code_in_vm(code, exercise, testcases, use_ts):
