@@ -32,6 +32,7 @@ const safeVm = new NodeVM({
 
 // capture program output
 const programOutput = {
+  // TODO instead of having an array per type, have a single array of objects with type and data
   log: [],
   error: [],
   warn: [],
