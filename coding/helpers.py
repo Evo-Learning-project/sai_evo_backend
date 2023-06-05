@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import subprocess
+import threading
 from django.core.exceptions import ValidationError
 import requests
 from coding.python.runPython import get_python_program_for_vm
@@ -211,6 +212,46 @@ def run_c_code_in_vm(code, testcases):
 """
 JS/TS
 """
+
+
+def test_playground(code, stream):
+    import subprocess
+    import json
+
+    node_vm_path = "coding/ts/runPlayground.js"  # os.environ.get("NODE_VM_PATH", "coding/ts/runJs.js")
+
+    # Create a subprocess
+    process = subprocess.Popen(
+        ["node", node_vm_path, code, "false", json.dumps(stream)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    # kill the process if it takes too long
+    killed_by_timeout = []
+    timeout_thread = threading.Timer(
+        5,  # TODO parametrize timeout
+        # TODO horrible hack, just as proof of concept of how to track timeouts
+        lambda: process.kill() or killed_by_timeout.append(True)
+        if process.poll() is None
+        else True,
+    )
+    timeout_thread.start()
+
+    # Loop over stdout in real-time
+    for line in iter(process.stdout.readline, b""):
+        # Decode the line and strip newline characters
+        line = line.decode("utf-8").rstrip()
+
+        # Since you're using JSON to communicate, we can parse the line as JSON
+        data = json.loads(line)
+
+        # Do something with the data...
+        print(data)
+
+    # TODO dont wait for timeout thread to finish
+    timeout_thread_result = timeout_thread.join()
+    print(killed_by_timeout)
 
 
 def run_js_code_in_vm(code, exercise, testcases, use_ts):
