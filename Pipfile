@@ -53,6 +53,7 @@ social-auth-core = "*"
 django-environ = "*"
 click-didyoumean = "*"
 prompt-toolkit = "*"
+numpy = "*"
 
 [dev-packages]
 mypy = "*"
