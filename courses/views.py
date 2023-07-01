@@ -259,7 +259,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         course = self.get_object()
         exams = (
             course.events.all()
-            .filter(event_type=Event.EXAM, _event_state=Event.CLOSED)
+            .filter(event_type=Event.EXAM)
             .values_list("id", flat=True)
         )
 
