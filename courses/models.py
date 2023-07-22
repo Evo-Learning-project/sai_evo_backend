@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import F, Max, Q
 from django.db.models.functions import MD5, Cast
 from django.utils import timezone
+from courses.logic.exercises import get_cloze_sub_exercises_appearing_in_exercise_text
 from demo_mode.logic import is_demo_mode
 from demo_mode.querysets import DemoCoursesQuerySet
 from gamification.actions import (
@@ -366,14 +367,27 @@ class Exercise(TimestampableModel, OrderableModel, LockableModel):
                 str(self.pk) + " cannot be child of " + str(self.parent.pk)
             )
 
+    def get_assessable_sub_exercises(self):
+        """
+        Returns a subset of this exercise's sub-exercises which are actually
+        assessable. This currently only affects cloze exercises, filtering to
+        only include sub-exercises whose placeholder appears in the exercise text
+        """
+        return (
+            get_cloze_sub_exercises_appearing_in_exercise_text(self)
+            if self.exercise_type == Exercise.COMPLETION
+            else self.sub_exercises.all()
+        )
+
     def get_max_score(self):
         if self.exercise_type in [Exercise.OPEN_ANSWER, Exercise.ATTACHMENT]:
             return None
         if self.exercise_type in [Exercise.AGGREGATED, Exercise.COMPLETION]:
+            sub_exercises = self.get_assessable_sub_exercises()
             return sum(
                 [
                     Decimal(s.get_max_score() or 0) * Decimal(s.child_weight or 0)
-                    for s in self.sub_exercises.all()
+                    for s in sub_exercises
                 ]
             )
         if self.exercise_type in [Exercise.JS, Exercise.C, Exercise.PYTHON]:
@@ -1551,6 +1565,14 @@ class EventParticipationSlot(models.Model):
             raise ValidationError(
                 str(self.parent) + " is not a valid parent for slot " + str(self.pk)
             )
+
+    def get_assessable_sub_slots(self):
+        if self.exercise.exercise_type != Exercise.COMPLETION:
+            return self.sub_slots.all()
+
+        return self.sub_slots.filter(
+            exercise_id__in=[e.pk for e in self.exercise.get_assessable_sub_exercises()]
+        )
 
     def is_in_scope(self):
         """
