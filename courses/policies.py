@@ -280,6 +280,7 @@ class ExercisePolicy(BaseAccessPolicy):
                 "unlock",
                 "heartbeat",
                 "solution_execution_results",
+                "export",
             ],
             "principal": ["authenticated"],
             "effect": "allow",

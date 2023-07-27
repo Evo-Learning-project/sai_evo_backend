@@ -261,6 +261,15 @@ class ExerciseSolutionCommentSerializer(serializers.ModelSerializer):
         return ExerciseSolutionComment.objects.create(**validated_data)
 
 
+class ExerciseSolutionSummarySerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ExerciseSolution
+        fields = ["id", "content", "user", "comments", "score"]
+
+
 class ExerciseSolutionSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     content = serializers.CharField(trim_whitespace=False, allow_blank=True)
     comments = ExerciseSolutionCommentSerializer(many=True, read_only=True)
@@ -464,6 +473,17 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             solutions,
             context=self.context,
             many=True,
+        ).data
+
+
+class ExerciseWithSolutionsSerializer(ExerciseSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["solutions"] = serializers.SerializerMethodField()
+
+    def get_solutions(self, obj):
+        return ExerciseSolutionSummarySerializer(
+            obj.solutions.all(), many=True, context=self.context
         ).data
 
 

@@ -86,6 +86,7 @@ from .serializers import (
     ExerciseSolutionVoteSerializer,
     ExerciseTestCaseAttachmentSerializer,
     ExerciseTestCaseSerializer,
+    ExerciseWithSolutionsSerializer,
     PretotypeDataSerializer,
     TagSerializer,
 )
@@ -523,6 +524,11 @@ class ExerciseViewSet(
 
         return super().get_permissions()
 
+    def get_serializer_class(self):
+        if self.action == "export":
+            return ExerciseWithSolutionsSerializer
+        return super().get_serializer_class()
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
 
@@ -592,6 +598,10 @@ class ExerciseViewSet(
                 code=solution.content,
             )
         return Response(res)
+
+    @action(detail=False, methods=["get"])
+    def export(self, request, **kwargs):
+        return self.list(request, **kwargs)
 
 
 class ExerciseChoiceViewSet(viewsets.ModelViewSet):
