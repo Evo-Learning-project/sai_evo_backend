@@ -23,20 +23,20 @@ from gamification.actions import (
 )
 import json
 from gamification.entry import get_gamification_engine
+from integrations.mixins import IntegrationModelMixin
 from users.models import User
 from django.db import transaction
 from django.db.models import Sum, Case, When, Value
 from django_lifecycle import (
-    LifecycleModel,
     LifecycleModelMixin,
     hook,
-    BEFORE_UPDATE,
     AFTER_UPDATE,
     AFTER_CREATE,
     BEFORE_DELETE,
 )
 
-from courses import signals  # to make signals work
+from integrations.registry import IntegrationRegistry
+
 
 import logging
 
@@ -56,11 +56,14 @@ from .managers import (
     EventManager,
     EventParticipationManager,
     EventParticipationSlotManager,
+    EventTemplateManager,
     EventTemplateRuleManager,
     ExerciseManager,
     ExerciseSolutionManager,
     TagManager,
 )
+
+from django.conf import settings
 
 
 def get_attachment_path(slot, filename):
@@ -101,6 +104,11 @@ class Course(TimestampableModel):
         related_name="bookmarked_courses",
         blank=True,
     )
+    enrolled_users = models.ManyToManyField(
+        User,
+        related_name="enrolled_courses",
+        through="UserCourseEnrollment",
+    )
 
     objects = CourseManager()
 
@@ -112,6 +120,91 @@ class Course(TimestampableModel):
 
     def __str__(self):
         return self.name
+
+    def enroll_users(self, user_ids, enrolled_by=None, bulk=True, **kwargs):
+        from_integration = kwargs.get("from_integration", False)
+        raise_for_duplicates = kwargs.get("raise_for_duplicates", True)
+
+        enrollment_type = (
+            UserCourseEnrollment.EnrollmentType.AUTOMATIC
+            if from_integration
+            else UserCourseEnrollment.EnrollmentType.DEFAULT
+            if enrolled_by is None
+            else UserCourseEnrollment.EnrollmentType.BY_TEACHER
+        )
+        if not raise_for_duplicates:
+            # by default, trying to create enrollments for users already enrolled will raise
+            # IntegrityError. If `raise_for_duplicates` is False, we filter out the users that
+            # are already enrolled to prevent that
+            already_enrolled_ids = self.enrolled_users.filter(
+                pk__in=user_ids
+            ).values_list("pk", flat=True)
+            user_ids = list(set(user_ids) - set(already_enrolled_ids))
+
+        if bulk:
+            # TODO this won't trigger the lifecycle hook that fires the integration event
+            enrollments = UserCourseEnrollment.objects.bulk_create(
+                [
+                    UserCourseEnrollment(
+                        course=self, user_id=uid, enrollment_type=enrollment_type
+                    )
+                    for uid in user_ids
+                ]
+            )
+        else:
+            enrollments = [
+                UserCourseEnrollment.objects.create(
+                    course=self, user_id=uid, enrollment_type=enrollment_type
+                )
+                for uid in user_ids
+            ]
+
+        return enrollments
+
+    def unenroll_users(self, user_ids):
+        # TODO bulk removals don't trigger lifecycle hooks, find a workaround
+        self.enrolled_users.remove(*User.objects.filter(pk__in=user_ids))
+
+
+class UserCourseEnrollment(LifecycleModelMixin, TimestampableModel):
+    class EnrollmentType(models.IntegerChoices):
+        DEFAULT = 0
+        AUTOMATIC = 1
+        BY_TEACHER = 2
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    enrollment_type = models.PositiveSmallIntegerField(
+        choices=EnrollmentType.choices,
+        default=EnrollmentType.DEFAULT,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "course_id"],
+                name="same_course_unique_enrollment",
+            )
+        ]
+
+    def __str__(self):
+        return f"{str(self.course)} - {str(self.user)}"
+
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        IntegrationRegistry().dispatch(
+            "student_enrolled",
+            course=self.course,
+            enrollment=self,
+        )
 
 
 class UserCoursePrivilege(models.Model):
@@ -713,7 +806,13 @@ class ExerciseTestCaseAttachment(models.Model):
     )
 
 
-class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel):
+class Event(
+    LifecycleModelMixin,
+    HashIdModel,
+    TimestampableModel,
+    LockableModel,
+    IntegrationModelMixin,
+):
     """
     An Event represents some type of quiz/exam students can participate in.
     Teachers can create exam events, and students can create "self-service
@@ -835,6 +934,11 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
             # )
         ]
 
+    def get_absolute_url(self):
+        if self.event_type == self.EXAM:
+            return f"{settings.BASE_FRONTEND_URL}/student/courses/{self.course.pk}/exams/{self.pk}/"
+        return ""
+
     @property
     def max_score(self):
         rules = self.template.rules.all()
@@ -882,6 +986,18 @@ class Event(LifecycleModelMixin, HashIdModel, TimestampableModel, LockableModel)
     @state.setter
     def state(self, value):
         self._event_state = value
+
+    @hook(AFTER_UPDATE, when="_event_state", changes_to=OPEN, was=DRAFT)
+    @hook(AFTER_UPDATE, when="_event_state", changes_to=PLANNED, was=DRAFT)
+    def on_publish(self):
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event:
+            IntegrationRegistry().dispatch(
+                "exam_published",
+                course=self.course,
+                user=self.course.creator,
+                exam=self,
+            )
 
     @hook(AFTER_UPDATE, when="state", changes_to=CLOSED)
     def on_close(self):
@@ -970,7 +1086,7 @@ class EventTemplate(models.Model):
         blank=True,
     )
 
-    # objects = EventTemplateManager()
+    objects = EventTemplateManager()
 
     class Meta:
         ordering = ["course_id", "pk"]
@@ -1076,7 +1192,7 @@ class EventTemplateRuleClause(models.Model):
         ordering = ["rule_id", "id"]
 
 
-class EventParticipation(LifecycleModelMixin, models.Model):
+class EventParticipation(LifecycleModelMixin, models.Model, IntegrationModelMixin):
     """
     A participation of a user to an event.
 
@@ -1087,10 +1203,12 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     IN_PROGRESS = 0
     TURNED_IN = 1
+    CLOSED_BY_TEACHER = 2
     # TODO implement ABANDONED state
     PARTICIPATION_STATES = (
         (IN_PROGRESS, "In progress"),
         (TURNED_IN, "Turned in"),
+        (CLOSED_BY_TEACHER, "Closed by teacher"),
     )
 
     NOT_ASSESSED = 0
@@ -1155,6 +1273,9 @@ class EventParticipation(LifecycleModelMixin, models.Model):
     def __str__(self):
         return str(self.event) + " - " + str(self.user)
 
+    def get_absolute_url(self):
+        return f"{settings.BASE_FRONTEND_URL}/teacher/courses/{self.event.course.pk}/exams/{self.event.pk}/participations/{self.pk}/"
+
     @property
     def is_cursor_first_position(self):
         return self.current_slot_cursor == 0
@@ -1214,7 +1335,7 @@ class EventParticipation(LifecycleModelMixin, models.Model):
 
     @property
     def score(self):
-        if self._score is None:
+        if self._score is None or len(self._score) == 0:
             return str(
                 round(
                     sum(
@@ -1296,8 +1417,34 @@ class EventParticipation(LifecycleModelMixin, models.Model):
             self.end_timestamp = timezone.localtime(timezone.now())
         super().save(*args, **kwargs)
 
+    @hook(AFTER_CREATE)
+    def on_create(self):
+        if self.event.event_type == Event.EXAM:
+            IntegrationRegistry().dispatch(
+                "exam_participation_created",
+                course=self.event.course,
+                participation=self,
+            )
+
+    @hook(AFTER_UPDATE, when="_assessment_state", changes_to=PUBLISHED)
+    def on_assessment_published(self):
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event and self.event.event_type == Event.EXAM:
+            IntegrationRegistry().dispatch(
+                "exam_participation_assessment_published",
+                course=self.event.course,
+                participation=self,
+            )
+
     @hook(AFTER_UPDATE, when="state", changes_to=TURNED_IN)
     def on_turn_in(self):
+        if self.event.event_type == Event.EXAM:
+            IntegrationRegistry().dispatch(
+                "exam_participation_turned_in",
+                course=self.event.course,
+                participation=self,
+            )
+
         if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
             get_gamification_engine().dispatch_action(
                 {

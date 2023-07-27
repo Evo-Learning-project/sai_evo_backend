@@ -10,6 +10,11 @@ class CourseAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(UserCourseEnrollment)
+class UserCourseEnrollmentAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(UserCoursePrivilege)
 class UserCoursePrivilegeAdmin(admin.ModelAdmin):
     pass

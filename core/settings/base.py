@@ -41,6 +41,11 @@ AUTH_USER_MODEL = "users.User"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
+BASE_BACKEND_URL = os.environ.get("BASE_BACKEND_URL")
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -56,6 +61,8 @@ INSTALLED_APPS = [
     "users",
     "course_tree",
     "content",
+    "integrations",
+    "integrations.classroom",
     "django_extensions",
     "nested_admin",
     "oauth2_provider",
@@ -73,6 +80,7 @@ INSTALLED_APPS = [
     "polymorphic_tree",
     "polymorphic",
     "mptt",
+    "django_celery_beat"
 ]
 
 
@@ -179,7 +187,7 @@ REST_FRAMEWORK = {
 }
 
 HASHID_FIELD_SALT = os.environ.get("HASHID_FIELD_SALT")
-
+FIELD_ENCRYPTION_KEY = os.environ.get("FIELD_ENCRYPTION_KEY", "")
 
 AUTHENTICATION_BACKENDS = (
     # Google OAuth2

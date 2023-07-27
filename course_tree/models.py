@@ -1,6 +1,9 @@
 import io
+import json
 import logging
 import os
+
+from django_celery_beat.models import PeriodicTask, ClockedSchedule
 
 from courses.models import Course, TimestampableModel
 from django.core.files.images import ImageFile
@@ -12,10 +15,30 @@ from polymorphic_tree.models import (
     PolymorphicTreeForeignKey,
     _get_base_polymorphic_model,
 )
+from integrations.mixins import IntegrationModelMixin
+from integrations.registry import IntegrationRegistry
 from users.models import User
 
 from course_tree.helpers import detect_content_type, get_file_thumbnail
 from course_tree.managers import CourseTreeNodeManager
+
+from django.conf import settings
+
+from .tasks import publish_scheduled_node
+
+from django.utils import timezone
+
+
+from django_lifecycle import (
+    LifecycleModel,
+    LifecycleModelMixin,
+    hook,
+    BEFORE_UPDATE,
+    AFTER_UPDATE,
+    AFTER_CREATE,
+    BEFORE_DELETE,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +134,46 @@ class BaseCourseTreeNode(PolymorphicMPTTModel, TimestampableModel):
                 pass
         return "Root " + str(self.pk)
 
+    def get_absolute_url(self):
+        return f"{settings.BASE_FRONTEND_URL}/courses/{self.get_course().pk}/material/{self.pk}/"
+
     def get_course(self) -> Course:
         return self.get_root().course
+
+
+class SchedulableModel(LifecycleModelMixin, models.Model):
+    schedule_publish_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def is_draft(self):
+        raise NotImplementedError
+
+    def publish(self):
+        raise NotImplementedError
+
+    @hook(AFTER_CREATE, when="schedule_publish_at", is_not=None)
+    @hook(AFTER_UPDATE, when="schedule_publish_at", has_changed=True, is_not=None)
+    def on_schedule(self):
+        if self.is_draft:
+            # create a clocked schedule for the value of `schedule_publish_at`
+            schedule, _ = ClockedSchedule.objects.get_or_create(
+                clocked_time=self.schedule_publish_at,
+            )
+            # schedule the task to publish the node
+            task_name = publish_scheduled_node.name
+            PeriodicTask.objects.create(
+                name=(
+                    f"{task_name}_{self.pk}_{self.schedule_publish_at.isoformat()}"
+                    f"_{timezone.localtime(timezone.now()).isoformat()}"
+                ),
+                clocked=schedule,
+                one_off=True,
+                task=task_name,
+                args=json.dumps([self._meta.model_name, self.pk]),
+            )
 
 
 class RootCourseTreeNode(BaseCourseTreeNode):
@@ -129,11 +190,15 @@ class TopicNode(BaseCourseTreeNode):
     name = models.CharField(max_length=200, blank=True)
 
 
-class LessonNode(BaseCourseTreeNode):
+class LessonNode(
+    SchedulableModel,
+    LifecycleModelMixin,
+    BaseCourseTreeNode,
+    IntegrationModelMixin,
+):
     class LessonState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
-        # SCHEDULED = 2
 
     title = models.CharField(max_length=200, blank=True)
     body = models.TextField(blank=True)
@@ -141,17 +206,69 @@ class LessonNode(BaseCourseTreeNode):
         default=LessonState.DRAFT, choices=LessonState.choices
     )
 
+    @property
+    def is_draft(self):
+        return self.state == self.LessonState.DRAFT
 
-class AnnouncementNode(BaseCourseTreeNode):
+    def publish(self):
+        self.state = self.LessonState.PUBLISHED
+        self.save()
+
+    @hook(
+        AFTER_UPDATE,
+        when="state",
+        changes_to=LessonState.PUBLISHED,
+        was=LessonState.DRAFT,
+    )
+    def on_publish(self):
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event:
+            IntegrationRegistry().dispatch(
+                "lesson_published",
+                course=self.get_course(),
+                user=self.creator,
+                lesson=self,
+            )
+
+
+class AnnouncementNode(
+    SchedulableModel,
+    LifecycleModelMixin,
+    BaseCourseTreeNode,
+    IntegrationModelMixin,
+):
     class AnnouncementState(models.IntegerChoices):
         DRAFT = 0
         PUBLISHED = 1
-        # SCHEDULED = 2
 
     body = models.TextField(blank=True)
     state = models.PositiveSmallIntegerField(
         default=AnnouncementState.DRAFT, choices=AnnouncementState.choices
     )
+
+    @property
+    def is_draft(self):
+        return self.state == self.AnnouncementState.DRAFT
+
+    def publish(self):
+        self.state = self.AnnouncementState.PUBLISHED
+        self.save()
+
+    @hook(
+        AFTER_UPDATE,
+        when="state",
+        changes_to=AnnouncementState.PUBLISHED,
+        was=AnnouncementState.DRAFT,
+    )
+    def on_publish(self):
+        fire_integration_event = getattr(self, "_fire_integration_event", False)
+        if fire_integration_event:
+            IntegrationRegistry().dispatch(
+                "announcement_published",
+                course=self.get_course(),
+                user=self.creator,
+                announcement=self,
+            )
 
 
 class PollNode(BaseCourseTreeNode):

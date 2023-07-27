@@ -240,6 +240,20 @@ class EventManager(models.Manager):
         return event
 
 
+class EventTemplateManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .models import EventTemplateRule
+
+        rules = kwargs.pop("rules", [])
+
+        template = super().create(*args, **kwargs)
+
+        for rule in rules:
+            EventTemplateRule.objects.create(template=template, **rule)
+
+        return template
+
+
 class EventTemplateRuleManager(models.Manager):
     def create(self, *args, **kwargs):
         """
@@ -250,13 +264,13 @@ class EventTemplateRuleManager(models.Manager):
         """
         from .models import EventTemplateRule, EventTemplateRuleClause
 
-        tags = kwargs.pop("tags", [])
+        clauses = kwargs.pop("clauses", [])
         exercises = kwargs.pop("exercises", [])
 
         rule = super().create(*args, **kwargs)
 
         if rule.rule_type == EventTemplateRule.ID_BASED:
-            if len(tags) > 0:
+            if len(clauses) > 0:
                 raise ValidationError("ID-based rules cannot have tag clauses")
             for exercise in exercises:
                 if exercise.parent is not None:
@@ -269,11 +283,14 @@ class EventTemplateRuleManager(models.Manager):
                 raise ValidationError(
                     "Tag-based rules cannot refer to specific exercises"
                 )
-            for tag_group in tags:
-                clause = EventTemplateRuleClause.objects.create(rule=rule)
-                clause.tags.set(tag_group)
+            for clause_dict in clauses:
+                tags = clause_dict.pop("tags", [])
+                clause = EventTemplateRuleClause.objects.create(
+                    rule=rule, **clause_dict
+                )
+                clause.tags.set(tags)
         else:  # fully random rule
-            if len(tags) > 0 or len(exercises) > 0:
+            if len(clauses) > 0 or len(exercises) > 0:
                 raise ValidationError(
                     "Fully random rules cannot have tag clauses or specify exercises"
                 )

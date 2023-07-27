@@ -1,5 +1,9 @@
 from .base import *
 
+import os
+
+# disable HTTPS requirement for oauth
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",

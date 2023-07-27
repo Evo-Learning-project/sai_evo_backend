@@ -1,9 +1,9 @@
 from courses.logic.privileges import check_privilege, MANAGE_COURSE_TREE_NODES
-from courses.policies import BaseAccessPolicy
+from courses.policies import BaseAccessPolicy, RequireCourseEnrollmentPolicy
 from .models import RootCourseTreeNode
 
 
-class BaseTreeAccessPolicy(BaseAccessPolicy):
+class BaseTreeAccessPolicy(RequireCourseEnrollmentPolicy):
     pass
 
 

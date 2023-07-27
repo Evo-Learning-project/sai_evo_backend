@@ -142,10 +142,10 @@ def common_setup(self):
         testcases=[{"code": "assert true"}, {"code": "assert false"}],
     )
 
-    self.participation = EventParticipation(
-        user=self.user,
-    )
-    self.participation.save()
+    # self.participation = EventParticipation(
+    #     user=self.user,
+    # )
+    # self.participation.save()
 
 
 class ModelPropertiesTestCase(TestCase):

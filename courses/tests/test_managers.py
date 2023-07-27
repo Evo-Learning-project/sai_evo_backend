@@ -614,21 +614,21 @@ class EventParticipationManagerTestCase(TestCase):
             },
             {
                 "rule_type": EventTemplateRule.TAG_BASED,
-                "tags": [
-                    [self.tag1, self.tag2],
+                "clauses": [
+                    {"tags": [self.tag1, self.tag2]},
                 ],
             },
             {
                 "rule_type": EventTemplateRule.TAG_BASED,
-                "tags": [
-                    [self.tag7],
-                    [self.tag2, self.tag3, self.tag4],
-                    [self.tag5, self.tag6],
+                "clauses": [
+                    {"tags": [self.tag7]},
+                    {"tags": [self.tag2, self.tag3, self.tag4]},
+                    {"tags": [self.tag5, self.tag6]},
                 ],
             },
             {
                 "rule_type": EventTemplateRule.TAG_BASED,
-                "tags": [[self.tag9], [self.tag8]],
+                "clauses": [{"tags": [self.tag9]}, {"tags": [self.tag8]}],
             },
         ]
 

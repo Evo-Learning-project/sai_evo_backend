@@ -1,4 +1,11 @@
 from social_core.backends.google import GoogleOAuth2
+from google_auth_oauthlib.flow import Flow
+
+from integrations.classroom.auth import get_flow
+
+import os
+
+from integrations.models import GoogleOAuth2Credentials
 
 
 class GoogleOAuth2Backend(GoogleOAuth2):
@@ -6,6 +13,7 @@ class GoogleOAuth2Backend(GoogleOAuth2):
         """Return True if the user should be allowed to authenticate"""
         emails = [email.lower() for email in self.setting("WHITELISTED_EMAILS", [])]
         domains = [domain.lower() for domain in self.setting("WHITELISTED_DOMAINS", [])]
+
         email = details.get("email")
         if email and (emails or domains):
             email = email.lower()

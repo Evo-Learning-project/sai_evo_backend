@@ -1,0 +1,2 @@
+class MissingIntegrationParameters(Exception):
+    pass

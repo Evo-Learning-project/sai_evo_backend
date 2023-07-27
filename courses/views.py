@@ -74,6 +74,7 @@ from .serializers import (
     CourseSerializer,
     EventParticipationSerializer,
     EventParticipationSlotSerializer,
+    EventParticipationSlotSubmissionSerializer,
     EventParticipationSummarySerializer,
     EventSerializer,
     EventTemplateRuleClauseSerializer,
@@ -181,6 +182,96 @@ class CourseViewSet(viewsets.ModelViewSet):
             ).data
         )
 
+    @action(methods=["put", "delete"], detail=True)
+    def my_enrollment(self, request, **kwargs):
+        course = self.get_object()
+        user_id = request.user.pk
+
+        if request.method == "PUT":
+            if request.user in course.enrolled_users.all():
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "ALREADY_ENROLLED"},
+                )
+            course.enroll_users([user_id], bulk=False)
+        else:
+            if request.user not in course.enrolled_users.all():
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={"detail": "NOT_ENROLLED"},
+                )
+            course.unenroll_users([user_id])
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=["get", "put", "delete"], detail=True)
+    def enrollments(self, request, **kwargs):
+        """
+        An endpoint used to enroll and unenroll users to a course.
+        Requires a `user_ids` or an `emails` field in the payload.
+
+        `user_ids` can be used to enroll existing users.
+
+        `email` can be used to enroll nonexisting users. Enrolling
+        users using this option will cause their account to be created first,
+        if it doesn't exist already using the email addresses in the payload.
+        """
+        course = self.get_object()
+
+        if request.method == "GET":
+            enrolled_users = course.enrolled_users.all()
+            serializer = UserSerializer(enrolled_users, many=True)
+            return Response(serializer.data)
+
+        user_ids = request.data.get("user_ids", [])
+        emails = request.data.get("emails", [])
+
+        if not user_ids and not emails:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if len(emails) > 0 and request.method == "DELETE":
+            """
+            Enrollment deletion can only be performed via user id's,
+            not their emails
+            """
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # query for emails referring to existing accounts and retrieve
+        # the corresponding user id's
+        existing_users_by_email = User.objects.filter(email__in=emails).values_list(
+            "id",
+            "email",
+        )
+
+        # add retrieved id's to user id list
+        user_ids.extend([i for (i, _) in existing_users_by_email])
+
+        # remove emails of users that had existing accounts from the list
+        # of emails to use for creating new accounts
+        emails = [
+            email
+            for email in emails
+            if email not in [e for (_, e) in existing_users_by_email]
+        ]
+
+        # create any accounts for which the email address has been given
+        creation_serializer = UserCreationSerializer(
+            data=[{"email": email} for email in emails], many=True
+        )
+        creation_serializer.is_valid(raise_exception=True)
+        users = creation_serializer.save()
+
+        try:
+            if request.method == "PUT":
+                course.enroll_users([*user_ids, *(u.pk for u in users)], request.user)
+            else:
+                course.unenroll_users(user_ids)
+        except Exception as e:
+            logger.error("Exception while (un)enrolling users: " + str(e))
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(detail=True, methods=["patch"])
     def privileges(self, request, **kwargs):
         """
@@ -273,6 +364,21 @@ class CourseViewSet(viewsets.ModelViewSet):
             ).data
             for e in exams
         }
+
+        # TODO consider using this instead of the above for performance reasons
+        # report = {
+        #     e.hashid: [
+        #         {
+        #             "id": p.pk,
+        #             "user": p.user_id,
+        #             "score": p.score,
+        #         }
+        #         for p in EventParticipation.objects.filter(event_id=e)
+        #         .with_prefetched_base_slots()
+        #         .select_related("event")
+        #     ]
+        #     for e in exams
+        # }
 
         return Response(report, status=status.HTTP_200_OK)
 
@@ -868,6 +974,7 @@ class EventParticipationViewSet(
         )
         .order_by("-begin_timestamp")
         .with_prefetched_base_slots()
+        # .select_related("event__course__googleclassroomcoursetwin")
     )
     permission_classes = [policies.EventParticipationPolicy]
     serializer_class = EventParticipationSerializer
@@ -1066,7 +1173,10 @@ class EventParticipationSlotViewSet(
         to display some fields ans whether to make them writable
         """
         # TODO improve this by checking for truthy values
-        force_student = "as_student" in self.request.query_params
+        force_student = "as_student" in self.request.query_params or self.action in (
+            "patch_submission",
+            "run",
+        )
         has_assess_privilege = ASSESS_PARTICIPATIONS in self.user_privileges
         has_manage_events_privilege = MANAGE_EVENTS in self.user_privileges
 
@@ -1080,6 +1190,7 @@ class EventParticipationSlotViewSet(
             "assessment_fields_write": has_assess_privilege,
             "submission_fields_read": True,
             # students can access the submission fields with write privileges
+            # TODO this is hacky - only allow writing using the patch_submission endpoint
             "submission_fields_write": force_student
             or not has_assess_privilege
             and not has_manage_events_privilege,
@@ -1103,6 +1214,20 @@ class EventParticipationSlotViewSet(
             .select_related("exercise", "participation", "participation__event")
             .prefetch_related("sub_slots", "selected_choices")
         )
+
+    def get_serializer_class(self):
+        if self.action in ("patch_submission", "run"):
+            return EventParticipationSlotSubmissionSerializer
+        return super().get_serializer_class()
+
+    @action(detail=True, methods=["patch"])
+    def patch_submission(self, request, **kwargs):
+        """
+        Endpoint for updating the submission of a slot - this is preferred over a
+        regular PATCH request because the only fields that can be updated are the
+        ones related to the submission
+        """
+        return self.partial_update(request, **kwargs)
 
     @action(detail=True, methods=["post"])
     def run(self, request, **kwargs):

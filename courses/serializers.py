@@ -1,4 +1,3 @@
-from django.db.models import Exists, OuterRef
 from rest_framework import serializers
 from content.models import VoteModel
 from courses.logic.participations import get_effective_time_limit
@@ -21,7 +20,7 @@ from courses.logic.presentation import (
     TAG_SHOW_PUBLIC_EXERCISES_COUNT,
     TESTCASE_SHOW_HIDDEN_FIELDS,
 )
-from users.models import User
+from integrations.serializers import IntegrationModelSerializer
 from users.serializers import UserSerializer
 from hashid_field.rest import HashidSerializerCharField
 
@@ -59,10 +58,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class HiddenFieldsModelSerializer(serializers.ModelSerializer):
-    pass
-
-
 class ConditionalFieldsMixin:
     def remove_unsatisfied_condition_fields(self):
         conditional_fields = self.Meta.conditional_fields
@@ -78,6 +73,7 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     creator = UserSerializer(read_only=True)
     public_exercises_count = serializers.SerializerMethodField()
     bookmarked = serializers.SerializerMethodField()
+    enrolled = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -90,6 +86,7 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "hidden",
             "public_exercises_count",
             "bookmarked",
+            "enrolled",
         ]
         read_only_fields = ["creator"]
         conditional_fields = {
@@ -109,6 +106,9 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
 
     def get_bookmarked(self, obj):
         return self.context.get("request").user in obj.bookmarked_by.all()
+
+    def get_enrolled(self, obj):
+        return self.context.get("request").user in obj.enrolled_users.all()
 
 
 class TagSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
@@ -494,7 +494,7 @@ class EventTemplateRuleClauseSerializer(serializers.ModelSerializer):
 
 
 class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
-    clauses = EventTemplateRuleClauseSerializer(many=True, read_only=True)
+    clauses = EventTemplateRuleClauseSerializer(many=True, required=False)
     _ordering = serializers.IntegerField(required=False)
     # TODO move this to a separate api view
     satisfying = serializers.SerializerMethodField()
@@ -520,6 +520,15 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFields
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.remove_unsatisfied_condition_fields()
+
+    def create(self, validated_data):
+        # allow for the creation of clauses together with the rule itself
+        return EventTemplateRule.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        # discard clauses, as they must be dealt with individually
+        validated_data.pop("clauses", [])
+        return super().update(instance, validated_data)
 
     def get_satisfying(self, obj):
         qs = Exercise.objects.filter(course=obj.template.event.course).satisfying(obj)
@@ -548,11 +557,11 @@ class EventTemplateSerializer(serializers.ModelSerializer):
         ).data
 
 
-class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
+class EventSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     id = HashidSerializerCharField(source_field="courses.Event.id", read_only=True)
     state = ReadWriteSerializerMethodField()
     locked_by = UserSerializer(read_only=True)
-    template = serializers.SerializerMethodField()
+    template = ReadWriteSerializerMethodField(required=False)
     participation_exists = serializers.SerializerMethodField()
     max_score = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True)
 
@@ -603,6 +612,27 @@ class EventSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             # method field that displays the effective time limit for
             # them taking into account exceptions
             self.fields["time_limit_seconds"] = serializers.SerializerMethodField()
+
+    def create(self, validated_data):
+        # the event manager will automatically create a template together with the event,
+        # but we can set its rules using the ones provided in the request
+        template = validated_data.pop("template", None)
+
+        event = super().create(validated_data)
+
+        if template is not None:
+            # use rule serializer to validate and create rules
+            # for the created event template
+            for rule in template.get("rules", []):
+                serializer = EventTemplateRuleSerializer(data=rule)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(template=event.template)
+        return event
+
+    def update(self, instance, validated_data):
+        # discard changes to template, as we don't allow it to be changed from the event
+        validated_data.pop("template", None)
+        return super().update(instance, validated_data)
 
     def get_time_limit_seconds(self, obj):
         return get_effective_time_limit(self.context["request"].user, obj)
@@ -794,9 +824,31 @@ class EventParticipationSlotSerializer(
         return text
 
 
-class EventParticipationSummarySerializer(
-    serializers.ModelSerializer, ConditionalFieldsMixin
-):
+class EventParticipationSlotSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventParticipationSlot
+        fields = [
+            "id",
+            "answer_text",
+            "selected_choices",
+            "attachment",
+            "execution_results",
+        ]
+
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(instance, *args, **kwargs)
+        # limit queryset of selected_choices to choices for the exercise in the slot
+        self.fields["selected_choices"] = serializers.PrimaryKeyRelatedField(
+            many=True,
+            queryset=(
+                ExerciseChoice.objects.all()
+                if instance is None
+                else ExerciseChoice.objects.filter(exercise_id=instance.exercise_id)
+            ),
+        )
+
+
+class EventParticipationSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = EventParticipation
         fields = [
@@ -804,15 +856,38 @@ class EventParticipationSummarySerializer(
             "user",
             "score",
         ]
+        read_only_fields = ["id", "user", "score"]
 
 
-class EventParticipationSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
+# class EventParticipationSlotSummarySerializer(serializers.ModelSerializer):
+#     pass
+
+
+# class EventParticipationListSerializer(serializers.ListSerializer):
+#     def update(self, instance, validated_data):
+#         # Maps for id->instance and id->data item.
+#         participation_mapping = {p.id: p for p in instance}
+#         data_mapping = {item["id"]: item for item in validated_data}
+
+#         # Perform creations and updates.
+#         ret = []
+#         for participation_id, data in data_mapping.items():
+#             participation = participation_mapping.get(participation_id, None)
+#             if participation is not None:
+#                 ret.append(self.child.update(participation, data))
+
+#         return ret
+
+
+class EventParticipationSerializer(IntegrationModelSerializer, ConditionalFieldsMixin):
     event = serializers.SerializerMethodField()  # to pass context
     slots = serializers.SerializerMethodField()  # to pass context
     user = UserSerializer(read_only=True)
+    # id = serializers.IntegerField() - required for custom list serializer to work
 
     class Meta:
         model = EventParticipation
+        # list_serializer_class = EventParticipationListSerializer
         fields = [
             "id",
             "state",
