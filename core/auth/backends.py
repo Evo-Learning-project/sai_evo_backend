@@ -9,56 +9,11 @@ from integrations.models import GoogleOAuth2Credentials
 
 
 class GoogleOAuth2Backend(GoogleOAuth2):
-    def do_auth(self, access_token, *args, **kwargs):
-        # ! TODO monkey patch convert-token endpoint to accept "code" in addition to "token"
-        code = self.data.get("code")
-        if code is not None:
-            """
-            An authorization code was provided - use it to fetch a pair of
-            access and refresh tokens, store them, and complete normal
-            authentication flow
-            https://developers.google.com/identity/protocols/oauth2/web-server#exchange-authorization-code
-            """
-            flow = Flow.from_client_config(
-                {
-                    "installed": {
-                        "client_id": os.environ.get("GOOGLE_INTEGRATION_CLIENT_ID"),
-                        "project_id": os.environ.get("GOOGLE_INTEGRATION_PROJECT_ID"),
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                        "client_secret": os.environ.get(
-                            "GOOGLE_INTEGRATION_CLIENT_SECRET"
-                        ),
-                    }
-                },
-                redirect_uri=os.environ.get("BASE_FRONTEND_URL"),
-                scopes=None,
-            )
-            print("FETCHING TOKEN", code)
-            response = flow.fetch_token(code=code)
-            print("RESPONSE", response)
-            access_token = response["access_token"]
-
-            # now that we've obtained an access token, complete normal flow
-            user = super().do_auth(access_token, *args, **kwargs)
-            print("USER IS", user)
-            # store user's credentials for offline use
-            GoogleOAuth2Credentials.create_from_auth_response(user, response)
-        else:
-            """
-            No authorization code provided, just an access token - use normal flow
-            """
-            user = super().do_auth(access_token, *args, **kwargs)
-
-        return user
-
     def auth_allowed(self, response, details):
         """Return True if the user should be allowed to authenticate"""
         emails = [email.lower() for email in self.setting("WHITELISTED_EMAILS", [])]
         domains = [domain.lower() for domain in self.setting("WHITELISTED_DOMAINS", [])]
 
-        print(emails, domains)
         email = details.get("email")
         if email and (emails or domains):
             email = email.lower()

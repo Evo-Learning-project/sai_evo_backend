@@ -558,6 +558,7 @@ class EventParticipationSlotPolicy(
             "condition_expression": "is_own_participation and can_update_participation",
         },
         {
+            # TODO should probably not allow full update
             "action": ["retrieve", "update", "partial_update", "patch_submission"],
             "principal": ["authenticated"],
             "effect": "deny",
