@@ -109,6 +109,7 @@ class Course(TimestampableModel):
         related_name="enrolled_courses",
         through="UserCourseEnrollment",
     )
+    _features = models.JSONField(default=dict, blank=True)
 
     objects = CourseManager()
 
@@ -120,6 +121,28 @@ class Course(TimestampableModel):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def get_default_course_features():
+        return {
+            "practice": True,
+            "exam_list": True,
+            "my_exams": True,
+            "material": True,
+            "leaderboard": True,
+            "bookmarked": True,
+        }
+
+    @property
+    def features(self):
+        return {
+            **self.get_default_course_features(),
+            **self._features,
+        }
+
+    @features.setter
+    def features(self, value):
+        self._features = value
 
     def enroll_users(self, user_ids, enrolled_by=None, bulk=True, **kwargs):
         from_integration = kwargs.get("from_integration", False)

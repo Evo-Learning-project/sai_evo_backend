@@ -87,6 +87,7 @@ class CourseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "public_exercises_count",
             "bookmarked",
             "enrolled",
+            "features",
         ]
         read_only_fields = ["creator"]
         conditional_fields = {

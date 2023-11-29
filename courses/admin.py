@@ -7,7 +7,7 @@ from courses.models import *
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ("features",)
 
 
 @admin.register(UserCourseEnrollment)
