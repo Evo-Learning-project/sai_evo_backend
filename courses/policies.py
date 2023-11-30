@@ -191,7 +191,7 @@ class EventPolicy(RequireCourseEnrollmentPolicy):
             "action": ["list"],
             "principal": ["authenticated"],
             "effect": "allow",
-            "condition_expression": "is_course_visible_to and has_teacher_privileges:manage_events",
+            "condition_expression": "is_course_visible_to",
         },
         {
             "action": ["create"],

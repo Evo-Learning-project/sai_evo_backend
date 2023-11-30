@@ -883,6 +883,13 @@ class Event(
         (TIME_LIMIT, "Time limit"),
     )
 
+    PRIVATE = 0
+    PUBLIC = 1
+    EVENT_VISIBILITY = (
+        (PRIVATE, "Private"),
+        (PUBLIC, "Public"),
+    )
+
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
@@ -918,7 +925,7 @@ class Event(
     users_allowed_past_closure = models.ManyToManyField(User, blank=True)
     exercises_shown_at_a_time = models.PositiveIntegerField(null=True, blank=True)
     allow_going_back = models.BooleanField(default=True)
-    access_rule = models.PositiveIntegerField(  # TODO positive small integer
+    access_rule = models.PositiveSmallIntegerField(
         choices=ACCESS_RULES, default=ALLOW_ACCESS
     )
     access_rule_exceptions = models.JSONField(default=list, blank=True)
@@ -928,6 +935,10 @@ class Event(
     time_limit_seconds = models.PositiveIntegerField(null=True, blank=True)
     time_limit_exceptions = models.JSONField(default=list, blank=True)
     randomize_rule_order = models.BooleanField(default=False)
+
+    visibility = models.PositiveSmallIntegerField(
+        choices=EVENT_VISIBILITY, default=PRIVATE
+    )
 
     objects = EventManager()
 
