@@ -451,6 +451,12 @@ class EventParticipationPolicy(
                 or has_teacher_privileges:assess_participations",
         },
         {
+            "action": ["destroy"],
+            "principal": ["authenticated"],
+            "effect": "allow",
+            "condition_expression": "is_own_participation and is_retriable_event",
+        },
+        {
             "action": ["go_forward", "go_back"],
             "principal": ["authenticated"],
             "effect": "allow",
@@ -472,6 +478,10 @@ class EventParticipationPolicy(
             "condition_expression": "not can_go_forward",
         },
     ]
+
+    def is_retriable_event(self, request, view, action):
+        participation = self.get_participation(view)
+        return participation.event.retriability == Event.RETRIABLE
 
     def requested_own_participations(self, request, view, action):
         """
