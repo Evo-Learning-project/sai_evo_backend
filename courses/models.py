@@ -890,6 +890,13 @@ class Event(
         (RETRIABLE, "Retriable"),
     )
 
+    UNLISTED = 0
+    PUBLIC = 1
+    EVENT_VISIBILITY = (
+        (UNLISTED, "Unlisted"),
+        (PUBLIC, "Public"),
+    )
+
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
@@ -925,7 +932,7 @@ class Event(
     users_allowed_past_closure = models.ManyToManyField(User, blank=True)
     exercises_shown_at_a_time = models.PositiveIntegerField(null=True, blank=True)
     allow_going_back = models.BooleanField(default=True)
-    access_rule = models.PositiveIntegerField(  # TODO positive small integer
+    access_rule = models.PositiveSmallIntegerField(
         choices=ACCESS_RULES, default=ALLOW_ACCESS
     )
     access_rule_exceptions = models.JSONField(default=list, blank=True)
@@ -938,6 +945,10 @@ class Event(
 
     retriability = models.PositiveSmallIntegerField(
         choices=RETRIABILITY_RULES, default=NOT_RETRIABLE
+    )
+
+    visibility = models.PositiveSmallIntegerField(
+        choices=EVENT_VISIBILITY, default=UNLISTED
     )
 
     objects = EventManager()

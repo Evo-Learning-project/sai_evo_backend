@@ -1,5 +1,6 @@
 import os
 from asyncio.log import logger
+from django.db.models import Q
 
 from coding.helpers import get_code_execution_results, send_jobe_request
 from demo_mode.logic import is_demo_mode
@@ -845,7 +846,8 @@ class EventViewSet(
     def get_queryset(self):
         qs = super().get_queryset()
         if MANAGE_EVENTS not in self.user_privileges:
-            qs = qs.exclude(_event_state=Event.DRAFT)
+            # TODO double check whether we should exclude other states as well
+            qs = qs.exclude(Q(_event_state=Event.DRAFT) | ~Q(visibility=Event.PUBLIC))
         return qs
 
     def get_serializer_context(self):
