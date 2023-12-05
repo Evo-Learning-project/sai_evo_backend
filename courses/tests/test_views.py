@@ -789,6 +789,7 @@ class EventViewSetTestCase(BaseTestCase):
         response = self.client.get(
             f"/courses/{course_pk}/events/",
         )
+        # TODO show that the user can only retrieve public exams
         self.assertEquals(response.status_code, 403)
 
         draft_event_pk = Event.objects.create(

@@ -61,7 +61,9 @@ class IntegrationRegistry:
         # NOTE currently, the only integration available is the Google Classroom one, so
         # this is hard coded. in the future, we may dynamically load available integrations
         # TODO this potentially causes a lot of queries - find a way that exploits prefetching
-        if GoogleClassroomCourseTwin.objects.filter(course=course).exists():
+        if GoogleClassroomCourseTwin.objects.filter(
+            course=course, enabled=True
+        ).exists():
             ret.append(GoogleClassroomIntegration)
 
         return ret

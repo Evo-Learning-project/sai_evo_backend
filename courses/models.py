@@ -883,10 +883,10 @@ class Event(
         (TIME_LIMIT, "Time limit"),
     )
 
-    PRIVATE = 0
+    UNLISTED = 0
     PUBLIC = 1
     EVENT_VISIBILITY = (
-        (PRIVATE, "Private"),
+        (UNLISTED, "Unlisted"),
         (PUBLIC, "Public"),
     )
 
@@ -937,7 +937,7 @@ class Event(
     randomize_rule_order = models.BooleanField(default=False)
 
     visibility = models.PositiveSmallIntegerField(
-        choices=EVENT_VISIBILITY, default=PRIVATE
+        choices=EVENT_VISIBILITY, default=UNLISTED
     )
 
     objects = EventManager()
