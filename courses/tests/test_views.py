@@ -783,14 +783,16 @@ class EventViewSetTestCase(BaseTestCase):
         UserCourseEnrollment.objects.create(user=self.student1, course=course)
         UserCourseEnrollment.objects.create(user=self.student2, course=course)
 
-        # Show an unprivileged user cannot access the list of events of a course,
-        # nor retrieve an event which is in draft state
+        # Show an unprivileged user cannot access events that are UNLISTED,
+        # nor retrieve a single event which is in draft state
         self.client.force_authenticate(user=self.student1)
         response = self.client.get(
             f"/courses/{course_pk}/events/",
         )
         # TODO show that the user can only retrieve public exams
-        self.assertEquals(response.status_code, 403)
+        self.assertEquals(response.status_code, 200)
+        # response should be empty
+        self.assertEquals(len(response.json()), 0)
 
         draft_event_pk = Event.objects.create(
             **{**events.exam_1_all_at_once, "state": Event.DRAFT}, course=course
@@ -809,6 +811,25 @@ class EventViewSetTestCase(BaseTestCase):
         )
         self.assertEquals(response.status_code, 201)
         exam_pk = response.json()["id"]
+
+        Event.objects.filter(pk=exam_pk).update(visibility=Event.PUBLIC)
+        # this event will now show up in the response
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(
+            f"/courses/{course_pk}/events/",
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.json()), 1)
+        self.assertEquals(response.json()[0]["id"], exam_pk)
+
+        Event.objects.filter(pk=exam_pk).update(visibility=Event.UNLISTED)
+        # this event will now not show up in the response
+        self.client.force_authenticate(user=self.student1)
+        response = self.client.get(
+            f"/courses/{course_pk}/events/",
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.json()), 0)
 
         # Show an unprivileged user cannot create events which are not of type SELF_SERVICE_PRACTICE
         self.client.force_authenticate(user=self.student1)
