@@ -1,11 +1,8 @@
 import os
-from asyncio.log import logger
-from django.db.models import Q
 
 from coding.helpers import get_code_execution_results, send_jobe_request
 from demo_mode.logic import is_demo_mode
-from django.db import IntegrityError, transaction
-from django.db.models import Prefetch
+from django.db import IntegrityError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -101,6 +98,10 @@ from .view_mixins import (
     RestrictedListMixin,
     ScopeQuerySetByCourseMixin,
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -847,7 +848,10 @@ class EventViewSet(
         qs = super().get_queryset()
         if MANAGE_EVENTS not in self.user_privileges:
             # TODO double check whether we should exclude other states as well
-            qs = qs.exclude(Q(_event_state=Event.DRAFT) | ~Q(visibility=Event.PUBLIC))
+            qs = qs.exclude(_event_state=Event.DRAFT)
+            if self.action == "list":
+                qs = qs.filter(visibility=Event.PUBLIC)
+
         return qs
 
     def get_serializer_context(self):
