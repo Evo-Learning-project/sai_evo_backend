@@ -394,6 +394,7 @@ class EventParticipationPolicyMixin:
 
         # check that there is time left for the participation
         if is_time_up(participation):
+            # TODO set a message
             return False
 
         event = participation.event

@@ -883,6 +883,13 @@ class Event(
         (TIME_LIMIT, "Time limit"),
     )
 
+    NOT_RETRIABLE = 0
+    RETRIABLE = 1
+    RETRIABILITY_RULES = (
+        (NOT_RETRIABLE, "Not retriable"),
+        (RETRIABLE, "Retriable"),
+    )
+
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
@@ -928,6 +935,10 @@ class Event(
     time_limit_seconds = models.PositiveIntegerField(null=True, blank=True)
     time_limit_exceptions = models.JSONField(default=list, blank=True)
     randomize_rule_order = models.BooleanField(default=False)
+
+    retriability = models.PositiveSmallIntegerField(
+        choices=RETRIABILITY_RULES, default=NOT_RETRIABLE
+    )
 
     objects = EventManager()
 
