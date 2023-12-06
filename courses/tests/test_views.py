@@ -1255,6 +1255,7 @@ class EventParticipationViewSetTestCase(BaseTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+        # TODO show a user can delete their own participation in a retriable event
         """
         Show failure to update an assessment field as a student
         """
