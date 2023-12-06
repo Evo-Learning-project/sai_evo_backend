@@ -897,6 +897,13 @@ class Event(
         (PUBLIC, "Public"),
     )
 
+    SHOW_ASSESSMENT_AFTER_PUBLISHING = 0
+    SHOW_ASSESSMENT_IMMEDIATELY = 1
+    SHOW_ASSESSMENT_RULES = (
+        (SHOW_ASSESSMENT_AFTER_PUBLISHING, "After publishing"),
+        (SHOW_ASSESSMENT_IMMEDIATELY, "Immediately"),
+    )
+
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
@@ -949,6 +956,10 @@ class Event(
 
     visibility = models.PositiveSmallIntegerField(
         choices=EVENT_VISIBILITY, default=UNLISTED
+    )
+
+    show_assessment_rule = models.PositiveSmallIntegerField(
+        choices=SHOW_ASSESSMENT_RULES, default=SHOW_ASSESSMENT_AFTER_PUBLISHING
     )
 
     objects = EventManager()
@@ -1362,7 +1373,10 @@ class EventParticipation(LifecycleModelMixin, models.Model, IntegrationModelMixi
 
     @property
     def assessment_visibility(self):
-        if self.event.event_type == Event.SELF_SERVICE_PRACTICE:
+        if (
+            self.event.event_type == Event.SELF_SERVICE_PRACTICE
+            or self.event.show_assessment_rule == Event.SHOW_ASSESSMENT_IMMEDIATELY
+        ):
             return (
                 self.PUBLISHED
                 if self.state == EventParticipation.TURNED_IN
