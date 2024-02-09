@@ -358,6 +358,8 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     text = serializers.CharField(trim_whitespace=False, allow_blank=True)
     locked_by = UserSerializer(read_only=True)
     max_score = serializers.SerializerMethodField()
+    # handy shortcut for creating exercises with a solution through the API
+    solution = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Exercise
@@ -375,7 +377,7 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
             "child_weight",
             "max_score",
             "all_or_nothing",
-            # "solution",
+            "solution",
         ]
 
         conditional_fields = {
@@ -428,7 +430,16 @@ class ExerciseSerializer(serializers.ModelSerializer, ConditionalFieldsMixin):
     def create(self, validated_data):
         public_tags = validated_data.pop("public_tags", [])
         private_tags = validated_data.pop("private_tags", [])
+        solution = validated_data.pop("solution", None)
         instance = Exercise.objects.create(**validated_data)
+
+        if solution:
+            solution = {
+                "content": solution,
+                "exercise_id": instance.pk,
+                "state": ExerciseSolution.PUBLISHED,
+            }
+            ExerciseSolution.objects.create(**solution)
 
         for tag_name in public_tags:
             tag, _ = Tag.objects.get_or_create(
@@ -536,11 +547,13 @@ class EventTemplateRuleSerializer(serializers.ModelSerializer, ConditionalFields
 
         return {
             "count": qs.count(),
-            "example": ExerciseSerializer(
-                qs.first(), context={EXERCISE_SHOW_HIDDEN_FIELDS: True}
-            ).data
-            if qs.count() > 0
-            else None,
+            "example": (
+                ExerciseSerializer(
+                    qs.first(), context={EXERCISE_SHOW_HIDDEN_FIELDS: True}
+                ).data
+                if qs.count() > 0
+                else None
+            ),
         }
 
 
